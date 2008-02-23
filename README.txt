@@ -18,17 +18,28 @@ Description
   operation implied by the request).  This is also the domain of the
   WSGI application.
  
-  XXX describe relationship to AuthKit
+  It attemtps to reuse implementations from AuthKit for some of its
+  functionality.
 
 Middleware Responsibilities
 
-  repoze.pam's middleware has one major function on authentication
-  success: it puts a REMOTE_USER environment variable into the WSGI
-  environment and allows the request to continue to a downstream WSGI
-  application.
+  repoze.pam's middleware has one major function on ingress: it
+  conditionally places identification and authorization information
+  (including a REMOTE_USER value) into the WSGI environment and allows
+  the request to continue to a downstream WSGI application.
 
-  repoze.pam's middleware has one major function on authentication
-  failure: it challenges the user for credentials.
+  repoze.pam's middleware has one major function on egress: it
+  examines the WSGI environment (or catches an exception) and
+  conditionally challenges for credentials.
+
+PasteDeploy Configuration
+
+  repoze.pam is designed to be used within a PasteDeploy configuration
+  file:
+
+    [filter:pam]
+    use = egg:repoze.pam#pam
+    config_file = %(here)s/pam.ini
 
 Plugins
 
@@ -41,7 +52,8 @@ Plugins
   values in a repoze.pam-specific configuration file.
 
   repoze.pam consults the set of configured plugins when it intercepts
-  a WSGI request.
+  a WSGI request, and gives some subset of them a chance to influence
+  what is added to the WSGI environment.
 
 Plugin Types
 
@@ -65,7 +77,9 @@ Plugin Types
     You can register a plugin as willing to act as an "extractor".  An
     extractor examines the WSGI environment and attempts to extract
     credentials from the environment.  These credentials are used by
-    authenticator plugins to perform authentication.
+    authenticator plugins to perform authentication.  These
+    credentials are conditionally placed into the WSGI environment for
+    consumption by downstream applications, as well.
 
   Authenticator Plugins
 
@@ -82,17 +96,11 @@ Plugin Types
   Challenger Plugins
 
     You may register a plugin as willing to act as an "challenger".
-    Challenger plugins are responsible for initiating a "challenge" to
-    the requesting user.  Challenger plugins typically simply raise an
-    exception which is meant to be interpreted by upstream middleware.
-    The upstream middleware is assumed to be configured to catch the
-    exception and perform the actual challenge, which might consist of
-    displaying a form or presenting the user with a basic or digest
-    authentication dialog.
-
-    XXX we almost certainly need to do allow it to do more work.
-    making upstream middleware responsible for performing the
-    challenge is a punt.
+    Challenger plugins are responsible for initiating a challeng" to
+    the requesting user.  Challenger plugins catch specific exceptions
+    raised by downstream applications and tun the exception into a
+    challenge, which might consist of displaying a form or presenting
+    the user with a basic or digest authentication dialog.
 
 Configuration File Example
 
@@ -104,7 +112,7 @@ Configuration File Example
   authenticators, challengers, and extractors sections refer to these
   plugins to form a site configuration.
 
-Example Configuration File
+Example repoze.pam Configuration File
 
   Below is an example of a configuration file that might be used to
   configure the repoze.pam middleware.  A set of plugins are defined,
