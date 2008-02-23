@@ -50,8 +50,8 @@ setup(name='repoze.pam',
       include_package_data=True,
       namespace_packages=['repoze'],
       zip_safe=False,
-      tests_require = [],
-      install_requires=[],
+      tests_require = ['Paste', 'zope.interface'],
+      install_requires=['Paste', 'zope.interface'],
       test_suite="repoze.pam.tests",
       entry_points = """\
       [paste.filter_app_factory]
