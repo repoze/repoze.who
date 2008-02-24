@@ -13,12 +13,11 @@ class BasicAuthPlugin(object):
 
     implements(IChallengerPlugin, IExtractorPlugin)
     
-    def __init__(self, realm, requests):
+    def __init__(self, realm):
         self.realm = realm
-        self.requests = requests
 
     # IChallengerPlugin
-    def challenge(self, environ):
+    def challenge(self, environ, request_classifier, headers, exception):
         head = WWW_AUTHENTICATE.tuples('Basic realm="%s"' % self.realm)
         raise HTTPUnauthorized(headers=head)
 
@@ -46,5 +45,7 @@ class BasicAuthPlugin(object):
 
         return {}
 
-def make_plugin(pam_conf, realm, requests):
-    return BasicAuthPlugin(realm, requests)
+def make_plugin(pam_conf, realm='basic'):
+    plugin = BasicAuthPlugin(realm)
+    return plugin
+

@@ -3,7 +3,7 @@ from zope.interface import implements
 from repoze.pam.interfaces import IAuthenticatorPlugin
 from repoze.pam.utils import resolveDotted
 
-class HTPasswdAuthenticator(object):
+class HTPasswdPlugin(object):
 
     implements(IAuthenticatorPlugin)
 
@@ -43,8 +43,12 @@ def check_crypted(password, hashed):
     salt = hashed[:2]
     return hashed == crypt(password, salt)
 
-def make_plugin(pam_conf, filename, check_fn):
+def make_plugin(pam_conf, filename=None, check_fn=None):
+    if filename is None:
+        raise ValueError('filename must be specified')
+    if check_fn is None:
+        raise ValueError('check_fn must be specified')
     check = resolveDotted(check_fn)
-    return HTPasswdAuthenticator(filename, check)
+    return HTPasswdPlugin(filename, check)
 
     

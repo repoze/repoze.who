@@ -1,5 +1,29 @@
 from zope.interface import Interface
 
+class IRequestClassifier(Interface):
+    """ On ingress: classify a request.
+
+    This interface is responsible for returning a string representing
+    a classification name based on introspection of the WSGI
+    environment (environ).
+    """
+    def __call__(environ):
+        """ Return a string representing the classification of this
+        request. """
+
+class IResponseClassifier(Interface):
+    """ On egress: classify a response.
+
+    This interface is responsible for returning a string representing
+    a classification name based on introspection of the ingress
+    classification, the WSGI environment (environ), the headers
+    returned in the response (headers), or the exception raised by a
+    downstream application.
+    """
+    def __call__(environ, request_classification, headers, exception):
+        """ Return a string representing the classification of this
+        request. """
+
 class IExtractorPlugin(Interface):
 
     """ On ingress: Extract credentials from the WSGI environment.
@@ -20,6 +44,9 @@ class IExtractorPlugin(Interface):
 
         o Return an empty mapping to indicate that the plugin found no
           appropriate credentials.
+
+        o Only extraction plugins which match one of the the current
+          request's classifications will be asked to perform extraction.
         """
     
 class IAuthenticatorPlugin(Interface):
@@ -38,72 +65,26 @@ class IAuthenticatorPlugin(Interface):
           be the value placed into the REMOTE_USER key in the environ
           to be used by downstream applications.
 
-        o If the credentials cannot be authenticated, return None.
+        o If the credentials cannot be authenticated, None will be returned.
         """
 
 class IChallengerPlugin(Interface):
 
-    """ On ingress: Initiate a challenge to the user to provide credentials.
+    """ On egress: Initiate a challenge to the user to provide credentials.
 
         o 'environ' is the WSGI environment.
 
-        o Challenge plugins have an attribute 'protocols' representing
-          the protocols the plugin operates under, defaulting to None.
-
-        o Only challenge plugins which match the current request's
-          protocol will be asked to perform a challenge.
-
-        o If no challenge plugins satisfy the current request's
-          protocol, a default exception will be raised.
-
-        o If no challenge plugins themselves raise an exception, a
-          default exception will be raised.
+        o Only challenge plugins which match one of the the current
+          request's classifications will be asked to perform a
+          challenge.
     """
 
-    def challenge(environ):
+    def challenge(environ, request_classifier, headers, exception):
 
-        """ Examine the environ and perform one of the following two
-        actions:
-
-        - Raise an exception which can be interpreted by
-          left-hand-side middleware should gather credentials
-          (present a form, show a basic auth dialog).
-
-        - Do nothing.
+        """ Examine the values passed in and perform an arbitrary action
+        (usually mutating environ or raising an exception) to cause a
+        challenge to be raised to the user.
 
         The return value of this method is ignored.
-        """
-
-class ICredentialsUpdaterPlugin(Interface):
-
-    """ On egress:  user has changed her password.
-
-    This interface is not responsible for the actual password change,
-    it is used after a successful password change event in a
-    downstream application.
-
-    It is called when the repoze.pam middleware intercepts a
-    'repoze.pam.update' key in the WSGI environ during egress.
-    """
-
-    def update(environ, login, new_password):
-
-        """ Scribble as appropriate.
-        """
-
-class ILogoutPlugin(Interface):
-
-    """ On egress:  user has logged out.
-
-    It is called when the repoze.pam middleware intercepts an
-    ResetCredentialsException from downstream middleware.
-
-    It is called when the repoze.pam middleware intercepts a
-    'repoze.pam.reset' key in the WSGI environ during egress.
-    """
-
-    def logout(environ):
-
-        """ Scribble as appropriate.
         """
 
