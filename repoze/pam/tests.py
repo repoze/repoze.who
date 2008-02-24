@@ -197,7 +197,7 @@ class TestMiddleware(Base):
         self.assertEqual(classification, 'browser')
         self.assertEqual(environ['REMOTE_USER'], 'chris')
         self.assertEqual(environ['repoze.pam.credentials'],
-                     {'login':'chris','password':'password','userid':'chris'})
+                         {'login':'chris','password':'password'})
         
     def test_on_ingress_success_noaddcredentials(self):
         environ = self._makeEnviron()
@@ -208,6 +208,17 @@ class TestMiddleware(Base):
         self.assertEqual(environ['REMOTE_USER'], 'chris')
         self.failIf(environ.has_key('repoze.pam.credentials'))
 
+    def test_on_ingress_nocredentials(self):
+        environ = self._makeEnviron()
+        from repoze.pam.interfaces import IExtractorPlugin
+        registry = {
+            IExtractorPlugin:[DummyNoResultsExtractor()],
+            }
+        mw = self._makeOne(registry=registry)
+        classification = mw.on_ingress(environ)
+        self.assertEqual(classification, 'browser')
+        self.assertEqual(environ.get('REMOTE_USER'), None)
+        self.assertEqual(environ['repoze.pam.credentials'], {})
 
 class TestBasicAuthPlugin(Base):
     def _getTargetClass(self):
@@ -350,21 +361,21 @@ class TestHTPasswdPlugin(Base):
         result = plugin.authenticate(environ, creds)
         self.assertEqual(result, True)
 
-    def test_check_crypted(self):
+    def test_crypt_check(self):
         from crypt import crypt
         salt = '123'
         hashed = crypt('password', salt)
-        from repoze.pam.plugins.htpasswd import check_crypted
-        self.assertEqual(check_crypted('password', hashed), True)
-        self.assertEqual(check_crypted('notpassword', hashed), False)
+        from repoze.pam.plugins.htpasswd import crypt_check
+        self.assertEqual(crypt_check('password', hashed), True)
+        self.assertEqual(crypt_check('notpassword', hashed), False)
 
     def test_factory(self):
         from repoze.pam.plugins.htpasswd import make_plugin
-        from repoze.pam.plugins.htpasswd import check_crypted
+        from repoze.pam.plugins.htpasswd import crypt_check
         plugin = make_plugin({}, 'foo',
-                             'repoze.pam.plugins.htpasswd:check_crypted')
+                             'repoze.pam.plugins.htpasswd:crypt_check')
         self.assertEqual(plugin.filename, 'foo')
-        self.assertEqual(plugin.check, check_crypted)
+        self.assertEqual(plugin.check, crypt_check)
         
 
 class TestDefaultRequestClassifier(Base):

@@ -24,7 +24,7 @@ Description
 Middleware Responsibilities
 
   repoze.pam's middleware has one major function on ingress: it
-  conditionally places identification and authorization information
+  conditionally places identification and authentication information
   (including a REMOTE_USER value) into the WSGI environment and allows
   the request to continue to a downstream WSGI application.
 
@@ -50,9 +50,9 @@ Classifiers
   extraction and authentication.  A request from a browser might be
   classified a different way that a request from an XML-RPC client.
   repoze.pam uses request classifiers to decide which other components
-  to consult during subsequent identification, authorization, and
-  challenge steps.  Extraction and authenticator plugins are free to
-  advertise themselves as willing to participate in identification and
+  to consult during subsequent identification and authentication,
+  steps.  Extraction and authenticator plugins are free to advertise
+  themselves as willing to participate in identification and
   authorization for a request based on this classification.
 
   Response classification happens on middleware egress, before
@@ -222,8 +222,8 @@ Example repoze.pam Configuration File
     encryptpwd = egg:repoze.pam#shaencrypt
 
     [classifiers]
-    ingress_classifier = egg:repoze.pam#defaultingressclassifier
-    egress_classifier = egg:repoze.pam#defaultegressclassifier
+    request_classifier = egg:repoze.pam#defaultrequestclassifier
+    response_classifier = egg:repoze.pam#defaultresponseclassifier
 
     [extractors]
     # plugin_name:ingressclassifier_name:.. or just plugin_name (good for any)

@@ -20,11 +20,12 @@ class PluggableAuthenticationMiddleware(object):
         classification = self.request_classifier(environ)
         credentials = self.extract(environ, classification)
 
+        userid = None
+
         if credentials:
             userid = self.authenticate(environ, credentials, classification)
 
         if self.add_credentials:
-            credentials['userid'] = userid
             environ['repoze.pam.credentials'] = credentials
 
         if userid:
@@ -75,7 +76,7 @@ class PluggableAuthenticationMiddleware(object):
     def _match_classifier(self, plugins, classifier):
         result = []
         for plugin in plugins:
-            plugin_classifiers = getattr(plugin, 'classifiers', set())
+            plugin_classifiers = getattr(plugin, 'classifiers', None)
             if not plugin_classifiers: # good for any
                 result.append(plugin)
                 continue
@@ -96,12 +97,13 @@ def make_test_middleware(app, global_conf):
     basicauth = BasicAuthPlugin('repoze.pam')
     basicauth.classifiers = set() # good for any
     from StringIO import StringIO
+    from repoze.pam.plugins.htpasswd import crypt_check
     io = StringIO('chrism:aajfMKNH1hTm2\n')
-    htpasswd = HTPasswdPlugin(io)
+    htpasswd = HTPasswdPlugin(io, crypt_check)
     htpasswd.classifiers = set() # good for any
-    registry = make_registry((htpasswd,), (basicauth,), (basicauth,))
+    registry = make_registry((basicauth,), (htpasswd,), (basicauth,))
     class DummyClassifier:
-        def classify(self, *arg, **kw):
+        def __call__(self, *arg, **kw):
             return None
     classifier = DummyClassifier()
     middleware = PluggableAuthenticationMiddleware(app, registry,

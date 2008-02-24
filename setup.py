@@ -56,6 +56,7 @@ setup(name='repoze.pam',
       entry_points = """\
       [paste.filter_app_factory]
       pam = repoze.pam.middleware:make_middleware
+      test = repoze.pam.middleware:make_test_middleware
       """
       )
 

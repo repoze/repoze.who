@@ -38,7 +38,7 @@ class HTPasswdPlugin(object):
                 return self.check(password, hashed)
         return False
 
-def check_crypted(password, hashed):
+def crypt_check(password, hashed):
     from crypt import crypt
     salt = hashed[:2]
     return hashed == crypt(password, salt)
