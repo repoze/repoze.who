@@ -2,27 +2,36 @@ from zope.interface import Interface
 
 class IRequestClassifier(Interface):
     """ On ingress: classify a request.
-
-    This interface is responsible for returning a string representing
-    a classification name based on introspection of the WSGI
-    environment (environ).
     """
     def __call__(environ):
-        """ Return a string representing the classification of this
-        request. """
+        """ environ -> request classifier string
+
+        This interface is responsible for returning a string
+        value representing a request classification.
+
+        o 'environ' is the WSGI environment.
+        """
 
 class IResponseClassifier(Interface):
     """ On egress: classify a response.
-
-    This interface is responsible for returning a string representing
-    a classification name based on introspection of the ingress
-    classification, the WSGI environment (environ), the headers
-    returned in the response (headers), or the exception raised by a
-    downstream application.
     """
-    def __call__(environ, request_classification, headers, exception):
-        """ Return a string representing the classification of this
-        request. """
+    def __call__(environ, request_classification, status, headers):
+        """ args -> response classifier string
+
+        This interface is responsible for returning a string representing
+        a response classification.
+
+        o 'environ' is the WSGI environment.
+
+        o 'request_classification' is the classification returned during
+          ingress by the request classifier.
+
+        o 'status' is the status written into start_response by
+          the downstream application.
+
+        o 'headers' is the headers tuple written into start_response
+          by the downstream application.
+          """
 
 class IExtractorPlugin(Interface):
 
@@ -48,7 +57,34 @@ class IExtractorPlugin(Interface):
         o Only extraction plugins which match one of the the current
           request's classifications will be asked to perform extraction.
         """
-    
+
+class IPostExtractorPlugin(Interface):
+    """ On ingress: allow the plugin to have a chance to influence the
+    environment once credentials are established and return extra
+    headers that will be set in the eventual response.
+
+    Each post-extractor matching the request classification is called
+    unconditionally after extraction.
+    """
+
+    def post_extract(environ, credentials, extractor):
+        """ args -> [ (header-name, header-value), ..] | None
+
+        o 'environ' is the WSGI environment.
+
+        o credentials are the credentials that were extracted by
+          repoze.pam during the extraction step.
+
+        o 'extractor' is the plugin instance that provided the
+          credentials.  If no plugin instance provided credentials to
+          repoze.pam, this will be None.
+
+        The return value should be a list of tuples, where each tuple is
+        in the form (header-name, header-value), e.g.
+        [ ('Set-Cookie', 'cookie_name=foo; Path=/') ] or None if
+        no headers should be set.
+        """
+
 class IAuthenticatorPlugin(Interface):
 
     """ On ingress: Map credentials to a user ID.
@@ -70,21 +106,29 @@ class IAuthenticatorPlugin(Interface):
 
 class IChallengerPlugin(Interface):
 
-    """ On egress: Initiate a challenge to the user to provide credentials.
+    """ On egress: Conditionally initiate a challenge to the user to
+        provide credentials.
+
+        Only challenge plugins which match one of the the current
+        response's classifications will be asked to perform a
+        challenge.
+    """
+
+    def challenge(environ, status, headers):
+        """ args -> WSGI application or None
 
         o 'environ' is the WSGI environment.
 
-        o Only challenge plugins which match one of the the current
-          request's classifications will be asked to perform a
-          challenge.
-    """
+        o 'status' is the status written into start_response by the
+          downstream application.
 
-    def challenge(environ, request_classifier, headers, exception):
+        o 'headers' is the headers tuple written into start_response by the
+          downstream application.
 
-        """ Examine the values passed in and perform an arbitrary action
-        (usually mutating environ or raising an exception) to cause a
-        challenge to be raised to the user.
-
-        The return value of this method is ignored.
+        Examine the values passed in and return a WSGI application
+        (a callable which accepts environ and start_response as its
+        two positional arguments, ala PEP 333) which causes a
+        challenge to be performed.  Return None to forego performing a
+        challenge.
         """
 

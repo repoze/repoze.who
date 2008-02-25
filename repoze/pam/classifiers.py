@@ -53,7 +53,7 @@ class DefaultRequestClassifier(object):
     
 class DefaultResponseClassifier(object):
     implements(IResponseClassifier)
-    def __call__(self, environ, request_classification, headers, exception):
+    def __call__(self, environ, request_classification, status, headers):
         """ By default, return the request classification """
         return request_classification
     
