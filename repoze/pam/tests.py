@@ -320,8 +320,23 @@ class TestBasicAuthPlugin(Base):
         result = plugin.forget(environ, creds)
         self.assertEqual(result, [('WWW-Authenticate', 'Basic realm="realm"')] )
 
-    # XXX need challenge tests
+    def test_challenge_forgetheaders_includes(self):
+        plugin = self._makeOne('realm')
+        creds = {'login':'foo', 'password':'password'}
+        environ = self._makeEnviron()
+        forget = plugin._get_wwwauth()
+        result = plugin.challenge(environ, '401 Unauthorized', [], forget)
+        self.assertEqual(result.headers, forget)
         
+    def test_challenge_forgetheaders_omits(self):
+        plugin = self._makeOne('realm')
+        creds = {'login':'foo', 'password':'password'}
+        environ = self._makeEnviron()
+        forget = plugin._get_wwwauth()
+        result = plugin.challenge(environ, '401 Unauthorized', [], [])
+        self.assertEqual(result.headers, forget)
+
+
     def test_factory(self):
         from repoze.pam.plugins.basicauth import make_plugin
         plugin = make_plugin({}, 'realm')
@@ -483,6 +498,105 @@ class TestInsecureCookiePlugin(Base):
         plugin = make_plugin(None, 'foo')
         self.assertEqual(plugin.cookie_name, 'foo')
 
+    def test_forget(self):
+        plugin = self._makeOne('oatmeal')
+        headers = plugin.forget({}, None)
+        self.assertEqual(len(headers), 1)
+        header = headers[0]
+        name, value = header
+        self.assertEqual(name, 'Set-Cookie')
+        self.assertEqual(value,
+            'oatmeal=""; Path=/; Expires=Sun, 10-May-1971 11:59:00 GMT')
+
+class TestFormPlugin(Base):
+    def _getTargetClass(self):
+        from repoze.pam.plugins.form import FormPlugin
+        return FormPlugin
+
+    def _makeOne(self, login_form_qs='__do_login', rememberer_name='cookie'):
+        plugin = self._getTargetClass()(login_form_qs, rememberer_name)
+        return plugin
+
+    def _makeFormEnviron(self, login=None, password=None, do_login=False):
+        from StringIO import StringIO
+        fields = []
+        if login:
+            fields.append(('login', login))
+        if password:
+            fields.append(('password', password))
+        content_type, body = encode_multipart_formdata(fields)
+        extra = {'wsgi.input':StringIO(body),
+                 'CONTENT_TYPE':content_type,
+                 'CONTENT_LENGTH':len(body),
+                 'REQUEST_METHOD':'POST',
+                 'repoze.pam.plugins': {'cookie':DummyIdentifier()},
+                 'QUERY_STRING':'',
+                 }
+        if do_login:
+            extra['QUERY_STRING'] = '__do_login=true'
+        environ = self._makeEnviron(extra)
+        return environ
+    
+    def test_implements(self):
+        from zope.interface.verify import verifyClass
+        from repoze.pam.interfaces import IIdentifier
+        from repoze.pam.interfaces import IChallenger
+        klass = self._getTargetClass()
+        verifyClass(IIdentifier, klass)
+        verifyClass(IChallenger, klass)
+
+    def test_identify_noqs(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        result = plugin.identify(environ)
+        self.assertEqual(result, {})
+        
+    def test_identify_qs_no_values(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(do_login=True)
+        result = plugin.identify(environ)
+        self.assertEqual(result, {})
+
+    def test_identify_nologin(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(do_login=True, login='chris')
+        result = plugin.identify(environ)
+        self.assertEqual(result, {})
+    
+    def test_identify_nopassword(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(do_login=True, password='password')
+        result = plugin.identify(environ)
+        self.assertEqual(result, {})
+
+    def test_identify_success(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(do_login=True, login='chris',
+                                        password='password')
+        result = plugin.identify(environ)
+        self.assertEqual(result, {'login':'chris', 'password':'password'})
+
+    def test_remember(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        result = plugin.remember(environ, {})
+        self.assertEqual(result, None)
+        self.assertEqual(environ['repoze.pam.plugins']['cookie'].remembered,
+                         True)
+
+    def test_forget(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        result = plugin.forget(environ, {})
+        self.assertEqual(result, None)
+        self.assertEqual(environ['repoze.pam.plugins']['cookie'].forgotten,
+                         True)
+
+    def test_factory(self):
+        from repoze.pam.plugins.cookie import make_plugin
+        plugin = make_plugin(None, 'foo')
+        self.assertEqual(plugin.cookie_name, 'foo')
+
 
 class TestDefaultRequestClassifier(Base):
     def _getFUT(self):
@@ -524,11 +638,9 @@ class DummyRequestClassifier:
     def __call__(self, environ):
         return 'browser'
 
-class DummyResponseClassifier:
-    def __call__(self, environ, request_classification, headers, exception):
-        return request_classification
-    
 class DummyIdentifier:
+    forgotten = False
+    remembered = False
     def __init__(self, credentials=None):
         if credentials is None:
             credentials = {'login':'chris', 'password':'password'}
@@ -538,10 +650,10 @@ class DummyIdentifier:
         return self.credentials
 
     def forget(self, environ, identity):
-        pass
+        self.forgotten = True
 
     def remember(self, environ, identity):
-        pass
+        self.remembered = True
 
 class DummyNoResultsIdentifier:
     def identify(self, environ):
@@ -575,3 +687,17 @@ class DummyChallengeDecider:
         if status.startswith('401 '):
             return True
         
+def encode_multipart_formdata(fields):
+    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
+    CRLF = '\r\n'
+    L = []
+    for (key, value) in fields:
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"' % key)
+        L.append('')
+        L.append(value)
+    L.append('--' + BOUNDARY + '--')
+    L.append('')
+    body = CRLF.join(L)
+    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+    return content_type, body

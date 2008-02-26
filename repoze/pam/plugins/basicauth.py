@@ -54,7 +54,7 @@ class BasicAuthPlugin(object):
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
         head = self._get_wwwauth()
-        if head != forget_headers:
+        if head[0] not in forget_headers:
             head = head + forget_headers
         return HTTPUnauthorized(headers=head)
 
