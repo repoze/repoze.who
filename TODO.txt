@@ -1,1 +1,5 @@
-List todo items here.
+- Fix so each plugin has a classifiers attr per-plugin-type (as
+  opposed to a single classifiers attr as it has now).
+
+- Config file parser.
+
