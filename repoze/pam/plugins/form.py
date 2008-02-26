@@ -86,7 +86,7 @@ class FormPlugin(object):
     # IIdentifier
     def forget(self, environ, identity):
         rememberer = self._get_rememberer(environ)
-        rememberer.forget(environ, identity)
+        return rememberer.forget(environ, identity)
 
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
