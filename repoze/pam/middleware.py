@@ -229,13 +229,6 @@ class StartResponseWrapper(object):
             if hasattr(write, 'close'):
                 write.close()
 
-def flatten(L):
-    result = []
-    for seq in L:
-        for item in seq:
-            result.append(item)
-    return result
-
 def make_middleware(app, global_conf, config_file=None):
     if config_file is None:
         raise ValueError('config_file must be specified')
@@ -335,7 +328,7 @@ def make_registries(identifiers, authenticators, challengers):
                 verify(value, iface)
             except BrokenImplementation, why:
                 why = str(why)
-                raise ValueError(name + ': ' + why)
+                raise ValueError(str(name) + ': ' + why)
             L = interface_registry.setdefault(iface, [])
             L.append(value)
             name_registry[name] = value

@@ -238,12 +238,166 @@ class TestMiddleware(Base):
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris_id2')
 
+    def test_challenge_noidentifier_noapp(self):
+        environ = self._makeEnviron()
+        challenger = DummyChallenger()
+        challenger.classifications = None
+        plugins = [ ('challenge', challenger) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        app = mw.challenge(environ, 'match', '401 Unauthorized',
+                               [], None, identity)
+        self.assertEqual(app, None)
+        self.assertEqual(environ['challenged'], app)
+
+    def test_challenge_noidentifier_withapp(self):
+        environ = self._makeEnviron()
+        app = DummyApp()
+        challenger = DummyChallenger(app)
+        challenger.classifications = None
+        plugins = [ ('challenge', challenger) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        result = mw.challenge(environ, 'match', '401 Unauthorized',
+                               [], None, identity)
+        self.assertEqual(result, app)
+        self.assertEqual(environ['challenged'], app)
+
+    def test_challenge_identifier_noapp(self):
+        environ = self._makeEnviron()
+        challenger = DummyChallenger()
+        challenger.classifications = None
+        identifier = DummyIdentifier()
+        plugins = [ ('challenge', challenger) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        result = mw.challenge(environ, 'match', '401 Unauthorized',
+                              [], identifier, identity)
+        self.assertEqual(result, None)
+        self.assertEqual(environ['challenged'], None)
+        self.assertEqual(identifier.forgotten, True)
+
+    def test_challenge_identifier_app(self):
+        environ = self._makeEnviron()
+        app = DummyApp()
+        challenger = DummyChallenger(app)
+        challenger.classifications = None
+        identifier = DummyIdentifier()
+        plugins = [ ('challenge', challenger) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        result = mw.challenge(environ, 'match', '401 Unauthorized',
+                               [], identifier, identity)
+        self.assertEqual(result, app)
+        self.assertEqual(environ['challenged'], app)
+        self.assertEqual(identifier.forgotten, True)
+
+    def test_multi_challenge_firstwins(self):
+        environ = self._makeEnviron()
+        app1 = DummyApp()
+        app2 = DummyApp()
+        challenger1 = DummyChallenger(app1)
+        challenger1.classifications = None
+        challenger2 = DummyChallenger(app2)
+        challenger2.classifications = None
+        identifier = DummyIdentifier()
+        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        result = mw.challenge(environ, 'match', '401 Unauthorized',
+                              [], identifier, identity)
+        self.assertEqual(result, app1)
+        self.assertEqual(environ['challenged'], app1)
+        self.assertEqual(identifier.forgotten, True)
+
+    def test_multi_challenge_skipnomatch_findimplicit(self):
+        environ = self._makeEnviron()
+        app1 = DummyApp()
+        app2 = DummyApp()
+        challenger1 = DummyChallenger(app1)
+        challenger1.classifications = ['nomatch']
+        challenger2 = DummyChallenger(app2)
+        challenger2.classifications = None
+        identifier = DummyIdentifier()
+        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        result = mw.challenge(environ, 'match', '401 Unauthorized',
+                               [], identifier, identity)
+        self.assertEqual(result, app2)
+        self.assertEqual(environ['challenged'], app2)
+        self.assertEqual(identifier.forgotten, True)
+
+    def test_multi_challenge_skipnomatch_findexplicit(self):
+        environ = self._makeEnviron()
+        app1 = DummyApp()
+        app2 = DummyApp()
+        challenger1 = DummyChallenger(app1)
+        challenger1.classifications = ['nomatch']
+        challenger2 = DummyChallenger(app2)
+        challenger2.classifications = ['match']
+        identifier = DummyIdentifier()
+        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        result = mw.challenge(environ, 'match', '401 Unauthorized',
+                               [], identifier, identity)
+        self.assertEqual(result, app2)
+        self.assertEqual(environ['challenged'], app2)
+        self.assertEqual(identifier.forgotten, True)
+
     def test_call_remoteuser_already_set(self):
         environ = self._makeEnviron({'REMOTE_USER':'admin'})
         mw = self._makeOne()
         result = mw(environ, None)
         self.assertEqual(mw.app.environ, environ)
         self.assertEqual(result, [])
+
+    # XXX need more call tests
+
+class TestStartResponseWrapper(unittest.TestCase):
+    def _getTargetClass(self):
+        from repoze.pam.middleware import StartResponseWrapper
+        return StartResponseWrapper
+
+    def _makeOne(self, *arg, **kw):
+        plugin = self._getTargetClass()(*arg, **kw)
+        return plugin
+
+    def test_ctor(self):
+        wrapper = self._makeOne(None)
+        self.assertEqual(wrapper.start_response, None)
+        self.assertEqual(wrapper.headers, [])
+        self.failUnless(wrapper.buffer)
+    
+    def test_finish_response(self):
+        statuses = []
+        headerses = []
+        datases = []
+        closededs = []
+        from StringIO import StringIO
+        def write(data):
+            datases.append(data)
+        def close():
+            closededs.append(True)
+        write.close = close
+            
+        def start_response(status, headers):
+            statuses.append(status)
+            headerses.append(headers)
+            return write
+            
+        wrapper = self._makeOne(start_response)
+        wrapper.status = '401 Unauthorized'
+        wrapper.headers = [('a', '1')]
+        wrapper.buffer = StringIO('written')
+        extra_headers = [('b', '2')]
+        result = wrapper.finish_response(extra_headers)
+        self.assertEqual(result, None)
+        self.assertEqual(headerses[0], wrapper.headers + extra_headers)
+        self.assertEqual(statuses[0], wrapper.status)
+        self.assertEqual(datases[0], 'written')
+        self.assertEqual(closededs[0], True)
 
 class TestBasicAuthPlugin(Base):
     def _getTargetClass(self):
@@ -628,7 +782,45 @@ class TestDefaultRequestClassifier(Base):
                                      'REQUEST_METHOD':'GET'})
         result = classifier(environ)
         self.assertEqual(result, 'browser')
-    
+
+class TestMakeRegistries(unittest.TestCase):
+    def _getFUT(self):
+        from repoze.pam.middleware import make_registries
+        return make_registries
+
+    def test_empty(self):
+        fn = self._getFUT()
+        iface_reg, name_reg = fn([], [], [])
+        self.assertEqual(iface_reg, {})
+        self.assertEqual(name_reg, {})
+        
+    def test_brokenimpl(self):
+        fn = self._getFUT()
+        self.assertRaises(ValueError, fn, [(None, DummyApp())], [], [])
+
+    def test_ok(self):
+        fn = self._getFUT()
+        dummy_id1 = DummyIdentifier()
+        dummy_id2 = DummyIdentifier()
+        identifiers = [ ('id1', dummy_id1), ('id2', dummy_id2) ]
+        dummy_auth = DummyAuthenticator(None)
+        authenticators = [ ('auth', dummy_auth) ]
+        dummy_challenger = DummyChallenger(None)
+        challengers = [ ('challenger', dummy_challenger) ]
+        iface_reg, name_reg = fn(identifiers, authenticators, challengers)
+        from repoze.pam.interfaces import IIdentifier
+        from repoze.pam.interfaces import IAuthenticator
+        from repoze.pam.interfaces import IChallenger
+        self.assertEqual(iface_reg[IIdentifier], [dummy_id1, dummy_id2])
+        self.assertEqual(iface_reg[IAuthenticator], [dummy_auth])
+        self.assertEqual(iface_reg[IChallenger], [dummy_challenger])
+        self.assertEqual(name_reg['id1'], dummy_id1)
+        self.assertEqual(name_reg['id2'], dummy_id2)
+        self.assertEqual(name_reg['auth'], dummy_auth)
+        self.assertEqual(name_reg['challenger'], dummy_challenger)
+
+# XXX need make_middleware tests
+
 class DummyApp:
     def __call__(self, environ, start_response):
         self.environ = environ
@@ -679,8 +871,11 @@ class DummyFailAuthenticator:
         return None
 
 class DummyChallenger:
+    def __init__(self, app=None):
+        self.app = app
     def challenge(self, environ, status, app_headers, forget_headers):
-        environ['challenged'] = True
+        environ['challenged'] = self.app
+        return self.app
 
 class DummyChallengeDecider:
     def __call__(self, environ, status, headers):
