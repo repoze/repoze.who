@@ -208,19 +208,22 @@ class PluggableAuthenticationMiddleware(object):
 class StartResponseWrapper(object):
     def __init__(self, start_response):
         self.start_response = start_response
+        self.status = None
         self.headers = []
+        self.exc_info = None
         self.buffer = StringIO()
 
     def wrap_start_response(self, status, headers, exc_info=None):
         self.headers = headers
         self.status = status
+        self.exc_info = exc_info
         return self.buffer.write
 
     def finish_response(self, extra_headers):
         if not extra_headers:
             extra_headers = []
         headers = self.headers + extra_headers
-        write = self.start_response(self.status, headers)
+        write = self.start_response(self.status, headers, self.exc_info)
         if write:
             self.buffer.seek(0)
             value = self.buffer.getvalue()
