@@ -67,11 +67,14 @@ class PluggableAuthenticationMiddleware(object):
                 userid = best[3]
                 identifier = best[1][1]
                 environ['REMOTE_USER'] = userid
+        else:
+            logger and logger.info('no identities found, not authenticating')
 
         wrapper = StartResponseWrapper(start_response)
         app_iter = self.app(environ, wrapper.wrap_start_response)
 
         if self.challenge_decider(environ, wrapper.status, wrapper.headers):
+            logger and logger.info('challenge required')
 
             challenge_app = self.challenge(
                 environ,
@@ -82,15 +85,19 @@ class PluggableAuthenticationMiddleware(object):
                 identity
                 )
             if challenge_app is not None:
+                logger and logger.info('executing challenge app')
                 if app_iter:
                     list(app_iter) # unwind the original app iterator
                 # replace the downstream app with the challenge app
                 app_iter = challenge_app(environ, start_response)
             else:
+                logger and logger.info('configuration error: no challengers')
                 raise RuntimeError('no challengers found')
         else:
-            wrapper.finish_response()
-            logger and logger.info(_ENDED)
+            remember_headers = []
+            if identifier:
+                remember_headers = identifier.remember(environ, identity)
+            wrapper.finish_response(remember_headers)
 
         logger and logger.info(_ENDED)
         return app_iter
@@ -120,8 +127,14 @@ class PluggableAuthenticationMiddleware(object):
         return results
 
     def authenticate(self, environ, classification, identities):
+        logger = self.logger
         candidates = self.registry.get(IAuthenticator, ())
+        logger and self.logger.info('authenticator plugins registered %s' %
+                                    candidates)
         plugins = self._match_classification(candidates, classification)
+        logger and self.logger.info(
+            'authenticator plugins matched for '
+            'classification "%s": %s' % (classification, plugins))
 
         results = []
 
@@ -131,15 +144,21 @@ class PluggableAuthenticationMiddleware(object):
             for identifier, identity in identities:
                 userid = plugin.authenticate(environ, identity)
                 if userid:
+                    logger and logger.debug(
+                        'userid returned from %s: %s' % (plugin, userid))
                     tup = ( (auth_rank, plugin),
                             (identifier_rank, identifier),
                             identity,
                             userid
                             )
                     results.append(tup)
+                else:
+                    logger and logger.debug(
+                        'no userid returned from %s: (%s)' % (plugin, userid))
                 identifier_rank += 1
             auth_rank += 1
 
+        logger and logger.debug('identities authenticated: %s' % results)
         return results
 
     def challenge(self, environ, classification, status, app_headers,
@@ -197,8 +216,10 @@ class StartResponseWrapper(object):
         self.status = status
         return self.buffer.write
 
-    def finish_response(self):
-        headers = self.headers
+    def finish_response(self, extra_headers):
+        if not extra_headers:
+            extra_headers = []
+        headers = self.headers + extra_headers
         write = self.start_response(self.status, headers)
         if write:
             self.buffer.seek(0)
