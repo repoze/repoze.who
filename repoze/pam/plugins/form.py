@@ -102,6 +102,9 @@ class FormPlugin(object):
 
         return auth_form
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, id(self))
+
 def make_plugin(pam_conf, login_form_qs='__do_login', rememberer_name=None):
     if rememberer_name is None:
         raise ValueError(

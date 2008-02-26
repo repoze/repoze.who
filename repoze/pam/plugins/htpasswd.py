@@ -39,6 +39,9 @@ class HTPasswdPlugin(object):
                     return username
         return None
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, id(self))
+
 def crypt_check(password, hashed):
     from crypt import crypt
     salt = hashed[:2]

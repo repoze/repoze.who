@@ -58,6 +58,9 @@ class BasicAuthPlugin(object):
             head = head + forget_headers
         return HTTPUnauthorized(headers=head)
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, id(self))
+
 def make_plugin(pam_conf, realm='basic'):
     plugin = BasicAuthPlugin(realm)
     return plugin

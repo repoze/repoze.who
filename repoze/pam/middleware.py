@@ -94,6 +94,7 @@ class PluggableAuthenticationMiddleware(object):
                 logger and logger.info('configuration error: no challengers')
                 raise RuntimeError('no challengers found')
         else:
+            logger and logger.info('no challenge required')
             remember_headers = []
             if identifier:
                 remember_headers = identifier.remember(environ, identity)

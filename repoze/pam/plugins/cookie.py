@@ -51,6 +51,9 @@ class InsecureCookiePlugin(object):
             set_cookie = '%s=%s; Path=/;' % (self.cookie_name, cookie_value)
             return [('Set-Cookie', set_cookie)]
 
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, id(self))
+
 def make_plugin(pam_conf, cookie_name='repoze.pam.plugins.cookie'):
     plugin = InsecureCookiePlugin(cookie_name)
     return plugin
