@@ -302,6 +302,10 @@ def make_test_middleware(app, global_conf):
     challengers = [('form',form), ('basicauth',basicauth)]
     from repoze.pam.classifiers import default_request_classifier
     from repoze.pam.classifiers import default_challenge_decider
+    log_stream = sys.stdout
+    import os
+    if os.environ.get('NO_PAM_LOG'):
+        log_stream = None
     middleware = PluggableAuthenticationMiddleware(
         app,
         identifiers,
@@ -309,7 +313,7 @@ def make_test_middleware(app, global_conf):
         challengers,
         default_request_classifier,
         default_challenge_decider,
-        log_stream=sys.stdout,
+        log_stream= log_stream,
         log_level = logging.DEBUG
         )
     return middleware
