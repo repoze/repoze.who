@@ -242,6 +242,39 @@ def make_middleware(app, global_conf, config_file=None):
     return PluggableAuthenticationMiddleware(app)
 
 def make_test_middleware(app, global_conf):
+    """ Functionally equivalent to
+
+    [plugin:form]
+    use = repoze.pam.plugins.form.FormPlugin
+    rememberer_name = cookie
+    login_form_qs=__do_login
+
+    [plugin:cookie]
+    use = repoze.pam.plugins.cookie:InsecureCookiePlugin
+    cookie_name = oatmeal
+
+    [plugin:basicauth]
+    use = repoze.pam.plugins.basicauth.BasicAuthPlugin
+    realm = repoze.pam
+
+    [plugin:htpasswd]
+    use = repoze.pam.plugins.htpasswd.HTPasswdPlugin
+    filename = <...>
+    check_fn = repoze.pam.plugins.htpasswd:crypt_check
+
+    [general]
+    request_classifier = repoze.pam.classifiers:default_request_classifier
+    challenge_decider = repoze.pam.classifiers:default_challenge_decider
+
+    [identifiers]
+    plugins = form:browser cookie basicauth
+
+    [authenticators]
+    plugins = htpasswd
+
+    [challengers]
+    plugins = form:browser basicauth
+    """
     # be able to test without a config file
     from repoze.pam.plugins.basicauth import BasicAuthPlugin
     from repoze.pam.plugins.htpasswd import HTPasswdPlugin
