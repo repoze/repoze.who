@@ -1,8 +1,6 @@
 import os
 import unittest
 
-here = os.path.abspath(os.path.dirname(__file__))
-
 class Base(unittest.TestCase):
     def _makeEnviron(self, kw=None):
         environ = {}
@@ -18,254 +16,235 @@ class TestMiddleware(Base):
 
     def _makeOne(self,
                  app=None,
-                 registry=None,
-                 request_classifier=None,
-                 response_classifier=None,
-                 add_credentials=True
+                 identifiers=None,
+                 authenticators=None,
+                 challengers=None,
+                 classifier=None,
+                 challenge_decider=None,
+                 log_stream=None,
+                 log_level=None,
                  ):
-        if registry is None:
-            registry = {}
-            from repoze.pam.interfaces import IAuthenticatorPlugin
-            from repoze.pam.interfaces import IExtractorPlugin
-            from repoze.pam.interfaces import IChallengerPlugin
-            registry[IExtractorPlugin] = [ DummyExtractor() ]
-            registry[IAuthenticatorPlugin] = [ DummyAuthenticator() ]
-            registry[IChallengerPlugin] = [ DummyChallenger() ]
         if app is None:
             app = DummyApp()
-        if request_classifier is None:
-            request_classifier = DummyRequestClassifier()
-        if response_classifier is None:
-            response_classifier = DummyResponseClassifier()
-        mw = self._getTargetClass()(app, registry, request_classifier,
-                                    response_classifier, add_credentials)
+        if identifiers is None:
+            identifiers = []
+        if authenticators is None:
+            authenticators = []
+        if challengers is None:
+            challengers = []
+        if classifier is None:
+            classifier = DummyRequestClassifier()
+        if challenge_decider is None:
+            challenge_decider = DummyChallengeDecider()
+        if log_level is None:
+            import logging
+            log_level = logging.DEBUG
+        mw = self._getTargetClass()(app,
+                                    identifiers,
+                                    authenticators,
+                                    challengers,
+                                    classifier,
+                                    challenge_decider,
+                                    log_stream,
+                                    log_level=logging.DEBUG)
         return mw
 
-    def test_extract_success(self):
+    def test_identify_success(self):
+        environ = self._makeEnviron()
+        identifier = DummyIdentifier()
+        identifiers = [ ('i', identifier) ]
+        mw = self._makeOne(identifiers=identifiers)
+        results = mw.identify(environ, None)
+        self.assertEqual(len(results), 1)
+        new_identifier, identity = results[0]
+        self.assertEqual(new_identifier, identifier)
+        self.assertEqual(identity['login'], 'chris')
+        self.assertEqual(identity['password'], 'password')
+
+    def test_identify_fail(self):
+        environ = self._makeEnviron()
+        plugin = DummyNoResultsIdentifier()
+        plugins = [ ('dummy', plugin) ]
+        mw = self._makeOne(identifiers=plugins)
+        results = mw.identify(environ, None)
+        self.assertEqual(len(results), 0)
+
+    def test_identify_success_skip_noresults(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        creds, plugin = mw.extract(environ, None)
-        self.assertEqual(creds['login'], 'chris')
-        self.assertEqual(creds['password'], 'password')
-        self.failIf(plugin is None)
+        plugin1 = DummyNoResultsIdentifier()
+        plugin2 = DummyIdentifier() 
+        plugins = [ ('identifier1', plugin1), ('identifier2', plugin2) ]
+        mw = self._makeOne(identifiers=plugins)
+        results = mw.identify(environ, None)
+        self.assertEqual(len(results), 1)
+        new_identifier, identity = results[0]
+        self.assertEqual(new_identifier, plugin2)
+        self.assertEqual(identity['login'], 'chris')
+        self.assertEqual(identity['password'], 'password')
 
-    def test_extract_fail(self):
-        environ = self._makeEnviron()
-        from repoze.pam.interfaces import IExtractorPlugin
-        extractor = DummyNoResultsExtractor()
-        registry = {
-            IExtractorPlugin:[extractor]
-            }
-        mw = self._makeOne(registry=registry)
-        creds, plugin = mw.extract(environ, None)
-        self.assertEqual(creds, {})
-        self.assertEqual(plugin, None)
-
-    def test_extract_success_skip_noresults(self):
+    def test_identify_success_multiresults(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        from repoze.pam.interfaces import IExtractorPlugin
-        extractor1 = DummyNoResultsExtractor()
-        extractor2 = DummyExtractor() 
-        registry = {
-            IExtractorPlugin:[extractor1, extractor2]
-            }
-        mw = self._makeOne(registry=registry)
-        creds, plugin = mw.extract(environ, None)
-        self.assertEqual(creds['login'], 'chris')
-        self.assertEqual(creds['password'], 'password')
-        self.assertEqual(plugin, extractor2)
+        plugin1 = DummyIdentifier({'login':'fred','password':'fred'})
+        plugin2 = DummyIdentifier({'login':'bob','password':'bob'})
+        plugins = [ ('identifier1', plugin1), ('identifier2', plugin2) ]
+        mw = self._makeOne(identifiers=plugins)
+        results = mw.identify(environ, None)
+        self.assertEqual(len(results), 2)
+        new_identifier, identity = results[0]
+        self.assertEqual(new_identifier, plugin1)
+        self.assertEqual(identity['login'], 'fred')
+        self.assertEqual(identity['password'], 'fred')
+        new_identifier, identity = results[1]
+        self.assertEqual(new_identifier, plugin2)
+        self.assertEqual(identity['login'], 'bob')
+        self.assertEqual(identity['password'], 'bob')
 
-    def test_extract_success_firstwins(self):
+    def test_identify_find_implicit_classifier(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        from repoze.pam.interfaces import IExtractorPlugin
-        extractor1 = DummyExtractor({'login':'fred','password':'fred'})
-        extractor2 = DummyExtractor({'login':'bob','password':'bob'})
-        registry = {
-            IExtractorPlugin:[extractor1, extractor2]
-            }
-        mw = self._makeOne(registry=registry)
-        creds, plugin = mw.extract(environ, None)
-        self.assertEqual(creds['login'], 'fred')
-        self.assertEqual(creds['password'], 'fred')
-        self.assertEqual(plugin, extractor1)
-
-    def test_extract_find_implicit_classifier(self):
-        environ = self._makeEnviron()
-        mw = self._makeOne()
-        from repoze.pam.interfaces import IExtractorPlugin
-        extractor1 = DummyExtractor({'login':'fred','password':'fred'})
-        extractor1.request_classifications = set(['nomatch'])
-        extractor2 = DummyExtractor({'login':'bob','password':'bob'})
-        registry = {
-            IExtractorPlugin:[extractor1, extractor2]
-            }
-        mw = self._makeOne(registry=registry)
-        creds, plugin = mw.extract(environ, None)
+        plugin1 = DummyIdentifier({'login':'fred','password':'fred'})
+        plugin1.classifications = set(['nomatch'])
+        plugin2 = DummyIdentifier({'login':'bob','password':'bob'})
+        plugins = [ ('identifier1', plugin1),  ('identifier2', plugin2) ]
+        mw = self._makeOne(identifiers=plugins)
+        results = mw.identify(environ, 'match')
+        self.assertEqual(len(results), 1)
+        plugin, creds = results[0]
         self.assertEqual(creds['login'], 'bob')
         self.assertEqual(creds['password'], 'bob')
-        self.assertEqual(plugin, extractor2)
+        self.assertEqual(plugin, plugin2)
 
-    def test_extract_find_explicit_classifier(self):
+    def test_identify_find_explicit_classifier(self):
         environ = self._makeEnviron()
-        mw = self._makeOne()
-        from repoze.pam.interfaces import IExtractorPlugin
-        extractor1 = DummyExtractor({'login':'fred','password':'fred'})
-        extractor1.request_classifications = set(['nomatch'])
-        extractor2 = DummyExtractor({'login':'bob','password':'bob'})
-        extractor2.request_classifications = set(['match'])
-        registry = {
-            IExtractorPlugin:[extractor1, extractor2]
-            }
-        mw = self._makeOne(registry=registry)
-        creds, plugin = mw.extract(environ, 'match')
+        plugin1 = DummyIdentifier({'login':'fred','password':'fred'})
+        plugin1.classifications = set(['nomatch'])
+        plugin2 = DummyIdentifier({'login':'bob','password':'bob'})
+        plugin2.classifications = set(['match'])
+        plugins= [ ('identifier1', plugin1), ('identifier2', plugin2) ]
+        mw = self._makeOne(identifiers=plugins)
+        results = mw.identify(environ, 'match')
+        self.assertEqual(len(results), 1)
+        plugin, creds = results[0]
         self.assertEqual(creds['login'], 'bob')
         self.assertEqual(creds['password'], 'bob')
-        self.assertEqual(plugin, extractor2)
+        self.assertEqual(plugin, plugin2)
 
     def test_authenticate_success(self):
         environ = self._makeEnviron()
-        mw = self._makeOne()
-        creds = {'login':'chris', 'password':'password'}
-        userid, plugin = mw.authenticate(environ, creds, None)
-        self.assertEqual(userid, 'chris')
+        plugin1 = DummyAuthenticator('a')
+        plugins = [ ('identifier1', plugin1) ]
+        mw = self._makeOne(authenticators=plugins)
+        identities = [ (None, {'login':'chris', 'password':'password'}) ]
+        results = mw.authenticate(environ, None, identities)
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        authinfo, identinfo, creds, userid = result
+        self.assertEqual(authinfo, (0, plugin1))
+        self.assertEqual(identinfo, (0, None))
+        self.assertEqual(creds['login'], 'chris')
+        self.assertEqual(creds['password'], 'password')
+        self.assertEqual(userid, 'a')
 
     def test_authenticate_fail(self):
         environ = self._makeEnviron()
-        mw = self._makeOne()
-        creds = {'login':'chris', 'password':'password'}
-        from repoze.pam.interfaces import IAuthenticatorPlugin
-        registry = {
-            IAuthenticatorPlugin:[DummyFailAuthenticator()]
-            }
-        mw = self._makeOne(registry=registry)
-        userid, plugin = mw.authenticate(environ, creds, None)
-        self.assertEqual(userid, None)
-        self.assertEqual(plugin, None)
+        mw = self._makeOne() # no authenticators
+        identities = [ (None, {'login':'chris', 'password':'password'}) ]
+        result = mw.authenticate(environ, None, identities)
+        self.assertEqual(len(result), 0)
 
     def test_authenticate_success_skip_fail(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        from repoze.pam.interfaces import IAuthenticatorPlugin
         plugin1 = DummyFailAuthenticator()
         plugin2 = DummyAuthenticator()
-        registry = {
-            IAuthenticatorPlugin:[plugin1, plugin2]
-            }
-        mw = self._makeOne(registry=registry)
+        plugins = [ ('dummy1', plugin1), ('dummy2', plugin2) ]
+        mw = self._makeOne(authenticators=plugins)
         creds = {'login':'chris', 'password':'password'}
-        userid, plugin = mw.authenticate(environ, creds, None)
+        identities = [ (None, {'login':'chris', 'password':'password'}) ]
+        results = mw.authenticate(environ, None, identities)
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        authinfo, identinfo, creds, userid = result
+        self.assertEqual(authinfo, (1, plugin2))
+        self.assertEqual(identinfo, (0, None))
+        self.assertEqual(creds['login'], 'chris')
+        self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris')
-        self.assertEqual(plugin, plugin2)
 
-    def test_authenticate_success_firstwins(self):
+    def test_authenticate_success_multiresult(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        from repoze.pam.interfaces import IAuthenticatorPlugin
         plugin1 = DummyAuthenticator('chris_id1')
         plugin2 = DummyAuthenticator('chris_id2')
-        registry = {
-            IAuthenticatorPlugin:[plugin1, plugin2]
-            }
-        mw = self._makeOne(registry=registry)
+        plugins = [ ('dummy1',plugin1), ('dummy2',plugin2) ]
+        mw = self._makeOne(authenticators=plugins)
         creds = {'login':'chris', 'password':'password'}
-        userid, plugin = mw.authenticate(environ, creds, None)
+        identities = [ (None, {'login':'chris', 'password':'password'}) ]
+        results = mw.authenticate(environ, None, identities)
+        self.assertEqual(len(results), 2)
+        result = results[0]
+        authinfo, identinfo, creds, userid = result
+        self.assertEqual(authinfo, (0, plugin1))
+        self.assertEqual(identinfo, (0, None))
+        self.assertEqual(creds['login'], 'chris')
+        self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris_id1')
-        self.assertEqual(plugin, plugin1)
+        result = results[1]
+        authinfo, identinfo, creds, userid = result
+        self.assertEqual(authinfo, (1, plugin2))
+        self.assertEqual(identinfo, (0, None))
+        self.assertEqual(creds['login'], 'chris')
+        self.assertEqual(creds['password'], 'password')
+        self.assertEqual(userid, 'chris_id2')
 
     def test_authenticate_find_implicit_classifier(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        from repoze.pam.interfaces import IAuthenticatorPlugin
         plugin1 = DummyAuthenticator('chris_id1')
-        plugin1.request_classifications = set(['nomatch'])
+        plugin1.classifications = set(['nomatch'])
         plugin2 = DummyAuthenticator('chris_id2')
-        registry = {
-            IAuthenticatorPlugin:[plugin1, plugin2]
-            }
-        mw = self._makeOne(registry=registry)
-        creds = {'login':'chris', 'password':'password'}
-        userid, plugin = mw.authenticate(environ, creds, None)
+        plugins = [ ('auth1', plugin1), ('auth2', plugin2) ]
+        mw = self._makeOne(authenticators = plugins)
+        identities = [ (None, {'login':'chris', 'password':'password'}) ]
+        results = mw.authenticate(environ, 'match', identities)
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        authinfo, identinfo, creds, userid = result
+        self.assertEqual(authinfo, (0, plugin2))
+        self.assertEqual(identinfo, (0, None))
+        self.assertEqual(creds['login'], 'chris')
+        self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris_id2')
-        self.assertEqual(plugin, plugin2)
 
     def test_authenticate_find_explicit_classifier(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        from repoze.pam.interfaces import IAuthenticatorPlugin
         plugin1 = DummyAuthenticator('chris_id1')
-        plugin1.request_classifications = set(['nomatch'])
+        plugin1.classifications = set(['nomatch'])
         plugin2 = DummyAuthenticator('chris_id2')
-        plugin2.request_classifications = set(['match'])
-        registry = {
-            IAuthenticatorPlugin:[plugin1, plugin2]
-            }
-        mw = self._makeOne(registry=registry)
-        creds = {'login':'chris', 'password':'password'}
-        userid, plugin = mw.authenticate(environ, creds, 'match')
+        plugin2.classificationans = set(['match']) # game
+        plugins = [ ('auth1', plugin1), ('auth2', plugin2) ]
+        mw = self._makeOne(authenticators = plugins)
+        identities = [ (None, {'login':'chris', 'password':'password'}) ]
+        results = mw.authenticate(environ, 'match', identities)
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        authinfo, identinfo, creds, userid = result
+        self.assertEqual(authinfo, (0, plugin2))
+        self.assertEqual(identinfo, (0, None))
+        self.assertEqual(creds['login'], 'chris')
+        self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris_id2')
-        self.assertEqual(plugin, plugin2)
 
-    def test_modify_environment_success_addcredentials(self):
-        environ = self._makeEnviron()
-        mw = self._makeOne()
-        classification, headers = mw.modify_environment(environ)
-        self.assertEqual(classification, 'browser')
-        self.assertEqual(environ['REMOTE_USER'], 'chris')
-        self.assertEqual(environ['repoze.pam.credentials'],
-                         {'login':'chris','password':'password'})
-        self.assertEqual(headers, [])
-        
-    def test_modify_environment_noaddcredentials(self):
-        environ = self._makeEnviron()
-        mw = self._makeOne()
-        mw.add_credentials = False
-        classification, headers = mw.modify_environment(environ)
-        self.assertEqual(classification, 'browser')
-        self.assertEqual(environ['REMOTE_USER'], 'chris')
-        self.failIf(environ.has_key('repoze.pam.credentials'))
-        self.assertEqual(headers, [])
-
-    def test_modify_environment_nocredentials(self):
-        environ = self._makeEnviron()
-        from repoze.pam.interfaces import IExtractorPlugin
-        registry = {
-            IExtractorPlugin:[DummyNoResultsExtractor()],
-            }
-        mw = self._makeOne(registry=registry)
-        classification, headers = mw.modify_environment(environ)
-        self.assertEqual(classification, 'browser')
-        self.assertEqual(environ.get('REMOTE_USER'), None)
-        self.assertEqual(environ['repoze.pam.credentials'], {})
-        self.assertEqual(headers, [])
-
-    def test_modify_environment_remoteuser_already_set(self):
+    def test_call_remoteuser_already_set(self):
         environ = self._makeEnviron({'REMOTE_USER':'admin'})
         mw = self._makeOne()
-        classification, headers = mw.modify_environment(environ)
-        self.assertEqual(classification, 'browser')
-        self.assertEqual(environ.get('REMOTE_USER'), 'admin')
-        self.assertEqual(environ['repoze.pam.credentials'],
-                         {'login':'chris', 'password':'password'})
-        self.assertEqual(headers, [])
+        result = mw(environ, None)
+        self.assertEqual(mw.app.environ, environ)
+        self.assertEqual(result, [])
 
-    def test_modify_environment_with_postextractor(self):
-        environ = self._makeEnviron({'REMOTE_USER':'admin'})
-        from repoze.pam.interfaces import IExtractorPlugin
-        from repoze.pam.interfaces import IPostExtractorPlugin
-        registry = {
-            IExtractorPlugin:[DummyExtractor()],
-            IPostExtractorPlugin:[DummyPostExtractor()],
-            }
-        mw = self._makeOne(registry=registry)
-        classification, headers = mw.modify_environment(environ)
-        self.assertEqual(classification, 'browser')
-        self.assertEqual(environ.get('REMOTE_USER'), 'admin')
-        self.assertEqual(environ['repoze.pam.credentials'],
-                         {'login':'chris', 'password':'password'})
-        self.assertEqual(headers, [('foo', 'bar')])
-        
 class TestBasicAuthPlugin(Base):
     def _getTargetClass(self):
         from repoze.pam.plugins.basicauth import BasicAuthPlugin
@@ -277,22 +256,16 @@ class TestBasicAuthPlugin(Base):
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IChallengerPlugin
-        from repoze.pam.interfaces import IExtractorPlugin
+        from repoze.pam.interfaces import IChallenger
+        from repoze.pam.interfaces import IIdentifier
         klass = self._getTargetClass()
-        verifyClass(IChallengerPlugin, klass)
-        verifyClass(IExtractorPlugin, klass)
+        verifyClass(IChallenger, klass)
+        verifyClass(IIdentifier, klass)
 
-    def test_challenge_non401(self):
+    def test_challenge(self):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron()
-        result = plugin.challenge(environ, '200 OK', {})
-        self.assertEqual(result, None)
-
-    def test_challenge_401(self):
-        plugin = self._makeOne('realm')
-        environ = self._makeEnviron()
-        result = plugin.challenge(environ, '401 Unauthorized', {})
+        result = plugin.challenge(environ, '401 Unauthorized', [], [])
         self.assertNotEqual(result, None)
         app_iter = result(environ, lambda *arg: None)
         items = []
@@ -301,63 +274,53 @@ class TestBasicAuthPlugin(Base):
         response = ''.join(items)
         self.failUnless(response.startswith('401 Unauthorized'))
         
-    def test_extract_noauthinfo(self):
+    def test_identify_noauthinfo(self):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron()
-        creds = plugin.extract(environ)
+        creds = plugin.identify(environ)
         self.assertEqual(creds, {})
 
-    def test_extract_nonbasic(self):
+    def test_identify_nonbasic(self):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Digest abc'})
-        creds = plugin.extract(environ)
+        creds = plugin.identify(environ)
         self.assertEqual(creds, {})
 
-    def test_extract_basic_badencoding(self):
+    def test_identify_basic_badencoding(self):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic abc'})
-        creds = plugin.extract(environ)
+        creds = plugin.identify(environ)
         self.assertEqual(creds, {})
 
-    def test_extract_basic_badrepr(self):
+    def test_identify_basic_badrepr(self):
         plugin = self._makeOne('realm')
         value = 'foo'.encode('base64')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
-        creds = plugin.extract(environ)
+        creds = plugin.identify(environ)
         self.assertEqual(creds, {})
 
-    def test_extract_basic_ok(self):
+    def test_identify_basic_ok(self):
         plugin = self._makeOne('realm')
         value = 'foo:bar'.encode('base64')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
-        creds = plugin.extract(environ)
+        creds = plugin.identify(environ)
         self.assertEqual(creds, {'login':'foo', 'password':'bar'})
 
-    def test_post_extract_nocreds(self):
+    def test_remember(self):
         plugin = self._makeOne('realm')
         creds = {}
         environ = self._makeEnviron()
-        result = plugin.post_extract(environ, creds, plugin)
+        result = plugin.remember(environ, creds)
         self.assertEqual(result, None)
-        self.assertEqual(environ.get('HTTP_AUTHORIZATION'), None)
 
-    def test_post_extract_creds_withauthorization(self):
-        plugin = self._makeOne('realm')
-        creds = {'login':'foo', 'password':'password'}
-        environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic foo'})
-        result = plugin.post_extract(environ, creds, plugin)
-        self.assertEqual(result, None)
-        self.assertEqual(environ['HTTP_AUTHORIZATION'], 'Basic foo')
-
-    def test_post_extract_creds_mutates(self):
+    def test_forget(self):
         plugin = self._makeOne('realm')
         creds = {'login':'foo', 'password':'password'}
         environ = self._makeEnviron()
-        result = plugin.post_extract(environ, creds, plugin)
-        self.assertEqual(result, None)
-        auth = 'foo:password'.encode('base64').rstrip()
-        auth = 'Basic ' + auth
-        self.assertEqual(environ['HTTP_AUTHORIZATION'], auth)
+        result = plugin.forget(environ, creds)
+        self.assertEqual(result, [('WWW-Authenticate', 'Basic realm="realm"')] )
+
+    # XXX need challenge tests
         
     def test_factory(self):
         from repoze.pam.plugins.basicauth import make_plugin
@@ -375,9 +338,9 @@ class TestHTPasswdPlugin(Base):
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IAuthenticatorPlugin
+        from repoze.pam.interfaces import IAuthenticator
         klass = self._getTargetClass()
-        verifyClass(IAuthenticatorPlugin, klass)
+        verifyClass(IAuthenticator, klass)
 
     def test_authenticate_nocreds(self):
         from StringIO import StringIO
@@ -386,7 +349,7 @@ class TestHTPasswdPlugin(Base):
         environ = self._makeEnviron()
         creds = {}
         result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, False)
+        self.assertEqual(result, None)
         
     def test_authenticate_nolines(self):
         from StringIO import StringIO
@@ -395,7 +358,7 @@ class TestHTPasswdPlugin(Base):
         environ = self._makeEnviron()
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, False)
+        self.assertEqual(result, None)
         
     def test_authenticate_nousermatch(self):
         from StringIO import StringIO
@@ -404,7 +367,7 @@ class TestHTPasswdPlugin(Base):
         environ = self._makeEnviron()
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, False)
+        self.assertEqual(result, None)
 
     def test_authenticate_match(self):
         from StringIO import StringIO
@@ -415,7 +378,7 @@ class TestHTPasswdPlugin(Base):
         environ = self._makeEnviron()
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, True)
+        self.assertEqual(result, 'chrism')
 
     def test_authenticate_badline(self):
         from StringIO import StringIO
@@ -426,9 +389,10 @@ class TestHTPasswdPlugin(Base):
         environ = self._makeEnviron()
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, True)
+        self.assertEqual(result, 'chrism')
 
     def test_authenticate_filename(self):
+        here = os.path.abspath(os.path.dirname(__file__))
         htpasswd = os.path.join(here, 'fixtures', 'test.htpasswd')
         def check(password, hashed):
             return True
@@ -436,7 +400,7 @@ class TestHTPasswdPlugin(Base):
         environ = self._makeEnviron()
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, True)
+        self.assertEqual(result, 'chrism')
 
     def test_crypt_check(self):
         from crypt import crypt
@@ -466,65 +430,53 @@ class TestInsecureCookiePlugin(Base):
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IExtractorPlugin
-        from repoze.pam.interfaces import IPostExtractorPlugin
+        from repoze.pam.interfaces import IIdentifier
         klass = self._getTargetClass()
-        verifyClass(IExtractorPlugin, klass)
-        verifyClass(IPostExtractorPlugin, klass)
+        verifyClass(IIdentifier, klass)
 
-    def test_extract_nocookies(self):
+    def test_identify_nocookies(self):
         plugin = self._makeOne('oatmeal')
         environ = self._makeEnviron()
-        result = plugin.extract(environ)
+        result = plugin.identify(environ)
         self.assertEqual(result, {})
         
-    def test_extract_badcookies(self):
+    def test_identify_badcookies(self):
         plugin = self._makeOne('oatmeal')
         environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=a'})
-        result = plugin.extract(environ)
+        result = plugin.identify(environ)
         self.assertEqual(result, {})
 
-    def test_extract_badcookies(self):
+    def test_identify_badcookies(self):
         plugin = self._makeOne('oatmeal')
         environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=a'})
-        result = plugin.extract(environ)
+        result = plugin.identify(environ)
         self.assertEqual(result, {})
     
-    def test_extract_success(self):
+    def test_identify_success(self):
         plugin = self._makeOne('oatmeal')
         auth = 'foo:password'.encode('base64').rstrip()
         environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=%s;' % auth})
-        result = plugin.extract(environ)
+        result = plugin.identify(environ)
         self.assertEqual(result, {'login':'foo', 'password':'password'})
 
-    def test_post_extract_nocreds(self):
-        plugin = self._makeOne('oatmeal')
-        creds = {}
-        environ = self._makeEnviron()
-        result = plugin.post_extract(environ, creds, plugin)
-        self.assertEqual(result, None)
-        self.assertEqual(environ.get('HTTP_COOKIE'), None)
-
-    def test_post_extract_creds_same(self):
+    def test_remember_creds_same(self):
         plugin = self._makeOne('oatmeal')
         creds = {'login':'foo', 'password':'password'}
         auth = 'foo:password'.encode('base64').rstrip()
         auth = 'oatmeal=%s;' % auth
         environ = self._makeEnviron({'HTTP_COOKIE':auth})
-        result = plugin.post_extract(environ, creds, plugin)
+        result = plugin.remember(environ, creds)
         self.assertEqual(result, None)
-        self.assertEqual(environ.get('HTTP_COOKIE'), auth)
 
-    def test_post_extract_creds_different(self):
+    def test_remember_creds_different(self):
         plugin = self._makeOne('oatmeal')
         creds = {'login':'bar', 'password':'password'}
         auth = 'foo:password'.encode('base64').rstrip()
         creds_auth = 'bar:password'.encode('base64').rstrip()
         environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=%s;' % auth})
-        result = plugin.post_extract(environ, creds, plugin)
+        result = plugin.remember(environ, creds)
         expected = 'oatmeal=%s; Path=/;' % creds_auth
         self.assertEqual(result, [('Set-Cookie', expected)])
-        self.assertEqual(environ['HTTP_COOKIE'], 'oatmeal=%s;' % creds_auth)
 
     def test_factory(self):
         from repoze.pam.plugins.cookie import make_plugin
@@ -533,69 +485,40 @@ class TestInsecureCookiePlugin(Base):
 
 
 class TestDefaultRequestClassifier(Base):
-    def _getTargetClass(self):
-        from repoze.pam.classifiers import DefaultRequestClassifier
-        return DefaultRequestClassifier
-
-    def _makeOne(self, *arg, **kw):
-        classifier = self._getTargetClass()(*arg, **kw)
-        return classifier
-
-    def test_implements(self):
-        from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IRequestClassifier
-        klass = self._getTargetClass()
-        verifyClass(IRequestClassifier, klass)
+    def _getFUT(self):
+        from repoze.pam.classifiers import default_request_classifier
+        return default_request_classifier
 
     def test_classify_dav_method(self):
-        classifier = self._makeOne()
+        classifier = self._getFUT()
         environ = self._makeEnviron({'REQUEST_METHOD':'COPY'})
         result = classifier(environ)
         self.assertEqual(result, 'dav')
 
     def test_classify_dav_useragent(self):
-        classifier = self._makeOne()
+        classifier = self._getFUT()
         environ = self._makeEnviron({'HTTP_USER_AGENT':'WebDrive'})
         result = classifier(environ)
         self.assertEqual(result, 'dav')
         
     def test_classify_xmlpost(self):
-        classifier = self._makeOne()
+        classifier = self._getFUT()
         environ = self._makeEnviron({'CONTENT_TYPE':'text/xml',
                                      'REQUEST_METHOD':'POST'})
         result = classifier(environ)
         self.assertEqual(result, 'xmlpost')
 
     def test_classify_browser(self):
-        classifier = self._makeOne()
+        classifier = self._getFUT()
         environ = self._makeEnviron({'CONTENT_TYPE':'text/xml',
                                      'REQUEST_METHOD':'GET'})
         result = classifier(environ)
         self.assertEqual(result, 'browser')
     
-class TestDefaultResponseClassifier(Base):
-    def _getTargetClass(self):
-        from repoze.pam.classifiers import DefaultResponseClassifier
-        return DefaultResponseClassifier
-
-    def _makeOne(self, *arg, **kw):
-        classifier = self._getTargetClass()(*arg, **kw)
-        return classifier
-
-    def test_implements(self):
-        from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IResponseClassifier
-        klass = self._getTargetClass()
-        verifyClass(IResponseClassifier, klass)
-
-    def test_classify(self):
-        classifier = self._makeOne()
-        result = classifier(None, 'dav', None, None)
-        self.assertEqual(result, 'dav')
-
 class DummyApp:
     def __call__(self, environ, start_response):
-        return ['a']
+        self.environ = environ
+        return []
     
 class DummyRequestClassifier:
     def __call__(self, environ):
@@ -605,17 +528,30 @@ class DummyResponseClassifier:
     def __call__(self, environ, request_classification, headers, exception):
         return request_classification
     
-class DummyExtractor:
+class DummyIdentifier:
     def __init__(self, credentials=None):
         if credentials is None:
             credentials = {'login':'chris', 'password':'password'}
         self.credentials = credentials
-    def extract(self, environ):
+
+    def identify(self, environ):
         return self.credentials
 
-class DummyNoResultsExtractor:
-    def extract(self, environ):
+    def forget(self, environ, identity):
+        pass
+
+    def remember(self, environ, identity):
+        pass
+
+class DummyNoResultsIdentifier:
+    def identify(self, environ):
         return {}
+
+    def remember(self, *arg, **kw):
+        pass
+
+    def forget(self, *arg, **kw):
+        pass
     
 class DummyAuthenticator:
     def __init__(self, userid=None):
@@ -631,10 +567,11 @@ class DummyFailAuthenticator:
         return None
 
 class DummyChallenger:
-    def challenge(self, environ, status, headers):
+    def challenge(self, environ, status, app_headers, forget_headers):
         environ['challenged'] = True
 
-class DummyPostExtractor:
-    def post_extract(self, environ, credentials, extractor):
-        return [ ('foo', 'bar') ]
-    
+class DummyChallengeDecider:
+    def __call__(self, environ, status, headers):
+        if status.startswith('401 '):
+            return True
+        

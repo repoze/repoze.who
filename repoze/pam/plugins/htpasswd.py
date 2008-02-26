@@ -1,23 +1,23 @@
 from zope.interface import implements
 
-from repoze.pam.interfaces import IAuthenticatorPlugin
+from repoze.pam.interfaces import IAuthenticator
 from repoze.pam.utils import resolveDotted
 
 class HTPasswdPlugin(object):
 
-    implements(IAuthenticatorPlugin)
+    implements(IAuthenticator)
 
     def __init__(self, filename, check):
         self.filename = filename
         self.check = check
 
     # IAuthenticatorPlugin
-    def authenticate(self, environ, credentials):
+    def authenticate(self, environ, identity):
         try:
-            login = credentials['login']
-            password = credentials['password']
+            login = identity['login']
+            password = identity['password']
         except KeyError:
-            return False
+            return None
 
         if hasattr(self.filename, 'seek'):
             # assumed to have a readline
@@ -27,7 +27,7 @@ class HTPasswdPlugin(object):
             try:
                 f = open(self.filename, 'r')
             except IOError:
-                return False
+                return None
 
         for line in f:
             try:
@@ -35,8 +35,9 @@ class HTPasswdPlugin(object):
             except ValueError:
                 continue
             if username == login:
-                return self.check(password, hashed)
-        return False
+                if self.check(password, hashed):
+                    return username
+        return None
 
 def crypt_check(password, hashed):
     from crypt import crypt

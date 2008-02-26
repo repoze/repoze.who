@@ -4,18 +4,17 @@ from paste.request import get_cookies
 
 from zope.interface import implements
 
-from repoze.pam.interfaces import IExtractorPlugin
-from repoze.pam.interfaces import IPostExtractorPlugin
+from repoze.pam.interfaces import IIdentifier
 
 class InsecureCookiePlugin(object):
 
-    implements(IExtractorPlugin, IPostExtractorPlugin)
+    implements(IIdentifier)
     
     def __init__(self, cookie_name):
         self.cookie_name = cookie_name
 
-    # IExtractorPlugin
-    def extract(self, environ):
+    # IIdentifier
+    def identify(self, environ):
         cookies = get_cookies(environ)
         cookie = cookies.get(self.cookie_name)
 
@@ -33,23 +32,24 @@ class InsecureCookiePlugin(object):
         except ValueError: # not enough values to unpack
             return {}
 
-    # IPostExtractorPlugin
-    def post_extract(self, environ, credentials, extractor):
-        if credentials:
-            cookie_value = '%(login)s:%(password)s' % credentials
-            cookie_value = cookie_value.encode('base64').rstrip()
-            cookies = get_cookies(environ)
-            existing = cookies.get(self.cookie_name)
-            value = getattr(existing, 'value', None)
-            if value != cookie_value:
-                # go ahead and set it in the environment for downstream
-                # apps to consume (XXX?)
-                cookies[self.cookie_name] = cookie_value
-                output = cookies.output(header='', sep='').lstrip()
-                environ['HTTP_COOKIE'] = output
-                # return a Set-Cookie header
-                set_cookie = '%s=%s; Path=/;' % (self.cookie_name, cookie_value)
-                return [('Set-Cookie', set_cookie)]
+    # IIdentifier
+    def forget(self, environ, identity):
+        # return a expires Set-Cookie header
+        expired = ('%s=""; Path=/; Expires=Sun, 10-May-1971 11:59:00 GMT' %
+                   self.cookie_name)
+        return [('Set-Cookie', expired)]
+    
+    # IIdentifier
+    def remember(self, environ, identity):
+        cookie_value = '%(login)s:%(password)s' % identity
+        cookie_value = cookie_value.encode('base64').rstrip()
+        cookies = get_cookies(environ)
+        existing = cookies.get(self.cookie_name)
+        value = getattr(existing, 'value', None)
+        if value != cookie_value:
+            # return a Set-Cookie header
+            set_cookie = '%s=%s; Path=/;' % (self.cookie_name, cookie_value)
+            return [('Set-Cookie', set_cookie)]
 
 def make_plugin(pam_conf, cookie_name='repoze.pam.plugins.cookie'):
     plugin = InsecureCookiePlugin(cookie_name)

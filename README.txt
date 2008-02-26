@@ -8,18 +8,18 @@ Overview
 Description
 
   repoze.pam's ideas are largely culled from Zope 2's Pluggable
-  Authentication Service (PAS) (but it is not dependent on Zope).
-  Unlike PAS, it provides no facilities for creating user objects,
-  assigning roles or groups to users, retrieving or changing user
-  properties, or enumerating users, groups, or roles.  These
-  responsibilities are assumed to be the domain of the WSGI
-  application you're serving.  It also provides no facility for
-  authorization (ensuring whether a user can or cannot perform the
-  operation implied by the request).  This is also the domain of the
-  WSGI application.
+  Authentication Service (PAS) (but repoze.pam is not dependent on
+  Zope 2 in any way).  Unlike PAS, it provides no facilities for
+  creating user objects, assigning roles or groups to users,
+  retrieving or changing user properties, or enumerating users,
+  groups, or roles.  These responsibilities are assumed to be the
+  domain of the WSGI application you're serving.  It also provides no
+  facility for authorization (ensuring whether a user can or cannot
+  perform the operation implied by the request).  This is also the
+  domain of the WSGI application.
  
   It attemtps to reuse implementations from AuthKit and paste.auth for
-  some of its functionality.
+  some of its functionality.  XXX this is, so far, untrue
 
 Middleware Responsibilities
 
@@ -82,10 +82,10 @@ Plugins
   a WSGI request, and gives some subset of them a chance to influence
   what is added to the WSGI environment.
 
-Ingress Stages
+Request (Ingress) Stages
 
   repoze.pam performs the following operations in the following order
-  during request ingress:
+  during middleware ingress:
 
   1.  Request Classification
 
@@ -116,10 +116,10 @@ Ingress Stages
       extractor, the userid of the user would be returned (which would
       be the same as the login name).
 
-Egress Stages
+Response (Egress) Stages
 
   repoze.pam performs the following operations in the following order
-  during request egress:
+  during middleware egress:
 
   1.  Response Classification
 
@@ -226,19 +226,19 @@ Example repoze.pam Configuration File
     response_classifier = egg:repoze.pam#defaultresponseclassifier
 
     [extractors]
-    # plugin_name:ingressclassifier_name:.. or just plugin_name (good for any)
+    # plugin_name:requestclassifier_name:.. or just plugin_name (good for any)
     plugins =
           cookieauth:browser
           basicauth
 
     [authenticators]
-    # plugin_name (ingress classifiers ignored)
+    # plugin_name:requestclassifier_name.. or just plugin_name (good for any)
     plugins =
           fileusers
           sqlusers
 
     [challengers]
-    # plugin_name:egressclassifier_name:.. or just plugin_name (good for any)
+    # plugin_name:responseclassifier_name:.. or just plugin_name (good for any)
     plugins =
           cookieauth:browser
           basicauth
@@ -255,12 +255,12 @@ Further Description of Example Config
   The extractors section provides an ordered list of plugins that are
   willing to provide extraction capability.  These will be consulted
   in the defined order.  The tokens on each line of the plugin= key
-  are in the form "plugin_name:classifier" (or just "plugin_name" if
-  the plugin can be consulted regardless of the classification of the
-  request).  The configuration above indicates that the system will
-  look for credentials using the cookie auth plugin (if the request is
-  classified as a browser request), then the basic auth plugin
-  (unconditionally).
+  are in the form "plugin_name:requestclassifier_name" (or just
+  "plugin_name" if the plugin can be consulted regardless of the
+  classification of the request).  The configuration above indicates
+  that the system will look for credentials using the cookie auth
+  plugin (if the request is classified as a browser request), then the
+  basic auth plugin (unconditionally).
 
   The authenticators section provides an ordered list of plugins that
   provide authenticator capability.  These will be consulted in the
@@ -274,11 +274,12 @@ Further Description of Example Config
   provide challenger capability.  These will be consulted in the
   defined order, so the system will consult the cookie auth plugin
   first, then the basic auth plugin.  Each will have a chance, based
-  on the request, to initiate a challenge.
+  on the response classification, to initiate a challenge.  The above
+  configuration indicates that the cookieauth challenger will fire if
+  it's a browser request, and the basic auth challenger will fire if
+  it's not (fallback).
 
 Interfaces
 
-  The following interfaces are expected to be provided by plugins
-  which the configuration asserts they're willing to provide::
+   See repoze.pam.interfaces.
 
-    XXX see interfaces.py

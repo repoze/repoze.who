@@ -4,48 +4,30 @@ import sys
 
 from paste.httpheaders import REMOTE_USER
 
-from repoze.pam.interfaces import IAuthenticatorPlugin
-from repoze.pam.interfaces import IExtractorPlugin
-from repoze.pam.interfaces import IPostExtractorPlugin
-from repoze.pam.interfaces import IChallengerPlugin
-
-class StartResponseWrapper(object):
-    def __init__(self, start_response, extra_headers):
-        self.start_response = start_response
-        self.extra_headers = extra_headers
-        self.headers = []
-        self.buffer = StringIO()
-
-    def wrap_start_response(self, status, headers, exc_info=None):
-        self.headers = headers
-        self.status = status
-        return self.buffer.write
-
-    def finish_response(self):
-        headers = self.headers + self.extra_headers
-        write = self.start_response(self.status, headers)
-        if write:
-            self.buffer.seek(0)
-            write(self.buffer.getvalue())
-            if hasattr(write, 'close'):
-                write.close()
+from repoze.pam.interfaces import IIdentifier
+from repoze.pam.interfaces import IAuthenticator
+from repoze.pam.interfaces import IChallenger
 
 _STARTED = '-- repoze.pam request started --'
 _ENDED = '-- repoze.pam request ended --'
 
 class PluggableAuthenticationMiddleware(object):
     def __init__(self, app,
-                 registry,
-                 request_classifier,
-                 response_classifier,
-                 add_credentials=False,
+                 identifiers,
+                 authenticators,
+                 challengers,
+                 classifier,
+                 challenge_decider,
                  log_stream=None,
-                 log_level=logging.INFO):
-        self.registry = registry
+                 log_level=logging.INFO
+                 ):
+        iregistry, nregistry = make_registries(identifiers, authenticators,
+                                               challengers)
+        self.registry = iregistry
+        self.name_registry = nregistry
         self.app = app
-        self.request_classifier = request_classifier
-        self.response_classifier = response_classifier
-        self.add_credentials = add_credentials
+        self.classifier = classifier
+        self.challenge_decider = challenge_decider
         self.logger = None
         if log_stream:
             handler = logging.StreamHandler(log_stream)
@@ -57,170 +39,145 @@ class PluggableAuthenticationMiddleware(object):
             self.logger.setLevel(log_level)
 
     def __call__(self, environ, start_response):
+        if REMOTE_USER(environ):
+            # act as a pass through if REMOTE_USER is already set
+            return self.app(environ, start_response)
+
+        environ['repoze.pam.plugins'] = self.name_registry
+
         logger = self.logger
         logger and logger.info(_STARTED)
-        classification, extra_headers = self.modify_environment(environ)
+        classification = self.classifier(environ)
+        logger and logger.info('request classification: %s' % classification)
+        userid = None
+        identity = None
+        identifier = None
 
-        wrapper = StartResponseWrapper(start_response, extra_headers)
+        ids = self.identify(environ, classification)
+        # ids will be list of tuples: [ (IIdentifier, identity) ]
+        if ids:
+            auth_ids = self.authenticate(environ, classification, ids)
+            # auth_ids will be a list of four-tuples; when sorted,
+            # its first element will be the "best" identity.  The fourth
+            # element in the tuple is the user_id.
+            if auth_ids:
+                auth_ids.sort()
+                best = auth_ids[0]
+                identity = best[2]
+                userid = best[3]
+                identifier = best[1][1]
+                environ['REMOTE_USER'] = userid
+
+        wrapper = StartResponseWrapper(start_response)
         app_iter = self.app(environ, wrapper.wrap_start_response)
 
-        challenge_app = self.challenge(
-            environ,
-            classification,
-            wrapper.status,
-            wrapper.headers
-            )
-        logger and logger.info('challenge app used: %s' % challenge_app)
+        if self.challenge_decider(environ, wrapper.status, wrapper.headers):
 
-        if challenge_app is not None:
-            if hasattr(app_iter, 'close'):
-                app_iter.close()
-            logger and logger.info(_ENDED)
-            return challenge_app(environ, start_response)
+            challenge_app = self.challenge(
+                environ,
+                classification,
+                wrapper.status,
+                wrapper.headers,
+                identifier,
+                identity
+                )
+            if challenge_app is not None:
+                if app_iter:
+                    list(app_iter) # unwind the original app iterator
+                # replace the downstream app with the challenge app
+                app_iter = challenge_app(environ, start_response)
+            else:
+                raise RuntimeError('no challengers found')
         else:
             wrapper.finish_response()
             logger and logger.info(_ENDED)
-            return app_iter
 
-    def modify_environment(self, environ):
-        # happens on ingress
-        classification = self.request_classifier(environ)
+        logger and logger.info(_ENDED)
+        return app_iter
+
+    def identify(self, environ, classification):
         logger = self.logger
-        logger and logger.info('request classification: %s' % classification)
-        credentials, extractor = self.extract(environ, classification)
-        headers = self.after_extract(environ, credentials, extractor,
-                                     classification)
-        userid = None
-
-        if credentials:
-            userid, authenticator = self.authenticate(environ,
-                                                      credentials,
-                                                      classification)
-        else:
-            logger and logger.info(
-                'no authenticator plugin used (no credentials)')
-
-        if self.add_credentials:
-            environ['repoze.pam.credentials'] = credentials
-
-        remote_user_not_set = not REMOTE_USER(environ)
-
-        if remote_user_not_set and userid:
-            # only set REMOTE_USER if it's not yet set
-            logger and logger.info('REMOTE_USER set to %s' % userid)
-            environ['REMOTE_USER'] = userid
-        else:
-            logger and logger.info('REMOTE_USER not set')
-
-        return classification, headers
-        
-    def extract(self, environ, classification):
-        # happens on ingress
-        candidates = self.registry.get(IExtractorPlugin, ())
-        plugins = self._match_classification(candidates, classification,
-                                             'request_classifications')
-        logger = self.logger
+        candidates = self.registry.get(IIdentifier, ())
+        logger and self.logger.info('identifier plugins registered %s' %
+                                    candidates)
+        plugins = self._match_classification(candidates, classification)
         logger and self.logger.info(
-            'extractor plugins consulted %s' % plugins)
+            'identifier plugins matched for '
+            'classification "%s": %s' % (classification, plugins))
 
+        results = []
         for plugin in plugins:
-            creds = plugin.extract(environ)
-            logger and logger.debug(
-                'credentials returned from extractor %s: %s' %
-                (plugin, creds)
-                )
-            if creds:
-                # XXX PAS returns all credentials (it fully iterates over all
-                # extraction plugins)
-                logger and logger.info(
-                    'using credentials returned from extractor %s' % plugin)
-                return creds, plugin
-        logger and logger.info('no extractor plugins found credentials')
-        return {}, None
+            identity = plugin.identify(environ)
+            if identity:
+                logger and logger.debug(
+                    'identity returned from %s: %s' % (plugin, identity))
+                results.append((plugin, identity))
+            else:
+                logger and logger.debug(
+                    'no identity returned from %s (%s)' % (plugin, identity))
 
-    def after_extract(self, environ, credentials, extractor, classification):
-        candidates = self.registry.get(IPostExtractorPlugin, ())
-        plugins = self._match_classification(candidates,
-                                             classification,
-                                             'request_classifications')
-        logger = self.logger
-        logger and logger.info(
-            'post-extractor plugins consulted %s' % plugins)
+        logger and logger.debug('identities found: %s' % results)
+        return results
 
-        extra_headers = {}
+    def authenticate(self, environ, classification, identities):
+        candidates = self.registry.get(IAuthenticator, ())
+        plugins = self._match_classification(candidates, classification)
+
+        results = []
+
+        auth_rank = 0
         for plugin in plugins:
-            headers = plugin.post_extract(environ, credentials, extractor)
-            logger and logger.debug(
-                'headers returned from post-extractor %s: %s' %
-                (plugin, headers)
-                )
-            if headers:
-                extra_headers[plugin] = headers
+            identifier_rank = 0
+            for identifier, identity in identities:
+                userid = plugin.authenticate(environ, identity)
+                if userid:
+                    tup = ( (auth_rank, plugin),
+                            (identifier_rank, identifier),
+                            identity,
+                            userid
+                            )
+                    results.append(tup)
+                identifier_rank += 1
+            auth_rank += 1
 
-        logger and logger.info('extra headers gathered: %s' % extra_headers)
+        return results
 
-        return flatten(extra_headers.values())
-
-    def authenticate(self, environ, credentials, classification):
-        # happens on ingress
-        candidates = self.registry.get(IAuthenticatorPlugin, ())
-        plugins = self._match_classification(candidates,
-                                             classification,
-                                             'request_classifications')
-        logger = self.logger
-
-        logger and logger.info(
-            'authenticator plugins consulted %s' % plugins)
-
-        for plugin in plugins:
-            userid = plugin.authenticate(environ, credentials)
-            logger and logger.info(
-                'userid returned from authenticator %s: %s' %
-                (plugin, userid)
-                )
-            if userid:
-                logger and logger.info(
-                    'using userid returned from authenticator %s' % plugin)
-                return userid, plugin
-
-        logger and logger.info('no authenticator plugin authenticated a userid')
-        return None, None
-
-    def challenge(self, environ, request_classification, status, headers):
+    def challenge(self, environ, classification, status, app_headers,
+                  identifier, identity):
         # happens on egress
-        classification = self.response_classifier(
-            environ,
-            request_classification,
-            status,
-            headers
-            )
-
         logger = self.logger
-        logger and logger.info('response classification: %s' % classification)
 
-        candidates = self.registry.get(IChallengerPlugin, ())
-        plugins = self._match_classification(candidates,
-                                             classification,
-                                             'response_classifications')
-        logger and logger.info('challenger plugins consulted: %s' % plugins)
+        forget_headers = []
+
+        if identifier:
+            forget_headers = identifier.forget(environ, identity)
+            if forget_headers is None:
+                forget_headers = []
+
+        candidates = self.registry.get(IChallenger, ())
+        logger and logger.info('challengers registered: %s' % candidates)
+        plugins = self._match_classification(candidates, classification)
+        logger and logger.info('challengers matched for '
+                               'classification "%s": %s' % (classification,
+                                                            plugins))
         for plugin in plugins:
-            app = plugin.challenge(environ, status, headers)
-            logger and logger.debug('app returned from challenger %s: %s' %
-                                    (plugin, app)
-                                    )
+            app = plugin.challenge(environ, status, app_headers,
+                                   forget_headers)
             if app is not None:
                 # new WSGI application
                 logger and logger.info(
-                    'challenger plugin %s returned an app: %s' % (plugin, app))
+                    'challenger plugin %s "challenge" returned an app' % (
+                    plugin))
                 return app
-        logger and logger.info('no challenge app returned')
+
         # signifies no challenge
+        logger and logger.info('no challenge app returned')
         return None
 
-    def _match_classification(self, plugins, classification, attr):
+    def _match_classification(self, plugins, classification):
         result = []
         for plugin in plugins:
-            plugin_classifications = getattr(plugin, attr, None)
+            plugin_classifications = getattr(plugin, 'classifications', None)
             if not plugin_classifications: # good for any
                 result.append(plugin)
                 continue
@@ -228,6 +185,28 @@ class PluggableAuthenticationMiddleware(object):
                 result.append(plugin)
                     
         return result
+
+class StartResponseWrapper(object):
+    def __init__(self, start_response):
+        self.start_response = start_response
+        self.headers = []
+        self.buffer = StringIO()
+
+    def wrap_start_response(self, status, headers, exc_info=None):
+        self.headers = headers
+        self.status = status
+        return self.buffer.write
+
+    def finish_response(self):
+        headers = self.headers
+        write = self.start_response(self.status, headers)
+        if write:
+            self.buffer.seek(0)
+            value = self.buffer.getvalue()
+            if value:
+                write(value)
+            if hasattr(write, 'close'):
+                write.close()
 
 def flatten(L):
     result = []
@@ -248,59 +227,61 @@ def make_test_middleware(app, global_conf):
     from repoze.pam.plugins.cookie import InsecureCookiePlugin
     from repoze.pam.plugins.form import FormPlugin
     basicauth = BasicAuthPlugin('repoze.pam')
-    any = set() # means good for any classification
-    basicauth.request_classifications = any
-    basicauth.response_classifications = any
+    any = None # means good for any classification
+    basicauth.classifications = any
     from StringIO import StringIO
     from repoze.pam.plugins.htpasswd import crypt_check
     io = StringIO()
     salt = 'aa'
     import crypt
-    for name, password in [ ('admin', 'admin') ]:
-        io.write('name:%s\n' % crypt.crypt(password, salt))
+    for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
+        io.write('%s:%s\n' % (name, crypt.crypt(password, salt)))
+    io.seek(0)
     htpasswd = HTPasswdPlugin(io, crypt_check)
-    htpasswd.request_classifications = any
-    htpasswd.response_classifications = any
+    htpasswd.classifications = any
     cookie = InsecureCookiePlugin('oatmeal')
-    cookie.request_classifications = any
-    cookie.response_classifications = any
-    form = FormPlugin('__do_login')
-    # only do form extract/challenge for browser requests
-    form.request_classifications = set(('browser',)) 
-    form.response_classifications = set(('browser',)) 
-    registry = make_registry(
-        extractors = (cookie, basicauth, form),
-        post_extractors = (cookie, basicauth),
-        authenticators = (htpasswd,),
-        challengers = (form, basicauth),
+    cookie.classifications = any
+    form = FormPlugin('__do_login', rememberer_name='cookie')
+    form.classifications = set(('browser',)) # only for for browser requests
+    identifiers = [('form', form),('cookie',cookie),('basicauth',basicauth) ]
+    authenticators = [('htpasswd', htpasswd)]
+    challengers = [('form',form), ('basicauth',basicauth)]
+    from repoze.pam.classifiers import default_request_classifier
+    from repoze.pam.classifiers import default_challenge_decider
+    middleware = PluggableAuthenticationMiddleware(
+        app,
+        identifiers,
+        authenticators,
+        challengers,
+        default_request_classifier,
+        default_challenge_decider,
+        log_stream=sys.stdout,
+        log_level = logging.DEBUG
         )
-    from repoze.pam.classifiers import DefaultRequestClassifier
-    from repoze.pam.classifiers import DefaultResponseClassifier
-    request_classifier = DefaultRequestClassifier()
-    response_classifier = DefaultResponseClassifier()
-    middleware = PluggableAuthenticationMiddleware(app,
-                                                   registry,
-                                                   request_classifier,
-                                                   response_classifier,
-                                                   log_stream=sys.stdout,
-                                                   log_level = logging.DEBUG
-                                                   )
     return middleware
 
-def verify(plugins, iface):
+def verify(plugin, iface):
     from zope.interface.verify import verifyObject
-    for plugin in plugins:
-        verifyObject(iface, plugin, tentative=True)
+    verifyObject(iface, plugin, tentative=True)
     
-def make_registry(extractors, post_extractors, authenticators, challengers):
-    registry = {}
-    verify(extractors, IExtractorPlugin)
-    registry[IExtractorPlugin] = extractors
-    verify(post_extractors, IExtractorPlugin)
-    registry[IPostExtractorPlugin] = post_extractors
-    verify(authenticators, IAuthenticatorPlugin)
-    registry[IAuthenticatorPlugin] = authenticators
-    verify(challengers, IChallengerPlugin)
-    registry[IChallengerPlugin] = challengers
-    return registry
+def make_registries(identifiers, authenticators, challengers):
+    from zope.interface.verify import BrokenImplementation
+    interface_registry = {}
+    name_registry = {}
+
+    for supplied, iface in [ (identifiers, IIdentifier),
+                             (authenticators, IAuthenticator),
+                             (challengers, IChallenger) ]:
+        for name, value in supplied:
+            try:
+                verify(value, iface)
+            except BrokenImplementation, why:
+                why = str(why)
+                raise ValueError(name + ': ' + why)
+            L = interface_registry.setdefault(iface, [])
+            L.append(value)
+            name_registry[name] = value
+
+    return interface_registry, name_registry
+
 

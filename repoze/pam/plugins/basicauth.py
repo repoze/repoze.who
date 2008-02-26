@@ -6,25 +6,18 @@ from paste.httpexceptions import HTTPUnauthorized
 
 from zope.interface import implements
 
-from repoze.pam.interfaces import IChallengerPlugin
-from repoze.pam.interfaces import IExtractorPlugin
-from repoze.pam.interfaces import IPostExtractorPlugin
+from repoze.pam.interfaces import IIdentifier
+from repoze.pam.interfaces import IChallenger
 
 class BasicAuthPlugin(object):
 
-    implements(IChallengerPlugin, IExtractorPlugin, IPostExtractorPlugin)
+    implements(IIdentifier, IChallenger)
     
     def __init__(self, realm):
         self.realm = realm
 
-    # IChallengerPlugin
-    def challenge(self, environ, status, headers):
-        if status == '401 Unauthorized':
-            headers = WWW_AUTHENTICATE.tuples('Basic realm="%s"' % self.realm)
-            return HTTPUnauthorized(headers=headers)
-
-    # IExtractorPlugin
-    def extract(self, environ):
+    # IIdentifier
+    def identify(self, environ):
         authorization = AUTHORIZATION(environ)
         try:
             authmeth, auth = authorization.split(' ', 1)
@@ -44,14 +37,26 @@ class BasicAuthPlugin(object):
 
         return {}
 
-    # IPostExtractorPlugin
-    def post_extract(self, environ, credentials, extractor):
-        if credentials:
-            if not AUTHORIZATION(environ):
-                auth = '%(login)s:%(password)s' % credentials
-                auth = auth.encode('base64').rstrip()
-                header = 'Basic %s' % auth
-                environ['HTTP_AUTHORIZATION'] = header
+    # IIdentifier
+    def remember(self, environ, identity):
+        # we need to do nothing here; the browser remembers the basic
+        # auth info as a result of the user typing it in.
+        pass
+
+    def _get_wwwauth(self):
+        head = WWW_AUTHENTICATE.tuples('Basic realm="%s"' % self.realm)
+        return head
+
+    # IIdentifier
+    def forget(self, environ, identity):
+        return self._get_wwwauth()
+
+    # IChallenger
+    def challenge(self, environ, status, app_headers, forget_headers):
+        head = self._get_wwwauth()
+        if head != forget_headers:
+            head = head + forget_headers
+        return HTTPUnauthorized(headers=head)
 
 def make_plugin(pam_conf, realm='basic'):
     plugin = BasicAuthPlugin(realm)

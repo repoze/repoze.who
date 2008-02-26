@@ -6,8 +6,8 @@ from paste.request import parse_formvars
 
 from zope.interface import implements
 
-from repoze.pam.interfaces import IChallengerPlugin
-from repoze.pam.interfaces import IExtractorPlugin
+from repoze.pam.interfaces import IChallenger
+from repoze.pam.interfaces import IIdentifier
 
 _DEFAULT_FORM = """
 <html>
@@ -42,24 +42,19 @@ _DEFAULT_FORM = """
 </html>
 """
 
-def auth_form(environ, start_response):
-    import pprint
-    form = _DEFAULT_FORM % pprint.pformat(environ)
-    content_length = CONTENT_LENGTH.tuples(str(len(form)))
-    content_type = CONTENT_TYPE.tuples('text/html')
-    headers = content_length + content_type
-    start_response('200 OK', headers)
-    return [form]
-
 class FormPlugin(object):
 
-    implements(IChallengerPlugin, IExtractorPlugin)
+    implements(IChallenger, IIdentifier)
     
-    def __init__(self, login_form_qs):
+    def __init__(self, login_form_qs, rememberer_name):
         self.login_form_qs = login_form_qs
+        # rememberer_name is the name of another configured plugin which
+        # implements IIdentifier, to handle remember and forget duties
+        # (ala a cookie plugin or a session plugin)
+        self.rememberer_name = rememberer_name
 
-    # IExtractorPlugin
-    def extract(self, environ):
+    # IIdentifier
+    def identify(self, environ):
         query = parse_dict_querystring(environ)
         # If the extractor finds a special query string on any request,
         # it will attempt to find the values in the input body.
@@ -79,12 +74,38 @@ class FormPlugin(object):
 
         return {}
 
-    # IChallengerPlugin
-    def challenge(self, environ, status, headers):
-        if status == '401 Unauthorized':
-            return auth_form
+    def _get_rememberer(self, environ):
+        rememberer = environ['repoze.pam.plugins'][self.rememberer_name]
+        return rememberer
 
-def make_plugin(pam_conf, login_form_qs='__do_login'):
-    plugin = FormPlugin(login_form_qs)
+    # IIdentifier
+    def remember(self, environ, identity):
+        rememberer = self._get_rememberer(environ)
+        return rememberer.remember(environ, identity)
+
+    # IIdentifier
+    def forget(self, environ, identity):
+        rememberer = self._get_rememberer(environ)
+        self.rememberer.forget(environ, identity)
+
+    # IChallenger
+    def challenge(self, environ, status, app_headers, forget_headers):
+        # heck yeah.
+        def auth_form(environ, start_response):
+            import pprint
+            form = _DEFAULT_FORM % pprint.pformat(environ)
+            content_length = CONTENT_LENGTH.tuples(str(len(form)))
+            content_type = CONTENT_TYPE.tuples('text/html')
+            headers = content_length + content_type + forget_headers
+            start_response('200 OK', headers)
+            return [form]
+
+        return auth_form
+
+def make_plugin(pam_conf, login_form_qs='__do_login', rememberer_name=None):
+    if rememberer_name is None:
+        raise ValueError(
+            'must include rememberer key (name of another IIdentifier plugin)')
+    plugin = FormPlugin(login_form_qs, rememberer_name)
     return plugin
 
