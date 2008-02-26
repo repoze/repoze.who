@@ -98,6 +98,9 @@ class PluggableAuthenticationMiddleware(object):
             remember_headers = []
             if identifier:
                 remember_headers = identifier.remember(environ, identity)
+                if remember_headers:
+                    logger and logger.info('remembering via headers from %s: %s'
+                                           % (identifier, remember_headers))
             wrapper.finish_response(remember_headers)
 
         logger and logger.info(_ENDED)
@@ -173,6 +176,9 @@ class PluggableAuthenticationMiddleware(object):
             forget_headers = identifier.forget(environ, identity)
             if forget_headers is None:
                 forget_headers = []
+            else:
+                logger and logger.info('forgetting via headers from %s: %s'
+                                       % (identifier, forget_headers))
 
         candidates = self.registry.get(IChallenger, ())
         logger and logger.info('challengers registered: %s' % candidates)
