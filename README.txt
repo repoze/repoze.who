@@ -35,13 +35,6 @@ Middleware Responsibilities
 
 PasteDeploy Configuration
 
-  repoze.pam is designed to be used within a PasteDeploy configuration
-  file:
-
-    [filter:pam]
-    use = egg:repoze.pam#pam
-    config_file = %(here)s/pam.ini
-
 Classifiers
 
   repoze.pam "classifies" the request on middleware ingress.  Request
@@ -126,12 +119,13 @@ Response (Egress) Stages
 
       Challengers which nominate themselves as willing to execute a
       challenge for a particular class of request (as provided by the
-      classifier) will be consulted.  The challenger plugins can use
-      application-returned headers, the WSGI environment, and other
-      items to determine what sort of operation should be performed to
-      actuate the challenge.  Challenger plugins also defer to the
-      identifier plugin which provided the identity (if any) to reset
-      credentials at challenge time.
+      classifier) will be consulted, and one will be chosen to perform
+      a challenge.  A challenger plugin can use application-returned
+      headers, the WSGI environment, and other items to determine what
+      sort of operation should be performed to actuate the challenge.
+      Note that repoze.pam defers to the identifier plugin which
+      provided the identity (if any) to reset credentials at challenge
+      time; this is not the responsibility of the challenger.
 
 Plugin Types
 
@@ -146,10 +140,11 @@ Plugin Types
 
     You may register a plugin as willing to act as an "authenticator".
     Authenticator plugins are responsible for resolving a set of
-    credentials to a user id.  Typically, authenticator plugins will
-    perform a lookup into a database or some other persistent store,
-    check the provided credentials against the stored data, and return
-    a user id if the credentials can be validated.
+    credentials provided by an identifier plugin into a user id.
+    Typically, authenticator plugins will perform a lookup into a
+    database or some other persistent store, check the provided
+    credentials against the stored data, and return a user id if the
+    credentials can be validated.
 
     The user id provided by an authenticator is eventually passed to
     downstream WSGI applications in the "REMOTE_USER' environment
@@ -175,7 +170,15 @@ Configuration File Example
   form a site configuration.  The general section is general middleware
   configuration.
 
-Example repoze.pam Configuration File
+Example repoze.pam Configuration File (*NOTE: SCIENCE FICTION, not yet
+implemented!*)
+
+  repoze.pam is designed to be used within a PasteDeploy configuration
+  file:
+
+    [filter:pam]
+    use = egg:repoze.pam#pam
+    config_file = %(here)s/pam.ini
 
   Below is an example of a configuration file that might be used to
   configure the repoze.pam middleware.  A set of plugins are defined,

@@ -26,10 +26,8 @@ README = open(os.path.join(here, 'README.txt')).read()
 
 setup(name='repoze.pam',
       version=__version__,
-      description=(
-       'WSGI middleware which a) catches exceptions and turns them '
-       'into an authentication challenge, b) performs authentication of'
-       'user-supplied credentials against pluggable data sources.'),
+      description=('repoze.pam (Pluggable Authentication Middleware) is an'
+                   'identification and authentication framework for WSGI.'),
       long_description=README,
       classifiers=[
         "Development Status :: 1 - Planning",
