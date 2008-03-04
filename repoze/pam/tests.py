@@ -931,6 +931,182 @@ class TestMakeRegistries(unittest.TestCase):
         self.assertEqual(name_reg['auth'], dummy_auth)
         self.assertEqual(name_reg['challenger'], dummy_challenger)
 
+class TestSQLAuthenticatorPlugin(unittest.TestCase):
+    def _makeEnviron(self, kw=None):
+        environ = {}
+        environ['wsgi.version'] = (1,0)
+        if kw is not None:
+            environ.update(kw)
+        return environ
+
+    def _getTargetClass(self):
+        from repoze.pam.plugins.sql import SQLAuthenticatorPlugin
+        return SQLAuthenticatorPlugin
+
+    def _makeOne(self, dsn, statement, compare_fn, cfactory):
+        plugin = self._getTargetClass()(dsn, statement, compare_fn, cfactory)
+        return plugin
+
+    def _makeConnectionFactory(self, result):
+        cursor = DummyCursor(result)
+        def connect(dsn):
+            conn = DummyConnection(dsn, cursor)
+            return conn
+        return connect
+    
+    def test_implements(self):
+        from zope.interface.verify import verifyClass
+        from repoze.pam.interfaces import IAuthenticator
+        klass = self._getTargetClass()
+        verifyClass(IAuthenticator, klass)
+
+    def test_authenticate_noresults(self):
+        conn_factory = self._makeConnectionFactory(())
+        plugin = self._makeOne('dsn', 'statement', compare_fail, conn_factory)
+        environ = self._makeEnviron()
+        identity = {'login':'foo', 'password':'bar'}
+        result = plugin.authenticate(environ, identity)
+        self.assertEqual(result, None)
+        self.assertEqual(plugin.conn.dsn, 'dsn')
+        self.assertEqual(plugin.conn.curs.statement, 'statement')
+        self.assertEqual(plugin.conn.curs.bindargs, identity)
+        self.assertEqual(plugin.conn.curs.closed, True)
+
+    def test_authenticate_comparefail(self):
+        conn_factory = self._makeConnectionFactory(('user_id', 'password'))
+        plugin = self._makeOne('dsn', 'statement', compare_fail, conn_factory)
+        environ = self._makeEnviron()
+        identity = {'login':'user_id', 'password':'bar'}
+        result = plugin.authenticate(environ, identity)
+        self.assertEqual(result, None)
+        self.assertEqual(plugin.conn.dsn, 'dsn')
+        self.assertEqual(plugin.conn.curs.statement, 'statement')
+        self.assertEqual(plugin.conn.curs.bindargs, identity)
+        self.assertEqual(plugin.conn.curs.closed, True)
+
+    def test_authenticate_comparesuccess(self):
+        conn_factory = self._makeConnectionFactory(('userid', 'password'))
+        plugin = self._makeOne('dsn', 'statement', compare_success,
+                               conn_factory)
+        environ = self._makeEnviron()
+        identity = {'login':'foo', 'password':'bar'}
+        result = plugin.authenticate(environ, identity)
+        self.assertEqual(result, 'userid')
+        self.assertEqual(plugin.conn.dsn, 'dsn')
+        self.assertEqual(plugin.conn.curs.statement, 'statement')
+        self.assertEqual(plugin.conn.curs.bindargs, identity)
+        self.assertEqual(plugin.conn.curs.closed, True)
+
+class TestDefaultPasswordCompare(unittest.TestCase):
+    def _getFUT(self):
+        from repoze.pam.plugins.sql import default_password_compare
+        return default_password_compare
+
+    def test_shaprefix_bad_decode(self):
+        compare = self._getFUT()
+        result = compare('password', '{SHA}undecodable')
+        self.assertEqual(result, False)
+
+    def test_shaprefix_success(self):
+        import sha
+        stored = sha.new('password').digest().encode('base64').rstrip()
+        stored = '{SHA}' + stored
+        compare = self._getFUT()
+        result = compare('password', stored)
+        self.assertEqual(result, True)
+
+    def test_shaprefix_fail(self):
+        import sha
+        stored = sha.new('password').digest().encode('base64').rstrip()
+        stored = '{SHA}' + stored
+        compare = self._getFUT()
+        result = compare('notpassword', stored)
+        self.assertEqual(result, False)
+
+    def test_noprefix_success(self):
+        stored = 'password'
+        compare = self._getFUT()
+        result = compare('password', stored)
+        self.assertEqual(result, True)
+
+    def test_noprefix_fail(self):
+        stored = 'password'
+        compare = self._getFUT()
+        result = compare('notpassword', stored)
+        self.assertEqual(result, False)
+
+class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
+    def _getFUT(self):
+        from repoze.pam.plugins.sql import make_plugin
+        return make_plugin
+
+    def test_nodsn(self):
+        f = self._getFUT()
+        self.assertRaises(ValueError, f, None, None, 'statement')
+
+    def test_nostatement(self):
+        f = self._getFUT()
+        self.assertRaises(ValueError, f, None, 'dsn', None)
+
+    def test_comparefunc_specd(self):
+        f = self._getFUT()
+        plugin = f(None, 'dsn', 'statement',
+                   'repoze.pam.plugins.sql:make_plugin')
+        self.assertEqual(plugin.dsn, 'dsn')
+        self.assertEqual(plugin.statement, 'statement')
+        self.assertEqual(plugin.compare_fn, f)
+
+    def test_connfactory_specd(self):
+        f = self._getFUT()
+        plugin = f(None, 'dsn', 'statement', None,
+                   'repoze.pam.plugins.sql:make_plugin')
+        self.assertEqual(plugin.dsn, 'dsn')
+        self.assertEqual(plugin.statement, 'statement')
+        self.assertEqual(plugin.conn_factory, f)
+
+    def test_onlydsnandstatement(self):
+        f = self._getFUT()
+        plugin = f(None, 'dsn', 'statement')
+        self.assertEqual(plugin.dsn, 'dsn')
+        self.assertEqual(plugin.statement, 'statement')
+        from repoze.pam.plugins.sql import psycopg_connect
+        from repoze.pam.plugins.sql import default_password_compare
+        self.assertEqual(plugin.conn_factory, psycopg_connect)
+        self.assertEqual(plugin.compare_fn, default_password_compare)
+        
+
+def compare_success(*arg):
+    return True
+
+def compare_fail(*arg):
+    return False
+
+class DummyCursor:
+    def __init__(self, result):
+        self.result = result
+        self.statement = None
+        self.bindargs = None
+        self.closed = False
+
+    def execute(self, statement, bindargs):
+        self.statement = statement
+        self.bindargs = bindargs
+
+    def close(self):
+        self.closed = True
+
+    def fetchone(self):
+        return self.result
+
+class DummyConnection:
+    def __init__(self, dsn, cursor):
+        self.dsn = dsn
+        self.curs = cursor
+
+    def cursor(self):
+        return self.curs
+
+
 # XXX need make_middleware tests
 
 class DummyApp:

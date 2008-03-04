@@ -1,3 +1,7 @@
+0.2 (03-04-2008)
+
+  - Added SQLAuthenticatorPlugin (see plugins/sql.py).
+
 0.1 (02-27-2008)
 
   Initial release (no configuration file support yet).
