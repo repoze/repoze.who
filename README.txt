@@ -283,7 +283,241 @@ Further Description of Example Config
   browser request, and the basic auth challenger will fire if it's not
   (fallback).
 
+Writing An Identifier Plugin
+
+  An identifier plugin (aka an IIdentifier plugin) must do three
+  things: extract credentials from the request and turn them into an
+  "identity", "remember" credentials, and "forget" credentials.
+
+  Here's a simple cookie identification plugin that does these three
+  things::
+
+    class InsecureCookiePlugin(object):
+
+        def __init__(self, cookie_name):
+            self.cookie_name = cookie_name
+
+        def identify(self, environ):
+            cookies = get_cookies(environ)
+            cookie = cookies.get(self.cookie_name)
+
+            if cookie is None:
+                return {}
+
+            import binascii
+            try:
+                auth = cookie.value.decode('base64')
+            except binascii.Error: # can't decode
+                return {}
+
+            try:
+                login, password = auth.split(':', 1)
+                return {'login':login, 'password':password}
+            except ValueError: # not enough values to unpack
+                return {}
+
+        def remember(self, environ, identity):
+            cookie_value = '%(login)s:%(password)s' % identity
+            cookie_value = cookie_value.encode('base64').rstrip()
+            from paste.request import get_cookies
+            cookies = get_cookies(environ)
+            existing = cookies.get(self.cookie_name)
+            value = getattr(existing, 'value', None)
+            if value != cookie_value:
+                # return a Set-Cookie header
+                set_cookie = '%s=%s; Path=/;' % (self.cookie_name, cookie_value)
+                return [('Set-Cookie', set_cookie)]
+
+        def forget(self, environ, identity):
+            # return a expires Set-Cookie header
+            expired = ('%s=""; Path=/; Expires=Sun, 10-May-1971 11:59:00 GMT' %
+                       self.cookie_name)
+            return [('Set-Cookie', expired)]
+        
+        def __repr__(self):
+            return '<%s %s>' % (self.__class__.__name__, id(self))
+
+  Note that the plugin implements three "interface" methods:
+  "identify", "forget" and "remember".  The formal specification for
+  the arguments and return values expected from these methods are
+  available in the "interfaces.py" file in repoze.pam as the
+  'IIdentifier' interface, but let's examine them less formally one at
+  a time.
+
+  identify(environ) --
+
+    The 'identify' method of our InsecureCookiePlugin accepts a single
+    argument "environ".  This will be the WSGI environment dictionary.
+    Our plugin attempts to grub through the cookies sent by the
+    client, trying to find one that matches our cookie name.  If it
+    finds one that matches, it attempts to decode it and turn it into
+    a login and a password, which it returns as values in a
+    dictionary.  This dictionary is thereafter known as an "identity".
+    If it finds no credentials in cookies, it returns an empty
+    dictionary (which is not considered an identity).
+
+    More generally, the 'identify' method of an IIdentifier plugin is
+    called once on WSGI request "ingress", and it is expected to grub
+    arbitrarily through the WSGI environment looking for credential
+    information.  In our above plugin, the credential information is
+    expected to be in a cookie but credential information could be in
+    a cookie, a form field, basic/digest auth information, a header, a
+    WSGI environment variable set by some upstream middleware or
+    whatever else someone might use to stash authentication
+    information.  If the plugin finds credentials in the request, it's
+    expected to return an "identity": this is a dictionary of (at
+    least) the form {'login':login_name, 'password':password}.  It may
+    place other information in the dictionary for use by special
+    IAuthenticator plugins, but these are the two required fields in
+    the dictionary.  If it finds no credentials, it is expected to
+    return an empty dictionary.
+
+  remember(environ, identity) --
+
+    If we've passed a REMOTE_USER to the WSGI application during
+    ingress (as a result of providing an identity that could be
+    authenticated), and the downstream application doesn't kick back
+    with an unauthorized response, on egress we want the requesting
+    client to "remember" the identity we provided if there's some way
+    to do that and if he hasn't already, in order to ensure he will
+    pass it back to us on subsequent requests without requiring
+    another login.  The remember method of an IIdentifier plugin is
+    called for each non-unauthenticated response.  It is the
+    responsibility of the IIdentifier plugin to conditionally return
+    HTTP headers that will cause the client to remember the
+    credentials implied by "identity".
+    
+    Our InsecureCookiePlugin implements the "remember" method by
+    returning headers which set a cookie if and only if one is not
+    already set with the same name and value in the WSGI environment.
+    These headers will be tacked on to the response headers provided
+    by the downstream application during the response.
+
+  forget(environ, identity) --
+
+    Eventually the WSGI application we're serving will issue a "401
+    Unauthorized" or another status signifying that the request could
+    not be authorized.  repoze.pam intercepts this status and calls
+    IIdentifier plugins asking them to "forget" the credentials
+    implied by the identity.  It is the "forget" method's job at this
+    point to return HTTP headers that will effectively clear any
+    credentials on the requesting client implied by the "identity"
+    argument.
+
+    Our InsecureCookiePlugin implements the "forget" method by
+    returning a header which resets the cookie that was set earlier by
+    the remember method to one that expires in the past (on my
+    birthday, in fact).  This header will be tacked onto the response
+    headers provided by the downstream application.
+
+Writing an Authenticator Plugin
+
+  An authenticator plugin (aka an IAuthenticator plugin) must do only
+  one thing (on "ingress"): accept an identity and check if the
+  identity is "good".  If the identity is good, it should return a
+  "user id".  This user id may or may not be the same as the "login"
+  provided by the user.  An IAuthenticator plugin will be called for
+  each identity found during the identification phase (there may be
+  multiple identities for a single request, as there may be multiple
+  IIdentifier plugins active at any given time), so it may be called
+  multiple times in the same request.
+
+  Here's a simple authenticator plugin that attempts to match an
+  identity against ones defined in an "htpasswd" file that does just
+  that::
+
+    class SimpleHTPasswdPlugin(object):
+
+        def __init__(self, filename):
+            self.filename = filename
+
+        # IAuthenticatorPlugin
+        def authenticate(self, environ, identity):
+            try:
+                login = identity['login']
+                password = identity['password']
+            except KeyError:
+                return None
+
+            f = open(self.filename, 'r')
+
+            for line in f:
+                try:
+                    username, hashed = line.rstrip().split(':', 1)
+                except ValueError:
+                    continue
+                if username == login:
+                    if crypt_check(password, hashed):
+                        return username
+            return None
+
+    def crypt_check(password, hashed):
+        from crypt import crypt
+        salt = hashed[:2]
+        return hashed == crypt(password, salt)
+
+  Note that the plugin implements a single "interface" method:
+  "authenticate".  The formal specification for the arguments and
+  return values expected from this method is available in the
+  "interfaces.py" file in repoze.pam as the 'IAuthenticator'
+  interface, but we can explore this a little further here.
+
+  The 'authenticate' method accepts two arguments: the WSGI
+  environment and an identity.  Our SimpleHTPasswdPlugin
+  'authenticate' implementation grabs the login and password out of
+  the identity and attempts to find the login in the htpasswd file.
+  If it finds it, it compares the crypted version of the password
+  provided by the user to the crypted version stored in the htpasswd
+  file, and finally, if they match, it returns the login.  If they do
+  not match, it returns None.
+
+Writing a Challenger Plugin
+
+  A challenger plugin (aka an IChallenger plugin) must do only one
+  thing (on "egress"): return a WSGI application (see PEP 333 for the
+  definition of a WSGI application) which performs a "challenge."  A
+  challenge asks the user for credentials.
+
+  Here's an example of a simple challenger plugin::
+
+    from paste.httpheaders import WWW_AUTHENTICATE
+    from paste.httpexceptions import HTTPUnauthorized
+
+    class BasicAuthChallengerPlugin(object):
+
+        def __init__(self, realm):
+            self.realm = realm
+
+        # IChallenger
+        def challenge(self, environ, status, app_headers, forget_headers):
+            head = WWW_AUTHENTICATE.tuples('Basic realm="%s"' % self.realm)
+            if head[0] not in forget_headers:
+                head = head + forget_headers
+            return HTTPUnauthorized(headers=head)
+
+  Note that the plugin implements a single "interface" method:
+  "challenge".  The formal specification for the arguments and return
+  values expected from this method is available in the "interfaces.py"
+  file in repoze.pam as the 'IChallenger' interface.  This method is
+  called when repoze.pam determines that the application has returned
+  an "unauthorized" response (e.g. a 401).  Only one challenger will
+  be consulted during "egress" as necessary (the first one to return a
+  non-None response).  The challenge method takes environ (the WSGI
+  environment), 'status' (the status as set by the downstream
+  application), the "app_headers" (headers returned by the
+  application), and the "forget_headers" (headers returned by all
+  participating IIdentifier plugins whom were asked to "forget" this
+  user).
+
+  Our BasicAuthChallengerPlugin takes advantage of the fact that the
+  HTTPUnauthorized exception imported from paste.httpexceptions can be
+  used as a WSGI application.  It first makes sure that we don't
+  repeat headers if an identification plugin has already set a
+  "WWW-Authenticate" header like ours, then it returns an instance of
+  HTTPUnauthorized, passing in merged headers.  This will cause a
+  basic authentication dialog to be presented to the user.
+
 Interfaces
 
-   See repoze.pam.interfaces.
+  See the module repoze.pam.interfaces.
 
