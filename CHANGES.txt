@@ -1,3 +1,9 @@
+0.3 (03-05-2008)
+
+  - Make SQLAuthenticatorPlugin's default_password_compare use
+    hexdigest sha instead of base64'ed binary sha for simpler
+    conversion.
+
 0.2 (03-04-2008)
 
   - Added SQLAuthenticatorPlugin (see plugins/sql.py).

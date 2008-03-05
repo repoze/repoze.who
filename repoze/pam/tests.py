@@ -1002,14 +1002,9 @@ class TestDefaultPasswordCompare(unittest.TestCase):
         from repoze.pam.plugins.sql import default_password_compare
         return default_password_compare
 
-    def test_shaprefix_bad_decode(self):
-        compare = self._getFUT()
-        result = compare('password', '{SHA}undecodable')
-        self.assertEqual(result, False)
-
     def test_shaprefix_success(self):
         import sha
-        stored = sha.new('password').digest().encode('base64').rstrip()
+        stored = sha.new('password').hexdigest()
         stored = '{SHA}' + stored
         compare = self._getFUT()
         result = compare('password', stored)
@@ -1017,7 +1012,7 @@ class TestDefaultPasswordCompare(unittest.TestCase):
 
     def test_shaprefix_fail(self):
         import sha
-        stored = sha.new('password').digest().encode('base64').rstrip()
+        stored = sha.new('password').hexdigest()
         stored = '{SHA}' + stored
         compare = self._getFUT()
         result = compare('notpassword', stored)

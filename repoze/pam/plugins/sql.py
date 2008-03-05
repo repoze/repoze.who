@@ -4,18 +4,13 @@ from repoze.pam.interfaces import IAuthenticator
 
 def default_password_compare(cleartext_password, stored_password_hash):
     import sha
-    import binascii
 
-    # the stored password is stored as '{SHA}<base64(<binary SHA digest>)>'.
+    # the stored password is stored as '{SHA}<SHA hexdigest>'.
     # or as a cleartext password (no {SHA} prefix)
 
     if stored_password_hash.startswith('{SHA}'):
         stored_password_hash = stored_password_hash[5:]
-        digest = sha.new(cleartext_password).digest()
-        try:
-            stored_password_hash = stored_password_hash.decode('base64')
-        except binascii.Error:
-            return False
+        digest = sha.new(cleartext_password).hexdigest()
     else:
         digest = cleartext_password
         
