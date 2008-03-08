@@ -105,7 +105,8 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         mw = self._makeOne()
         plugin1 = DummyIdentifier({'login':'fred','password':'fred'})
-        plugin1.classifications = set(['nomatch'])
+        from repoze.pam.interfaces import IIdentifier
+        plugin1.classifications = {IIdentifier:['nomatch']}
         plugin2 = DummyIdentifier({'login':'bob','password':'bob'})
         plugins = [ ('identifier1', plugin1),  ('identifier2', plugin2) ]
         mw = self._makeOne(identifiers=plugins)
@@ -118,10 +119,11 @@ class TestMiddleware(Base):
 
     def test_identify_find_explicit_classifier(self):
         environ = self._makeEnviron()
+        from repoze.pam.interfaces import IIdentifier
         plugin1 = DummyIdentifier({'login':'fred','password':'fred'})
-        plugin1.classifications = set(['nomatch'])
+        plugin1.classifications = {IIdentifier:['nomatch']}
         plugin2 = DummyIdentifier({'login':'bob','password':'bob'})
-        plugin2.classifications = set(['match'])
+        plugin2.classifications = {IIdentifier:['match']}
         plugins= [ ('identifier1', plugin1), ('identifier2', plugin2) ]
         mw = self._makeOne(identifiers=plugins)
         results = mw.identify(environ, 'match')
@@ -203,7 +205,8 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         mw = self._makeOne()
         plugin1 = DummyAuthenticator('chris_id1')
-        plugin1.classifications = set(['nomatch'])
+        from repoze.pam.interfaces import IAuthenticator
+        plugin1.classifications = {IAuthenticator:['nomatch']}
         plugin2 = DummyAuthenticator('chris_id2')
         plugins = [ ('auth1', plugin1), ('auth2', plugin2) ]
         mw = self._makeOne(authenticators = plugins)
@@ -221,10 +224,11 @@ class TestMiddleware(Base):
     def test_authenticate_find_explicit_classifier(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
+        from repoze.pam.interfaces import IAuthenticator
         plugin1 = DummyAuthenticator('chris_id1')
-        plugin1.classifications = set(['nomatch'])
+        plugin1.classifications = {IAuthenticator:['nomatch']}
         plugin2 = DummyAuthenticator('chris_id2')
-        plugin2.classificationans = set(['match']) # game
+        plugin2.classifications = {IAuthenticator:['match']}
         plugins = [ ('auth1', plugin1), ('auth2', plugin2) ]
         mw = self._makeOne(authenticators = plugins)
         identities = [ (None, {'login':'chris', 'password':'password'}) ]
@@ -241,12 +245,11 @@ class TestMiddleware(Base):
     def test_challenge_noidentifier_noapp(self):
         environ = self._makeEnviron()
         challenger = DummyChallenger()
-        challenger.classifications = None
         plugins = [ ('challenge', challenger) ]
         mw = self._makeOne(challengers = plugins)
         identity = {'login':'chris', 'password':'password'}
         app = mw.challenge(environ, 'match', '401 Unauthorized',
-                               [], None, identity)
+                           [], None, identity)
         self.assertEqual(app, None)
         self.assertEqual(environ['challenged'], app)
 
@@ -254,7 +257,6 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         app = DummyApp()
         challenger = DummyChallenger(app)
-        challenger.classifications = None
         plugins = [ ('challenge', challenger) ]
         mw = self._makeOne(challengers = plugins)
         identity = {'login':'chris', 'password':'password'}
@@ -266,7 +268,6 @@ class TestMiddleware(Base):
     def test_challenge_identifier_noapp(self):
         environ = self._makeEnviron()
         challenger = DummyChallenger()
-        challenger.classifications = None
         identifier = DummyIdentifier()
         plugins = [ ('challenge', challenger) ]
         mw = self._makeOne(challengers = plugins)
@@ -281,7 +282,6 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         app = DummyApp()
         challenger = DummyChallenger(app)
-        challenger.classifications = None
         identifier = DummyIdentifier()
         plugins = [ ('challenge', challenger) ]
         mw = self._makeOne(challengers = plugins)
@@ -297,9 +297,7 @@ class TestMiddleware(Base):
         app1 = DummyApp()
         app2 = DummyApp()
         challenger1 = DummyChallenger(app1)
-        challenger1.classifications = None
         challenger2 = DummyChallenger(app2)
-        challenger2.classifications = None
         identifier = DummyIdentifier()
         plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
         mw = self._makeOne(challengers = plugins)
@@ -314,10 +312,11 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         app1 = DummyApp()
         app2 = DummyApp()
+        from repoze.pam.interfaces import IChallenger
         challenger1 = DummyChallenger(app1)
-        challenger1.classifications = ['nomatch']
+        challenger1.classifications = {IChallenger:['nomatch']}
         challenger2 = DummyChallenger(app2)
-        challenger2.classifications = None
+        challenger2.classifications = {IChallenger:None}
         identifier = DummyIdentifier()
         plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
         mw = self._makeOne(challengers = plugins)
@@ -332,10 +331,11 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         app1 = DummyApp()
         app2 = DummyApp()
+        from repoze.pam.interfaces import IChallenger
         challenger1 = DummyChallenger(app1)
-        challenger1.classifications = ['nomatch']
+        challenger1.classifications = {IChallenger:['nomatch']}
         challenger2 = DummyChallenger(app2)
-        challenger2.classifications = ['match']
+        challenger2.classifications = {IChallenger:['match']}
         identifier = DummyIdentifier()
         plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
         mw = self._makeOne(challengers = plugins)
@@ -464,8 +464,36 @@ class TestMiddleware(Base):
         self.assertEqual(identifier.remembered, True)
         self.assertEqual(environ['REMOTE_USER'], 'chris')
 
+
+
     # XXX need more call tests:
     #  - auth_id sorting
+
+class TestMatchClassification(unittest.TestCase):
+    def _getFUT(self):
+        from repoze.pam.middleware import match_classification
+        return match_classification
+
+    def test_match_classification(self):
+        f = self._getFUT()
+        from repoze.pam.interfaces import IIdentifier
+        from repoze.pam.interfaces import IChallenger
+        from repoze.pam.interfaces import IAuthenticator
+        multi1 = DummyMultiPlugin()
+        multi2 = DummyMultiPlugin()
+        multi1.classifications = {IIdentifier:('foo', 'bar'),
+                                  IChallenger:('buz',),
+                                  IAuthenticator:None}
+        multi2.classifications = {IIdentifier:('foo', 'baz', 'biz')}
+        plugins = (multi1, multi2)
+        # specific
+        self.assertEqual(f(IIdentifier, plugins, 'foo'), [multi1, multi2])
+        self.assertEqual(f(IIdentifier, plugins, 'bar'), [multi1])
+        self.assertEqual(f(IIdentifier, plugins, 'biz'), [multi2])
+        # any for multi2
+        self.assertEqual(f(IChallenger, plugins, 'buz'), [multi1, multi2])
+        # any for either
+        self.assertEqual(f(IAuthenticator, plugins, 'buz'), [multi1, multi2])
 
 class TestStartResponseWrapper(unittest.TestCase):
     def _getTargetClass(self):
@@ -1158,6 +1186,9 @@ class DummyAuthenticator:
         if self.userid is None:
             return credentials['login']
         return self.userid
+
+class DummyMultiPlugin:
+    pass
 
 class DummyFailAuthenticator:
     def authenticate(self, environ, credentials):

@@ -58,8 +58,7 @@ class PluggableAuthenticationMiddleware(object):
         if ids:
             auth_ids = self.authenticate(environ, classification, ids)
             # auth_ids will be a list of four-tuples; when sorted,
-            # its first element will be the "best" identity.  The fourth
-            # element in the tuple is the user_id.
+            # its first element will be the "best" identity.
             if auth_ids:
                 auth_ids.sort()
                 best = auth_ids[0]
@@ -111,7 +110,7 @@ class PluggableAuthenticationMiddleware(object):
         candidates = self.registry.get(IIdentifier, ())
         logger and self.logger.info('identifier plugins registered %s' %
                                     candidates)
-        plugins = self._match_classification(candidates, classification)
+        plugins = match_classification(IIdentifier, candidates, classification)
         logger and self.logger.info(
             'identifier plugins matched for '
             'classification "%s": %s' % (classification, plugins))
@@ -135,7 +134,8 @@ class PluggableAuthenticationMiddleware(object):
         candidates = self.registry.get(IAuthenticator, ())
         logger and self.logger.info('authenticator plugins registered %s' %
                                     candidates)
-        plugins = self._match_classification(candidates, classification)
+        plugins = match_classification(IAuthenticator, candidates,
+                                       classification)
         logger and self.logger.info(
             'authenticator plugins matched for '
             'classification "%s": %s' % (classification, plugins))
@@ -182,7 +182,8 @@ class PluggableAuthenticationMiddleware(object):
 
         candidates = self.registry.get(IChallenger, ())
         logger and logger.info('challengers registered: %s' % candidates)
-        plugins = self._match_classification(candidates, classification)
+        plugins = match_classification(IChallenger,
+                                       candidates, classification)
         logger and logger.info('challengers matched for '
                                'classification "%s": %s' % (classification,
                                                             plugins))
@@ -200,17 +201,19 @@ class PluggableAuthenticationMiddleware(object):
         logger and logger.info('no challenge app returned')
         return None
 
-    def _match_classification(self, plugins, classification):
-        result = []
-        for plugin in plugins:
-            plugin_classifications = getattr(plugin, 'classifications', None)
-            if not plugin_classifications: # good for any
-                result.append(plugin)
-                continue
-            if classification in plugin_classifications:
-                result.append(plugin)
-                    
-        return result
+def match_classification(iface, plugins, classification):
+    result = []
+    for plugin in plugins:
+        
+        plugin_classifications = getattr(plugin, 'classifications', {})
+        iface_classifications = plugin_classifications.get(iface)
+        if not iface_classifications: # good for any
+            result.append(plugin)
+            continue
+        if classification in iface_classifications:
+            result.append(plugin)
+
+    return result
 
 class StartResponseWrapper(object):
     def __init__(self, start_response):
@@ -284,8 +287,6 @@ def make_test_middleware(app, global_conf):
     from repoze.pam.plugins.cookie import InsecureCookiePlugin
     from repoze.pam.plugins.form import FormPlugin
     basicauth = BasicAuthPlugin('repoze.pam')
-    any = None # means good for any classification
-    basicauth.classifications = any
     from StringIO import StringIO
     from repoze.pam.plugins.htpasswd import crypt_check
     io = StringIO()
@@ -295,11 +296,10 @@ def make_test_middleware(app, global_conf):
         io.write('%s:%s\n' % (name, crypt.crypt(password, salt)))
     io.seek(0)
     htpasswd = HTPasswdPlugin(io, crypt_check)
-    htpasswd.classifications = any
     cookie = InsecureCookiePlugin('oatmeal')
-    cookie.classifications = any
     form = FormPlugin('__do_login', rememberer_name='cookie')
-    form.classifications = set(('browser',)) # only for for browser requests
+    form.classifications = { IIdentifier:['browser'],
+                             IChallenger:['browser'] } # only for browser
     identifiers = [('form', form),('cookie',cookie),('basicauth',basicauth) ]
     authenticators = [('htpasswd', htpasswd)]
     challengers = [('form',form), ('basicauth',basicauth)]

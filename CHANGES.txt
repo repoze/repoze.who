@@ -1,3 +1,8 @@
+0.4 (03-07-2008)
+
+ - Allow plugins to specify a classifiers list per interface (instead
+   of a single classifiers list per plugin).
+
 0.3 (03-05-2008)
 
   - Make SQLAuthenticatorPlugin's default_password_compare use
