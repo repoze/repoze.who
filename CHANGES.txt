@@ -20,6 +20,29 @@ Unreleased
 
  - Allow form plugin to override the default form.
 
+ - Add (cookie) "auth_tkt" identification plugin.
+
+ - Stamp identity dictionaries with a userid by placing a key named
+   'repoze.pam.userid' into the identity for each authenticated
+   identity.
+
+ - If an identity plugin inserts a 'repoze.pam.userid' key into the
+   identity dictionary, consider this identity "preauthenticated".  No
+   authenticator plugins will be asked to authenticate this identity.
+   This is designed for things like domain authentication (and the
+   recently added auth_tkt plugin).  Preauthenticated identities will
+   be selected first when deciding which identity to use for any given
+   request.
+
+ - Insert a 'repoze.pam.identity' key into the WSGI environment on
+   ingress if an identity is found.  Its value will be the identity
+   dictionary related to the identity selected by repoze.pam on
+   ingress.  Downstream consumers are allowed to mutate this
+   dictionary; this value is passed to "remember" and "forget", so its
+   main use is to do a "credentials reset"; e.g. a user has changed
+   his username or password within the application, but we don't want
+   to force him to log in again after he does so.
+
 0.4 (03-07-2008)
 
  - Allow plugins to specify a classifiers list per interface (instead

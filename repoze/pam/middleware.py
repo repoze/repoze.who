@@ -2,8 +2,6 @@ import logging
 from StringIO import StringIO
 import sys
 
-from paste.httpheaders import REMOTE_USER
-
 from repoze.pam.interfaces import IIdentifier
 from repoze.pam.interfaces import IAuthenticator
 from repoze.pam.interfaces import IChallenger
@@ -60,19 +58,24 @@ class PluggableAuthenticationMiddleware(object):
         # ids will be list of tuples: [ (IIdentifier, identity) ]
         if ids:
             auth_ids = self.authenticate(environ, classification, ids)
-            # auth_ids will be a list of four-tuples; when sorted,
-            # its first element will be the "best" identity.
+
+            # auth_ids will be a list of four-tuples in the form
+            #  ( (auth_rank, id_rank), authenticator, identifier, identity,
+            #    userid )
+            #
+            # When sorted, its first element will represent the "best"
+            # identity for this request.
+
             if auth_ids:
                 auth_ids.sort()
                 best = auth_ids[0]
-                authenticator = best[0][1]
-                identifier = best[1][1]
-                identity = best[2]
-                userid = best[3]
-                # add the identifier plugin to the environment; it may
-                # allow a downstream application to better decide how
-                # to manufacture a 'repoze.pam.identity_reset'
-                environ['repoze.pam.identifier'] = identifier
+                ignore, authenticator, identifier, identity, userid = best
+                identity = Identity(identity) # dont show contents at print
+                # add the identity to the environment; a downstream
+                # application can mutate it to do an 'identity reset'
+                # as necessary, e.g. identity['login'] = 'foo',
+                # identity['password'] = 'bar'
+                environ['repoze.pam.identity'] = identity
                 # set the REMOTE_USER
                 environ[self.remote_user_key] = userid
         else:
@@ -104,17 +107,6 @@ class PluggableAuthenticationMiddleware(object):
         else:
             logger and logger.info('no challenge required')
             remember_headers = []
-            app_identity = environ.get('repoze.pam.identity_reset')
-            if app_identity:
-                # A downstream application has requested an "identity
-                # reset" (e.g. a user changed his username or password
-                # or both, and the application doesn't want to require
-                # that he log in again for the new identity to
-                # 'take').  We don't want to expose the identity to
-                # upstream consumers as it may contain cleartext
-                # password info.
-                del environ['repoze.pam.identity_reset']
-                identity = app_identity
             if identifier:
                 remember_headers = identifier.remember(environ, identity)
                 if remember_headers:
@@ -160,30 +152,54 @@ class PluggableAuthenticationMiddleware(object):
             'authenticator plugins matched for '
             'classification "%s": %s' % (classification, plugins))
 
-        results = []
+        # 'preauthenticated' identities are considered best-ranking
+        identities, results, id_rank_start =self._filter_preauthenticated(
+            identities)
 
         auth_rank = 0
+
         for plugin in plugins:
-            identifier_rank = 0
+            identifier_rank = id_rank_start
             for identifier, identity in identities:
                 userid = plugin.authenticate(environ, identity)
                 if userid:
                     logger and logger.debug(
                         'userid returned from %s: %s' % (plugin, userid))
-                    tup = ( (auth_rank, plugin),
-                            (identifier_rank, identifier),
-                            identity,
-                            userid
-                            )
-                    results.append(tup)
+
+                    # stamp the identity with the userid
+                    identity['repoze.pam.userid'] = userid
+                    rank = (auth_rank, identifier_rank)
+                    results.append(
+                        (rank, plugin, identifier, identity, userid)
+                        )
                 else:
                     logger and logger.debug(
-                        'no userid returned from %s: (%s)' % (plugin, userid))
+                        'no userid returned from %s: (%s)' % (
+                        plugin, userid))
                 identifier_rank += 1
             auth_rank += 1
 
         logger and logger.debug('identities authenticated: %s' % results)
         return results
+
+    def _filter_preauthenticated(self, identities):
+        results = []
+        new_identities = identities[:]
+
+        identifier_rank = 0
+        for thing in identities:
+            identifier, identity = thing
+            userid = identity.get('repoze.pam.userid')
+            if userid is not None:
+                # the identifier plugin has already authenticated this
+                # user (domain auth, auth ticket, etc)
+                rank = (0, identifier_rank)
+                results.append(
+                    (rank, None, identifier, identity, userid)
+                    )
+                identifier_rank += 1
+                new_identities.remove(thing)
+        return new_identities, results, identifier_rank
 
     def challenge(self, environ, classification, status, app_headers,
                   identifier, identity):
@@ -365,4 +381,10 @@ def make_registries(identifiers, authenticators, challengers):
 
     return interface_registry, name_registry
 
+class Identity(dict):
+    """ dict subclass that prevents its members from being rendered
+    during print """
+    def __repr__(self):
+        return '<repoze.pam identity (hidden, dict-like) at %s>' % id(self)
+    __str__ = __repr__
 
