@@ -1,20 +1,5 @@
 Unreleased
 
- - Allow a downstream application to reset the identity during egress
-   (e.g. if a user changes his username or password and the
-   application would rather not require that the he logs out and logs
-   back in for the change to "take").  The application should set a
-   key in the WSGI environment: 'repoze.pam.identity_reset', which
-   should have a value that is an identity dictionary that can be
-   consumed by the "remember" method of the identifier that was used
-   for the current request.
-
- - Add 'repoze.pam.identifier' to environment on ingress, which will
-   be the identifier plugin instance which gave PAM the identity that
-   became REMOTE_USER (to support introspection by the application, so
-   it has a shot at knowing the identity format before it sets the
-   value of 'repoze.pam.identity_reset' ).
-
  - Allow "remote user key" (default: REMOTE_USER) to be overridden
    (pass in remote_user_key to middleware constructor).
 
