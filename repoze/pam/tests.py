@@ -276,7 +276,7 @@ class TestMiddleware(Base):
                               [], identifier, identity)
         self.assertEqual(result, None)
         self.assertEqual(environ['challenged'], None)
-        self.assertEqual(identifier.forgotten, True)
+        self.assertEqual(identifier.forgotten, identity)
 
     def test_challenge_identifier_app(self):
         environ = self._makeEnviron()
@@ -290,7 +290,7 @@ class TestMiddleware(Base):
                                [], identifier, identity)
         self.assertEqual(result, app)
         self.assertEqual(environ['challenged'], app)
-        self.assertEqual(identifier.forgotten, True)
+        self.assertEqual(identifier.forgotten, identity)
 
     def test_multi_challenge_firstwins(self):
         environ = self._makeEnviron()
@@ -306,7 +306,7 @@ class TestMiddleware(Base):
                               [], identifier, identity)
         self.assertEqual(result, app1)
         self.assertEqual(environ['challenged'], app1)
-        self.assertEqual(identifier.forgotten, True)
+        self.assertEqual(identifier.forgotten, identity)
 
     def test_multi_challenge_skipnomatch_findimplicit(self):
         environ = self._makeEnviron()
@@ -325,7 +325,7 @@ class TestMiddleware(Base):
                                [], identifier, identity)
         self.assertEqual(result, app2)
         self.assertEqual(environ['challenged'], app2)
-        self.assertEqual(identifier.forgotten, True)
+        self.assertEqual(identifier.forgotten, identity)
 
     def test_multi_challenge_skipnomatch_findexplicit(self):
         environ = self._makeEnviron()
@@ -344,7 +344,7 @@ class TestMiddleware(Base):
                                [], identifier, identity)
         self.assertEqual(result, app2)
         self.assertEqual(environ['challenged'], app2)
-        self.assertEqual(identifier.forgotten, True)
+        self.assertEqual(identifier.forgotten, identity)
 
     def test_call_remoteuser_already_set(self):
         environ = self._makeEnviron({'REMOTE_USER':'admin'})
@@ -439,8 +439,9 @@ class TestMiddleware(Base):
         result = mw(environ, start_response)
         self.assertEqual(environ['challenged'], challenge_app)
         self.failUnless(result[0].startswith('401 Unauthorized\r\n'))
-        self.assertEqual(identifier.forgotten, True)
+        self.assertEqual(identifier.forgotten, identifier.credentials)
         self.assertEqual(environ['REMOTE_USER'], 'chris')
+        self.assertEqual(environ['repoze.pam.identifier'], identifier)
 
     def test_call_200_challenger_and_identifier_and_authenticator(self):
         environ = self._makeEnviron()
@@ -461,9 +462,34 @@ class TestMiddleware(Base):
         result = mw(environ, start_response)
         self.assertEqual(environ.get('challenged'), None)
         self.assertEqual(identifier.forgotten, False)
-        self.assertEqual(identifier.remembered, True)
+        self.assertEqual(identifier.remembered, identifier.credentials)
         self.assertEqual(environ['REMOTE_USER'], 'chris')
+        self.assertEqual(environ['repoze.pam.identifier'], identifier)
 
+    def test_call_200_identity_reset(self):
+        environ = self._makeEnviron()
+        headers = [('a', '1')]
+        new_identity = {'user_id':'foo', 'password':'bar'}
+        app = DummyIdentityResetApp('200 OK', headers, new_identity)
+        from paste.httpexceptions import HTTPUnauthorized
+        challenge_app = HTTPUnauthorized()
+        challenge = DummyChallenger(challenge_app)
+        challengers = [ ('challenge', challenge) ]
+        identifier = DummyIdentifier()
+        identifiers = [ ('identifier', identifier) ]
+        authenticator = DummyAuthenticator()
+        authenticators = [ ('authenticator', authenticator) ]
+        mw = self._makeOne(app=app, challengers=challengers,
+                           identifiers=identifiers,
+                           authenticators=authenticators)
+        start_response = DummyStartResponse()
+        result = mw(environ, start_response)
+        self.failIf(environ.has_key('repoze.pam.identity_reset'))
+        self.assertEqual(environ.get('challenged'), None)
+        self.assertEqual(identifier.forgotten, False)
+        self.assertEqual(identifier.remembered, new_identity)
+        self.assertEqual(environ['REMOTE_USER'], 'chris')
+        self.assertEqual(environ['repoze.pam.identifier'], identifier)
 
 
     # XXX need more call tests:
@@ -807,8 +833,10 @@ class TestFormPlugin(Base):
         from repoze.pam.plugins.form import FormPlugin
         return FormPlugin
 
-    def _makeOne(self, login_form_qs='__do_login', rememberer_name='cookie'):
-        plugin = self._getTargetClass()(login_form_qs, rememberer_name)
+    def _makeOne(self, login_form_qs='__do_login', rememberer_name='cookie',
+                 formbody=None):
+        plugin = self._getTargetClass()(login_form_qs, rememberer_name,
+                                        formbody)
         return plugin
 
     def _makeFormEnviron(self, login=None, password=None, do_login=False):
@@ -873,24 +901,70 @@ class TestFormPlugin(Base):
     def test_remember(self):
         plugin = self._makeOne()
         environ = self._makeFormEnviron()
-        result = plugin.remember(environ, {})
+        identity = {}
+        result = plugin.remember(environ, identity)
         self.assertEqual(result, None)
         self.assertEqual(environ['repoze.pam.plugins']['cookie'].remembered,
-                         True)
+                         identity)
 
     def test_forget(self):
         plugin = self._makeOne()
         environ = self._makeFormEnviron()
-        result = plugin.forget(environ, {})
+        identity = {}
+        result = plugin.forget(environ, identity)
         self.assertEqual(result, None)
         self.assertEqual(environ['repoze.pam.plugins']['cookie'].forgotten,
-                         True)
+                         identity
+                         )
 
-    def test_factory(self):
-        from repoze.pam.plugins.cookie import make_plugin
-        plugin = make_plugin(None, 'foo')
-        self.assertEqual(plugin.cookie_name, 'foo')
+    def test_challenge_defaultform(self):
+        from repoze.pam.plugins.form import _DEFAULT_FORM
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        app = plugin.challenge(environ, '401 Unauthorized', [], [])
+        sr = DummyStartResponse()
+        result = app(environ, sr)
+        self.assertEqual(''.join(result), _DEFAULT_FORM)
+        self.assertEqual(len(sr.headers), 2)
+        cl = str(len(_DEFAULT_FORM))
+        self.assertEqual(sr.headers[0], ('Content-Length', cl))
+        self.assertEqual(sr.headers[1], ('Content-Type', 'text/html'))
+        self.assertEqual(sr.status, '200 OK')
 
+    def test_challenge_customform(self):
+        here = os.path.dirname(__file__)
+        fixtures = os.path.join(here, 'fixtures')
+        form = os.path.join(fixtures, 'form.html')
+        formbody = open(form).read()
+        plugin = self._makeOne(formbody=formbody)
+        environ = self._makeFormEnviron()
+        app = plugin.challenge(environ, '401 Unauthorized', [], [])
+        sr = DummyStartResponse()
+        result = app(environ, sr)
+        self.assertEqual(''.join(result), formbody)
+        self.assertEqual(len(sr.headers), 2)
+        cl = str(len(formbody))
+        self.assertEqual(sr.headers[0], ('Content-Length', cl))
+        self.assertEqual(sr.headers[1], ('Content-Type', 'text/html'))
+        self.assertEqual(sr.status, '200 OK')
+
+    def test_factory_withform(self):
+        from repoze.pam.plugins.form import make_plugin
+        here = os.path.dirname(__file__)
+        fixtures = os.path.join(here, 'fixtures')
+        form = os.path.join(fixtures, 'form.html')
+        formbody = open(form).read()
+        plugin = make_plugin(None, '__login', 'cookie', form)
+        self.assertEqual(plugin.login_form_qs, '__login')
+        self.assertEqual(plugin.rememberer_name, 'cookie')
+        self.assertEqual(plugin.formbody, formbody)
+
+    def test_factory_defaultform(self):
+        from repoze.pam.plugins.form import make_plugin
+        plugin = make_plugin(None, '__login', 'cookie')
+        self.assertEqual(plugin.login_form_qs, '__login')
+        self.assertEqual(plugin.rememberer_name, 'cookie')
+        self.assertEqual(plugin.formbody, None)
 
 class TestDefaultRequestClassifier(Base):
     def _getFUT(self):
@@ -1146,6 +1220,18 @@ class DummyWorkingApp:
         self.environ = environ
         start_response(self.status, self.headers)
         return ['body']
+
+class DummyIdentityResetApp:
+    def __init__(self, status, headers, new_identity):
+        self.status = status
+        self.headers = headers
+        self.new_identity = new_identity
+
+    def __call__(self, environ, start_response):
+        self.environ = environ
+        environ['repoze.pam.identity_reset'] = self.new_identity
+        start_response(self.status, self.headers)
+        return ['body']
     
 class DummyRequestClassifier:
     def __call__(self, environ):
@@ -1163,10 +1249,10 @@ class DummyIdentifier:
         return self.credentials
 
     def forget(self, environ, identity):
-        self.forgotten = True
+        self.forgotten = identity
 
     def remember(self, environ, identity):
-        self.remembered = True
+        self.remembered = identity
 
 class DummyNoResultsIdentifier:
     def identify(self, environ):

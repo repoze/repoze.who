@@ -12,7 +12,7 @@ from repoze.pam.interfaces import IIdentifier
 _DEFAULT_FORM = """
 <html>
 <head>
-  <title>Login Form</title>
+  <title>Log In</title>
 </head>
 <body>
   <div>
@@ -36,7 +36,6 @@ _DEFAULT_FORM = """
     </table>
   </form>
   <pre>
-  %s
   </pre>
 </body>
 </html>
@@ -46,12 +45,13 @@ class FormPlugin(object):
 
     implements(IChallenger, IIdentifier)
     
-    def __init__(self, login_form_qs, rememberer_name):
+    def __init__(self, login_form_qs, rememberer_name, formbody=None):
         self.login_form_qs = login_form_qs
         # rememberer_name is the name of another configured plugin which
         # implements IIdentifier, to handle remember and forget duties
         # (ala a cookie plugin or a session plugin)
         self.rememberer_name = rememberer_name
+        self.formbody = formbody
 
     # IIdentifier
     def identify(self, environ):
@@ -91,9 +91,8 @@ class FormPlugin(object):
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
         # heck yeah.
+        form = self.formbody or _DEFAULT_FORM
         def auth_form(environ, start_response):
-            import pprint
-            form = _DEFAULT_FORM % pprint.pformat(environ)
             content_length = CONTENT_LENGTH.tuples(str(len(form)))
             content_type = CONTENT_TYPE.tuples('text/html')
             headers = content_length + content_type + forget_headers
@@ -105,10 +104,13 @@ class FormPlugin(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))
 
-def make_plugin(pam_conf, login_form_qs='__do_login', rememberer_name=None):
+def make_plugin(pam_conf, login_form_qs='__do_login', rememberer_name=None,
+                form=None):
     if rememberer_name is None:
         raise ValueError(
             'must include rememberer key (name of another IIdentifier plugin)')
-    plugin = FormPlugin(login_form_qs, rememberer_name)
+    if form is not None:
+        form = open(form).read()
+    plugin = FormPlugin(login_form_qs, rememberer_name, form)
     return plugin
 

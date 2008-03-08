@@ -18,8 +18,9 @@ class PluggableAuthenticationMiddleware(object):
                  challengers,
                  classifier,
                  challenge_decider,
-                 log_stream=None,
-                 log_level=logging.INFO
+                 log_stream = None,
+                 log_level = logging.INFO,
+                 remote_user_key = 'REMOTE_USER',
                  ):
         iregistry, nregistry = make_registries(identifiers, authenticators,
                                                challengers)
@@ -28,6 +29,7 @@ class PluggableAuthenticationMiddleware(object):
         self.app = app
         self.classifier = classifier
         self.challenge_decider = challenge_decider
+        self.remote_user_key = remote_user_key
         self.logger = None
         if log_stream:
             handler = logging.StreamHandler(log_stream)
@@ -39,8 +41,9 @@ class PluggableAuthenticationMiddleware(object):
             self.logger.setLevel(log_level)
 
     def __call__(self, environ, start_response):
-        if REMOTE_USER(environ):
-            # act as a pass through if REMOTE_USER is already set
+        if self.remote_user_key in environ:
+            # act as a pass through if REMOTE_USER (or whatever) is
+            # already set
             return self.app(environ, start_response)
 
         environ['repoze.pam.plugins'] = self.name_registry
@@ -62,10 +65,16 @@ class PluggableAuthenticationMiddleware(object):
             if auth_ids:
                 auth_ids.sort()
                 best = auth_ids[0]
+                authenticator = best[0][1]
+                identifier = best[1][1]
                 identity = best[2]
                 userid = best[3]
-                identifier = best[1][1]
-                environ['REMOTE_USER'] = userid
+                # add the identifier plugin to the environment; it may
+                # allow a downstream application to better decide how
+                # to manufacture a 'repoze.pam.identity_reset'
+                environ['repoze.pam.identifier'] = identifier
+                # set the REMOTE_USER
+                environ[self.remote_user_key] = userid
         else:
             logger and logger.info('no identities found, not authenticating')
 
@@ -95,6 +104,17 @@ class PluggableAuthenticationMiddleware(object):
         else:
             logger and logger.info('no challenge required')
             remember_headers = []
+            app_identity = environ.get('repoze.pam.identity_reset')
+            if app_identity:
+                # A downstream application has requested an "identity
+                # reset" (e.g. a user changed his username or password
+                # or both, and the application doesn't want to require
+                # that he log in again for the new identity to
+                # 'take').  We don't want to expose the identity to
+                # upstream consumers as it may contain cleartext
+                # password info.
+                del environ['repoze.pam.identity_reset']
+                identity = app_identity
             if identifier:
                 remember_headers = identifier.remember(environ, identity)
                 if remember_headers:
@@ -316,7 +336,7 @@ def make_test_middleware(app, global_conf):
         challengers,
         default_request_classifier,
         default_challenge_decider,
-        log_stream= log_stream,
+        log_stream = log_stream,
         log_level = logging.DEBUG
         )
     return middleware
