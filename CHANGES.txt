@@ -30,9 +30,11 @@ Unreleased
    identity dictionary, consider this identity "preauthenticated".  No
    authenticator plugins will be asked to authenticate this identity.
    This is designed for things like the recently added auth_tkt
-   plugin, which embeds the user id into the ticket.  Preauthenticated
-   identities will be selected first when deciding which identity to
-   use for any given request.
+   plugin, which embeds the user id into the ticket.  This effectively
+   alllows an IIdentifier plugin to become an IAuthenticator plugin
+   when breaking apart the responsibility into two separate plugins is
+   "make-work".  Preauthenticated identities will be selected first
+   when deciding which identity to use for any given request.
 
  - Insert a 'repoze.pam.identity' key into the WSGI environment on
    ingress if an identity is found.  Its value will be the identity

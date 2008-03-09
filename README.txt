@@ -134,7 +134,9 @@ Plugin Types
     You can register a plugin as willing to act as an "identifier".
     An identifier examines the WSGI environment and attempts to
     extract credentials from the environment.  These credentials are
-    used by authenticator plugins to perform authentication.
+    used by authenticator plugins to perform authentication.  In some
+    cases, an identification plugin can "preauthenticate" an identity
+    (and can thus act as an authenticator plugin).
 
   Authenticator Plugins
 
@@ -373,13 +375,20 @@ Writing An Identifier Plugin
     authenticator plugins may depend on presence of the names "login"
     and "password" (e.g. the htpasswd and sql IAuthenticator plugins).
     If an IIdentifier plugin finds no credentials, it is expected to
-    return None.  An IIdentifier plugin is also permitted to
-    "preauthenticate" an identity.  If the identifier plugin knows
-    that the identity is "good" (e.g. in the case of IP-address-based
-    authentication, or ticket-based authentication), it can insert a
-    special key into the identity dictionary: 'repoze.pam.userid'.  If
-    this key is present in the identity dictionary, no authenticators
-    will be asked to authenticate the identity.
+    return None.
+
+    An IIdentifier plugin is also permitted to "preauthenticate" an
+    identity.  If the identifier plugin knows that the identity is
+    "good" (e.g. in the case of ticket-based authentication where the
+    userid is embedded into the ticket), it can insert a special key
+    into the identity dictionary: 'repoze.pam.userid'.  If this key is
+    present in the identity dictionary, no authenticators will be
+    asked to authenticate the identity.  This effectively alllows an
+    IIdentifier plugin to become an IAuthenticator plugin when
+    breaking apart the responsibility into two separate plugins is
+    "make-work".  Preauthenticated identities will be selected first
+    when deciding which identity to use for any given request.  Our
+    cookie plugin doesn't use this feature.
 
   remember(environ, identity) --
 
@@ -401,6 +410,14 @@ Writing An Identifier Plugin
     already set with the same name and value in the WSGI environment.
     These headers will be tacked on to the response headers provided
     by the downstream application during the response.
+
+    When you write a remember method, most of the work involved is
+    determining *whether or not* you need to return headers.  It's
+    typical to see remember methods that compute an "old state" and a
+    "new state" and compare the two against each other in order to
+    determine if headers need to be returned.  In our example
+    InsecureCookiePlugin, the "old state" is "cookie_value" and the
+    "new state" is "value".
 
   forget(environ, identity) --
 
@@ -480,12 +497,20 @@ Writing an Authenticator Plugin
   file, and finally, if they match, it returns the login.  If they do
   not match, it returns None.
 
+  Note that our plugin does not assume that the keys 'login' or
+  'password' exist in the identity; although it requires them to do
+  "real work" it returns None if they are not present instead of
+  raising an exception.  This is required by the IAuthenticator
+  interface specification.
+
 Writing a Challenger Plugin
 
   A challenger plugin (aka an IChallenger plugin) must do only one
-  thing (on "egress"): return a WSGI application (see PEP 333 for the
-  definition of a WSGI application) which performs a "challenge."  A
-  challenge asks the user for credentials.
+  thing on "egress": return a WSGI application which performs a
+  "challenge".  A WSGI application is a callable that accepts an
+  "environ" and a "start_response" as its parameters; see "PEP 333"
+  for further definition of what a WSGI application.  A challenge asks
+  the user for credentials.
 
   Here's an example of a simple challenger plugin::
 
