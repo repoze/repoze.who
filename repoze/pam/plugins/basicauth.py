@@ -22,20 +22,20 @@ class BasicAuthPlugin(object):
         try:
             authmeth, auth = authorization.split(' ', 1)
         except ValueError: # not enough values to unpack
-            return {}
+            return None
         if authmeth.lower() == 'basic':
             try:
                 auth = auth.strip().decode('base64')
             except binascii.Error: # can't decode
-                return {}
+                return None
             try:
                 login, password = auth.split(':', 1)
             except ValueError: # not enough values to unpack
-                return {}
+                return None
             auth = {'login':login, 'password':password}
             return auth
 
-        return {}
+        return None
 
     # IIdentifier
     def remember(self, environ, identity):

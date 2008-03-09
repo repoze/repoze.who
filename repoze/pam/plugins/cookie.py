@@ -19,18 +19,18 @@ class InsecureCookiePlugin(object):
         cookie = cookies.get(self.cookie_name)
 
         if cookie is None:
-            return {}
+            return None
 
         try:
             auth = cookie.value.decode('base64')
         except binascii.Error: # can't decode
-            return {}
+            return None
 
         try:
             login, password = auth.split(':', 1)
             return {'login':login, 'password':password}
         except ValueError: # not enough values to unpack
-            return {}
+            return None
 
     # IIdentifier
     def forget(self, environ, identity):

@@ -61,6 +61,17 @@ class TestMiddleware(Base):
         self.assertEqual(identity['login'], 'chris')
         self.assertEqual(identity['password'], 'password')
 
+    def test_identify_success_empty_identity(self):
+        environ = self._makeEnviron()
+        identifier = DummyIdentifier({})
+        identifiers = [ ('i', identifier) ]
+        mw = self._makeOne(identifiers=identifiers)
+        results = mw.identify(environ, None)
+        self.assertEqual(len(results), 1)
+        new_identifier, identity = results[0]
+        self.assertEqual(new_identifier, identifier)
+        self.assertEqual(identity, {})
+
     def test_identify_fail(self):
         environ = self._makeEnviron()
         plugin = DummyNoResultsIdentifier()
@@ -643,26 +654,26 @@ class TestBasicAuthPlugin(Base):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron()
         creds = plugin.identify(environ)
-        self.assertEqual(creds, {})
+        self.assertEqual(creds, None)
 
     def test_identify_nonbasic(self):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Digest abc'})
         creds = plugin.identify(environ)
-        self.assertEqual(creds, {})
+        self.assertEqual(creds, None)
 
     def test_identify_basic_badencoding(self):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic abc'})
         creds = plugin.identify(environ)
-        self.assertEqual(creds, {})
+        self.assertEqual(creds, None)
 
     def test_identify_basic_badrepr(self):
         plugin = self._makeOne('realm')
         value = 'foo'.encode('base64')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
         creds = plugin.identify(environ)
-        self.assertEqual(creds, {})
+        self.assertEqual(creds, None)
 
     def test_identify_basic_ok(self):
         plugin = self._makeOne('realm')
@@ -818,20 +829,14 @@ class TestInsecureCookiePlugin(Base):
         plugin = self._makeOne('oatmeal')
         environ = self._makeEnviron()
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
         
     def test_identify_badcookies(self):
         plugin = self._makeOne('oatmeal')
         environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=a'})
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
 
-    def test_identify_badcookies(self):
-        plugin = self._makeOne('oatmeal')
-        environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=a'})
-        result = plugin.identify(environ)
-        self.assertEqual(result, {})
-    
     def test_identify_success(self):
         plugin = self._makeOne('oatmeal')
         auth = 'foo:password'.encode('base64').rstrip()
@@ -916,25 +921,25 @@ class TestFormPlugin(Base):
         plugin = self._makeOne()
         environ = self._makeFormEnviron()
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
         
     def test_identify_qs_no_values(self):
         plugin = self._makeOne()
         environ = self._makeFormEnviron(do_login=True)
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
 
     def test_identify_nologin(self):
         plugin = self._makeOne()
         environ = self._makeFormEnviron(do_login=True, login='chris')
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
     
     def test_identify_nopassword(self):
         plugin = self._makeOne()
         environ = self._makeFormEnviron(do_login=True, password='password')
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
 
     def test_identify_success(self):
         plugin = self._makeOne()
@@ -1050,7 +1055,7 @@ class TestAuthTktCookiePlugin(Base):
         plugin = self._makeOne('secret')
         environ = self._makeEnviron()
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
         
     def test_identify_good_cookie_include_ip(self):
         plugin = self._makeOne('secret', include_ip=True)
@@ -1084,7 +1089,7 @@ class TestAuthTktCookiePlugin(Base):
         plugin = self._makeOne('secret', include_ip=True)
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=bogus'})
         result = plugin.identify(environ)
-        self.assertEqual(result, {})
+        self.assertEqual(result, None)
     
     def test_remember_creds_same(self):
         plugin = self._makeOne('secret')
@@ -1263,6 +1268,15 @@ class TestSQLAuthenticatorPlugin(unittest.TestCase):
         self.assertEqual(plugin.conn.curs.bindargs, identity)
         self.assertEqual(plugin.conn.curs.closed, True)
 
+    def test_authenticate_nologin(self):
+        conn_factory = self._makeConnectionFactory(('userid', 'password'))
+        plugin = self._makeOne('dsn', 'statement', compare_success,
+                               conn_factory)
+        environ = self._makeEnviron()
+        identity = {}
+        result = plugin.authenticate(environ, identity)
+        self.assertEqual(result, None)
+
 class TestDefaultPasswordCompare(unittest.TestCase):
     def _getFUT(self):
         from repoze.pam.plugins.sql import default_password_compare
@@ -1439,7 +1453,7 @@ class DummyIdentifier:
 
 class DummyNoResultsIdentifier:
     def identify(self, environ):
-        return {}
+        return None
 
     def remember(self, *arg, **kw):
         pass

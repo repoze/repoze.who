@@ -69,10 +69,10 @@ class FormPlugin(object):
                 login = form['login']
                 password = form['password']
             except KeyError:
-                return {}
+                return None
             return {'login':login, 'password':password}
 
-        return {}
+        return None
 
     def _get_rememberer(self, environ):
         rememberer = environ['repoze.pam.plugins'][self.rememberer_name]

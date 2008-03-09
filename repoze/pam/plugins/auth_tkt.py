@@ -23,7 +23,7 @@ class AuthTktCookiePlugin(object):
         cookie = cookies.get(self.cookie_name)
 
         if cookie is None or not cookie.value:
-            return {}
+            return None
 
         if self.include_ip:
             remote_addr = environ['REMOTE_ADDR']
@@ -34,7 +34,7 @@ class AuthTktCookiePlugin(object):
             timestamp, userid, tokens, user_data = auth_tkt.parse_ticket(
                 self.secret, cookie.value, remote_addr)
         except auth_tkt.BadTicket:
-            return {}
+            return None
             
         if environ.get('REMOTE_USER_TOKENS'):
             # We want to add tokens/roles to what's there:
@@ -91,7 +91,7 @@ class AuthTktCookiePlugin(object):
         if not isinstance(tokens, basestring):
             tokens = ','.join(tokens)
         if not isinstance(pam_tokens, basestring):
-            tokens = ','.join(pam_tokens)
+            pam_tokens = ','.join(pam_tokens)
         old_data = (userid, tokens, userdata)
         new_data = (pam_userid, pam_tokens, pam_userdata)
 

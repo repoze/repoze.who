@@ -45,6 +45,7 @@ class PluggableAuthenticationMiddleware(object):
             return self.app(environ, start_response)
 
         environ['repoze.pam.plugins'] = self.name_registry
+        environ['repoze.pam.logger'] = self.logger
 
         logger = self.logger
         logger and logger.info(_STARTED)
@@ -59,7 +60,7 @@ class PluggableAuthenticationMiddleware(object):
         if ids:
             auth_ids = self.authenticate(environ, classification, ids)
 
-            # auth_ids will be a list of four-tuples in the form
+            # auth_ids will be a list of five-tuples in the form
             #  ( (auth_rank, id_rank), authenticator, identifier, identity,
             #    userid )
             #
@@ -69,7 +70,7 @@ class PluggableAuthenticationMiddleware(object):
             if auth_ids:
                 auth_ids.sort()
                 best = auth_ids[0]
-                ignore, authenticator, identifier, identity, userid = best
+                rank, authenticator, identifier, identity, userid = best
                 identity = Identity(identity) # dont show contents at print
                 # add the identity to the environment; a downstream
                 # application can mutate it to do an 'identity reset'
@@ -130,7 +131,7 @@ class PluggableAuthenticationMiddleware(object):
         results = []
         for plugin in plugins:
             identity = plugin.identify(environ)
-            if identity:
+            if identity is not None:
                 logger and logger.debug(
                     'identity returned from %s: %s' % (plugin, identity))
                 results.append((plugin, identity))
@@ -164,7 +165,7 @@ class PluggableAuthenticationMiddleware(object):
                 userid = plugin.authenticate(environ, identity)
                 if userid:
                     logger and logger.debug(
-                        'userid returned from %s: %s' % (plugin, userid))
+                        'userid returned from %s: "%s"' % (plugin, userid))
 
                     # stamp the identity with the userid
                     identity['repoze.pam.userid'] = userid
@@ -183,6 +184,7 @@ class PluggableAuthenticationMiddleware(object):
         return results
 
     def _filter_preauthenticated(self, identities):
+        logger = self.logger
         results = []
         new_identities = identities[:]
 
@@ -193,6 +195,10 @@ class PluggableAuthenticationMiddleware(object):
             if userid is not None:
                 # the identifier plugin has already authenticated this
                 # user (domain auth, auth ticket, etc)
+                logger and logger.info(
+                  'userid preauthenticated by %s: "%s" '
+                  '(repoze.pam.userid set)' % (identifier, userid)
+                  )
                 rank = (0, identifier_rank)
                 results.append(
                     (rank, None, identifier, identity, userid)
@@ -320,6 +326,7 @@ def make_test_middleware(app, global_conf):
     # be able to test without a config file
     from repoze.pam.plugins.basicauth import BasicAuthPlugin
     from repoze.pam.plugins.htpasswd import HTPasswdPlugin
+    from repoze.pam.plugins.auth_tkt import AuthTktCookiePlugin
     from repoze.pam.plugins.cookie import InsecureCookiePlugin
     from repoze.pam.plugins.form import FormPlugin
     basicauth = BasicAuthPlugin('repoze.pam')
@@ -332,11 +339,12 @@ def make_test_middleware(app, global_conf):
         io.write('%s:%s\n' % (name, crypt.crypt(password, salt)))
     io.seek(0)
     htpasswd = HTPasswdPlugin(io, crypt_check)
+    auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
     cookie = InsecureCookiePlugin('oatmeal')
-    form = FormPlugin('__do_login', rememberer_name='cookie')
+    form = FormPlugin('__do_login', rememberer_name='auth_tkt')
     form.classifications = { IIdentifier:['browser'],
                              IChallenger:['browser'] } # only for browser
-    identifiers = [('form', form),('cookie',cookie),('basicauth',basicauth) ]
+    identifiers = [('form', form),('auth_tkt',auth_tkt),('basicauth',basicauth)]
     authenticators = [('htpasswd', htpasswd)]
     challengers = [('form',form), ('basicauth',basicauth)]
     from repoze.pam.classifiers import default_request_classifier

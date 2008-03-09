@@ -18,8 +18,8 @@ Description
   perform the operation implied by the request).  This is also the
   domain of the WSGI application.
  
-  It attemtps to reuse implementations from AuthKit and paste.auth for
-  some of its functionality.  XXX this is, so far, untrue
+  It attemtps to reuse implementations from paste.auth for some of its
+  functionality.
 
 Middleware Responsibilities
 
@@ -83,24 +83,24 @@ Request (Ingress) Stages
 
       Identifiers which nominate themselves as willing to extract data
       for a particular class of request (as provided by the request
-      classifier) will be consulted to retrieve login and password
-      data from the environment.  For example, a basic auth identifier
-      might use the HTTP_AUTHORIZATION header to find login and
-      password information.  Identifiers are also responsible for
-      providing header information to set and remove authentication
-      information in the response.
+      classifier) will be consulted to retrieve credentials data from
+      the environment.  For example, a basic auth identifier might use
+      the HTTP_AUTHORIZATION header to find login and password
+      information.  Identifiers are also responsible for providing
+      header information to set and remove authentication information
+      in the response.
 
   3.  Authentication
 
       Authenticators which nominate themselves as willing to
       authenticate for a particular class of request will be consulted
-      to compare login and password information provided by the
-      identification plugins that returned credentials.  For example,
-      an htpasswd authenticator might look in a file for a user record
-      matching any of the identities.  If it finds one, and if the
-      password listed in the record matches the password provided by
-      an identity, the userid of the user would be returned (which
-      would be the same as the login name).
+      to compare information provided by the identification plugins
+      that returned credentials.  For example, an htpasswd
+      authenticator might look in a file for a user record matching
+      any of the identities.  If it finds one, and if the password
+      listed in the record matches the password provided by an
+      identity, the userid of the user would be returned (which would
+      be the same as the login name).
 
 Response (Egress) Stages
 
@@ -302,19 +302,19 @@ Writing An Identifier Plugin
             cookie = cookies.get(self.cookie_name)
 
             if cookie is None:
-                return {}
+                return None
 
             import binascii
             try:
                 auth = cookie.value.decode('base64')
             except binascii.Error: # can't decode
-                return {}
+                return None
 
             try:
                 login, password = auth.split(':', 1)
                 return {'login':login, 'password':password}
             except ValueError: # not enough values to unpack
-                return {}
+                return None
 
         def remember(self, environ, identity):
             cookie_value = '%(login)s:%(password)s' % identity
@@ -353,8 +353,8 @@ Writing An Identifier Plugin
     finds one that matches, it attempts to decode it and turn it into
     a login and a password, which it returns as values in a
     dictionary.  This dictionary is thereafter known as an "identity".
-    If it finds no credentials in cookies, it returns an empty
-    dictionary (which is not considered an identity).
+    If it finds no credentials in cookies, it returns None (which is
+    not considered an identity).
 
     More generally, the 'identify' method of an IIdentifier plugin is
     called once on WSGI request "ingress", and it is expected to grub
@@ -365,12 +365,21 @@ Writing An Identifier Plugin
     WSGI environment variable set by some upstream middleware or
     whatever else someone might use to stash authentication
     information.  If the plugin finds credentials in the request, it's
-    expected to return an "identity": this is a dictionary of (at
-    least) the form {'login':login_name, 'password':password}.  It may
-    place other information in the dictionary for use by special
-    IAuthenticator plugins, but these are the two required fields in
-    the dictionary.  If it finds no credentials, it is expected to
-    return an empty dictionary.
+    expected to return an "identity": this must be a dictionary.  The
+    dictionary is not required to have any particular keys or value
+    composition, although it's wise if the identification plugin looks
+    for both a login name and a password information to return at
+    least {'login':login_name, 'password':password}, as some
+    authenticator plugins may depend on presence of the names "login"
+    and "password" (e.g. the htpasswd and sql IAuthenticator plugins).
+    If an IIdentifier plugin finds no credentials, it is expected to
+    return None.  An IIdentifier plugin is also permitted to
+    "preauthenticate" an identity.  If the identifier plugin knows
+    that the identity is "good" (e.g. in the case of IP-address-based
+    authentication, or ticket-based authentication), it can insert a
+    special key into the identity dictionary: 'repoze.pam.userid'.  If
+    this key is present in the identity dictionary, no authenticators
+    will be asked to authenticate the identity.
 
   remember(environ, identity) --
 

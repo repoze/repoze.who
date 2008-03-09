@@ -41,6 +41,8 @@ class SQLAuthenticatorPlugin:
 
     # IAuthenticator
     def authenticate(self, environ, identity):
+        if not 'login' in identity:
+            return None
         if not self.conn:
             self.conn = self._connect()
         curs = self.conn.cursor()

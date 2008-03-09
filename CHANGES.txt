@@ -5,19 +5,34 @@ Unreleased
 
  - Allow form plugin to override the default form.
 
+ - API change: IIdentifiers are no longer required to put both 'login'
+   and 'password' in a returned identity dictionary.  Instead, an
+   IIdentifier can place arbitrary key/value pairs in the identity
+   dictionary (or return an empty dictionary).
+
+ - API return value change: the "failure" identity which IIdentifiers
+   return is now None rather than an empty dictionary.
+
+ - The IAuthenticator interface now specifies that IAuthenticators
+   must not raise an exception when evaluating an identity that does
+   not have "expected" key/value pairs (e.g. when an IAuthenticator
+   that expects login and password inspects an identity returned by an
+   IP-based auth system which only puts the IP address in the
+   identity); instead they fail gracefully by returning None.
+
  - Add (cookie) "auth_tkt" identification plugin.
 
  - Stamp identity dictionaries with a userid by placing a key named
    'repoze.pam.userid' into the identity for each authenticated
    identity.
 
- - If an identity plugin inserts a 'repoze.pam.userid' key into the
+ - If an IIdentifier plugin inserts a 'repoze.pam.userid' key into the
    identity dictionary, consider this identity "preauthenticated".  No
    authenticator plugins will be asked to authenticate this identity.
-   This is designed for things like domain authentication (and the
-   recently added auth_tkt plugin).  Preauthenticated identities will
-   be selected first when deciding which identity to use for any given
-   request.
+   This is designed for things like the recently added auth_tkt
+   plugin, which embeds the user id into the ticket.  Preauthenticated
+   identities will be selected first when deciding which identity to
+   use for any given request.
 
  - Insert a 'repoze.pam.identity' key into the WSGI environment on
    ingress if an identity is found.  Its value will be the identity

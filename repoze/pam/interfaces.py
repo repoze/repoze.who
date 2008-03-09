@@ -48,9 +48,7 @@ class IIdentifier(Interface):
     def identify(environ):
         """ On ingress:
 
-        environ -> { 'login' : login 
-                       , 'password' : password 
-                       , k1 : v1
+        environ -> {   k1 : v1
                        ,   ...
                        , kN : vN
                        } | None
@@ -58,8 +56,16 @@ class IIdentifier(Interface):
         o 'environ' is the WSGI environment.
 
         o If credentials are found, the returned identity mapping will
-          contain at least 'login' and 'password' keys (and others as
-          necessary for special-case needs).
+          contain an arbitrary set of key/value pairs.  If the
+          identity is based on a login and password, the environment
+          is recommended to contain at least 'login' and 'password'
+          keys as this provides compatibility between the plugin and
+          existing authenticator plugins.  If the identity can be
+          'preauthenticated' (e.g. if the userid is embedded in the
+          identity, such as when we're using ticket-based
+          authentication), the plugin should set the userid in the
+          special 'repoze.pam.userid' key; no authenticators will be
+          asked to authenticate the identity thereafer.
 
         o Return None to indicate that the plugin found no appropriate
           credentials.
@@ -103,16 +109,23 @@ class IAuthenticator(Interface):
 
         o 'environ' is the WSGI environment.
 
-        o 'identity' will be a mapping containing at least 'login' and
-          'password' key/value pairs.
-
+        o 'identity' will be a dictionary (with arbitrary keys and
+          values).
+ 
         o The IAuthenticator should return a single user id (should be
-        a string) or None if the identify cannot be authenticated.
+          a string) or None if the identify cannot be authenticated.
 
         Each instance of a registered IAuthenticator plugin that
         matches the request classifier will be called N times during a
         single request, where N is the number of identities found by
         any IIdentifierPlugin instances.
+
+        An authenticator must not raise an exception if it is provided
+        an identity dictionary that it does not understand (e.g. if it
+        presumes that 'login' and 'password' are keys in the
+        dictionary, it should check for the existence of these keys
+        before attempting to do anything; if they don't exist, it
+        should return None).
         """
 
 class IChallenger(Interface):
