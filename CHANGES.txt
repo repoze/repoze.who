@@ -1,4 +1,4 @@
-Unreleased
+0.5 (2008-03-09)
 
  - Allow "remote user key" (default: REMOTE_USER) to be overridden
    (pass in remote_user_key to middleware constructor).
