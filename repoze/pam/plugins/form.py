@@ -45,13 +45,14 @@ class FormPlugin(object):
 
     implements(IChallenger, IIdentifier)
     
-    def __init__(self, login_form_qs, rememberer_name, formbody=None):
+    def __init__(self, login_form_qs, rememberer_name, formbody=None, formcallable=None):
         self.login_form_qs = login_form_qs
         # rememberer_name is the name of another configured plugin which
         # implements IIdentifier, to handle remember and forget duties
         # (ala a cookie plugin or a session plugin)
         self.rememberer_name = rememberer_name
         self.formbody = formbody
+        self.formcallable = formcallable
 
     # IIdentifier
     def identify(self, environ):
@@ -92,6 +93,8 @@ class FormPlugin(object):
     def challenge(self, environ, status, app_headers, forget_headers):
         # heck yeah.
         form = self.formbody or _DEFAULT_FORM
+        if self.formcallable is not None:
+            form = self.formcallable(environ)
         def auth_form(environ, start_response):
             content_length = CONTENT_LENGTH.tuples(str(len(form)))
             content_type = CONTENT_TYPE.tuples('text/html')
