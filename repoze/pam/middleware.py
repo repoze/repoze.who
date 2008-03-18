@@ -365,11 +365,13 @@ def make_test_middleware(app, global_conf):
     import os
     if os.environ.get('NO_PAM_LOG'):
         log_stream = None
+    mdproviders = []
     middleware = PluggableAuthenticationMiddleware(
         app,
         identifiers,
         authenticators,
         challengers,
+        mdproviders,
         default_request_classifier,
         default_challenge_decider,
         log_stream = log_stream,
