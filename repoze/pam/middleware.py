@@ -5,6 +5,7 @@ import sys
 from repoze.pam.interfaces import IIdentifier
 from repoze.pam.interfaces import IAuthenticator
 from repoze.pam.interfaces import IChallenger
+from repoze.pam.interfaces import IMetadataProvider
 
 _STARTED = '-- repoze.pam request started --'
 _ENDED = '-- repoze.pam request ended --'
@@ -14,6 +15,7 @@ class PluggableAuthenticationMiddleware(object):
                  identifiers,
                  authenticators,
                  challengers,
+                 mdproviders,
                  classifier,
                  challenge_decider,
                  log_stream = None,
@@ -21,7 +23,7 @@ class PluggableAuthenticationMiddleware(object):
                  remote_user_key = 'REMOTE_USER',
                  ):
         iregistry, nregistry = make_registries(identifiers, authenticators,
-                                               challengers)
+                                               challengers, mdproviders)
         self.registry = iregistry
         self.name_registry = nregistry
         self.app = app
@@ -77,6 +79,8 @@ class PluggableAuthenticationMiddleware(object):
                 # as necessary, e.g. identity['login'] = 'foo',
                 # identity['password'] = 'bar'
                 environ['repoze.pam.identity'] = identity
+                metadata = self.gather_metadata(environ, userid)
+                identity['repoze.pam.metadata'] = metadata
                 # set the REMOTE_USER
                 environ[self.remote_user_key] = userid
         else:
@@ -141,6 +145,15 @@ class PluggableAuthenticationMiddleware(object):
 
         logger and logger.debug('identities found: %s' % results)
         return results
+
+    def gather_metadata(self, environ, userid):
+        plugins = self.registry.get(IMetadataProvider, ())
+        metadata = {}
+        for plugin in plugins:
+            data = plugin.metadata(environ, userid)
+            if data:
+                metadata.update(data)
+        return metadata
 
     def authenticate(self, environ, classification, identities):
         logger = self.logger
@@ -369,14 +382,16 @@ def verify(plugin, iface):
     from zope.interface.verify import verifyObject
     verifyObject(iface, plugin, tentative=True)
     
-def make_registries(identifiers, authenticators, challengers):
+def make_registries(identifiers, authenticators, challengers, mdproviders):
     from zope.interface.verify import BrokenImplementation
     interface_registry = {}
     name_registry = {}
 
     for supplied, iface in [ (identifiers, IIdentifier),
                              (authenticators, IAuthenticator),
-                             (challengers, IChallenger) ]:
+                             (challengers, IChallenger),
+                             (mdproviders, IMetadataProvider)]:
+
         for name, value in supplied:
             try:
                 verify(value, iface)
