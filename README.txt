@@ -195,7 +195,8 @@ implemented!*)
     [plugin:form]
     # identificaion and challenge
     login_form_qs = __do_login
-    identifier_impl_name = cookie
+    rememberer_name = cookie
+    use = egg:repoze.pam#form
 
     [plugin:cookie]
     # identification
