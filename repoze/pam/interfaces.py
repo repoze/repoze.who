@@ -161,3 +161,13 @@ class IChallenger(Interface):
         challenge.
         """
 
+
+class IMetadataProvider(Interface):
+    """On ingress: Return dictionary of arbitrary user data to stuff
+       into 'identity' dict for later use by applications or
+       middleware
+    """
+    
+    def metadata(environ, userid):
+        """returns dictionary of data or None if nothing is known
+        """
