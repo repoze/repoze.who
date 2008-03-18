@@ -2,6 +2,8 @@ Unreleased
 
  - Bump ez_setup.py version.
 
+ - Add IMetadataProvider plugin type.  Chris says 'Whit rules'.
+
 0.5 (2008-03-09)
 
  - Allow "remote user key" (default: REMOTE_USER) to be overridden
