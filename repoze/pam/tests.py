@@ -411,10 +411,23 @@ class TestMiddleware(Base):
         plugin2 = DummyMDProvider({'fuz':'baz'})
         plugins = [ ('meta1', plugin1), ('meta2', plugin2) ]
         mw = self._makeOne(mdproviders=plugins)
-        results = mw.gather_metadata(environ, 'theman')
+        classification = ''
+        results = mw.gather_metadata(environ, classification, 'theman')
         self.assertEqual(results['foo'], 'bar')
         self.assertEqual(results['fuz'], 'baz')
-       
+
+    def test_gather_metadata_w_classification(self): 
+        environ = self._makeEnviron()
+        plugin1 = DummyMDProvider({'foo':'bar'})
+        plugin2 = DummyMDProvider({'fuz':'baz'})
+        from repoze.pam.interfaces import IMetadataProvider
+        plugin2.classifications = {IMetadataProvider:['foo']}
+        plugins = [ ('meta1', plugin1), ('meta2', plugin2) ]
+        mw = self._makeOne(mdproviders=plugins)
+        classification = 'monkey'
+        results = mw.gather_metadata(environ, classification, 'theman')
+        self.assertEqual(results['foo'], 'bar')
+        self.assertEqual(results.get('fuz'), None)       
 
     def test_call_remoteuser_already_set(self):
         environ = self._makeEnviron({'REMOTE_USER':'admin'})

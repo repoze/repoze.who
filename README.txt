@@ -221,6 +221,16 @@ implemented!*)
     get_userinfo = select id, password from users
     check_fn = egg:repoze.pam#crypt_check
 
+    [plugin:principals]
+    use = egg:repoze.pam#ini_metadata
+    filename = %(here)s/etc/principals.ini
+    handler = egg:repoze.pam#ini_default
+
+    [plugin:zope_roles]
+    use = egg:repoze.pam#ini_metadata
+    filename = %(here)s/etc/roles.ini
+    # uses egg:repoze.pam#ini_default
+
     [general]
     request_classifier = egg:repoze.pam#defaultrequestclassifier
     challenge_decider = egg:repoze.pam#defaultchallengedecider
@@ -243,6 +253,12 @@ implemented!*)
     plugins =
           form:browser
           basicauth
+
+    [metadata.providers]
+    plugins =
+          principals
+          zope_roles:zope
+
 
 Further Description of Example Config
 

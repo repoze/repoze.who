@@ -1,7 +1,8 @@
 import logging
 from StringIO import StringIO
 import sys
-
+from zope.interface.adapter import AdapterRegistry
+from zope.interface.interface import adapter_hooks
 from repoze.pam.interfaces import IIdentifier
 from repoze.pam.interfaces import IAuthenticator
 from repoze.pam.interfaces import IChallenger
@@ -79,7 +80,7 @@ class PluggableAuthenticationMiddleware(object):
                 # as necessary, e.g. identity['login'] = 'foo',
                 # identity['password'] = 'bar'
                 environ['repoze.pam.identity'] = identity
-                metadata = self.gather_metadata(environ, userid)
+                metadata = self.gather_metadata(environ, classification, userid)
                 identity['repoze.pam.metadata'] = metadata
                 # set the REMOTE_USER
                 environ[self.remote_user_key] = userid
@@ -146,8 +147,9 @@ class PluggableAuthenticationMiddleware(object):
         logger and logger.debug('identities found: %s' % results)
         return results
 
-    def gather_metadata(self, environ, userid):
-        plugins = self.registry.get(IMetadataProvider, ())
+    def gather_metadata(self, environ, classification, userid):
+        candidates = self.registry.get(IMetadataProvider, ())
+        plugins = match_classification(IMetadataProvider, candidates, classification)        
         metadata = {}
         for plugin in plugins:
             data = plugin.metadata(environ, userid)
@@ -412,3 +414,5 @@ class Identity(dict):
         return '<repoze.pam identity (hidden, dict-like) at %s>' % id(self)
     __str__ = __repr__
 
+
+_plugin_registry = AdapterRegistry()
