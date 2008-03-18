@@ -338,20 +338,19 @@ def make_test_middleware(app, global_conf):
     """
     # be able to test without a config file
     from repoze.pam.plugins.basicauth import BasicAuthPlugin
-    from repoze.pam.plugins.htpasswd import HTPasswdPlugin
     from repoze.pam.plugins.auth_tkt import AuthTktCookiePlugin
     from repoze.pam.plugins.cookie import InsecureCookiePlugin
     from repoze.pam.plugins.form import FormPlugin
-    basicauth = BasicAuthPlugin('repoze.pam')
-    from StringIO import StringIO
-    from repoze.pam.plugins.htpasswd import crypt_check
+    from repoze.pam.plugins.htpasswd import HTPasswdPlugin
     io = StringIO()
     salt = 'aa'
-    import crypt
     for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
-        io.write('%s:%s\n' % (name, crypt.crypt(password, salt)))
+        io.write('%s:%s\n' % (name, password))
     io.seek(0)
-    htpasswd = HTPasswdPlugin(io, crypt_check)
+    def cleartext_check(password, hashed):
+        return password == hashed
+    htpasswd = HTPasswdPlugin(io, cleartext_check)
+    basicauth = BasicAuthPlugin('repoze.pam')
     auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
     cookie = InsecureCookiePlugin('oatmeal')
     form = FormPlugin('__do_login', rememberer_name='auth_tkt')
