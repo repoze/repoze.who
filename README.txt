@@ -1,34 +1,30 @@
-repoze.pam
+repoze.who
 
 Overview
 
-  repoze.pam (Pluggable Authentication Middleware) is an
-  identification and authentication framework for WSGI. 
+  repoze.who is an identification and authentication framework for
+  WSGI.
 
 Description
 
-  repoze.pam's ideas are largely culled from Zope 2's Pluggable
-  Authentication Service (PAS) (but repoze.pam is not dependent on
-  Zope 2 in any way).  Unlike PAS, it provides no facilities for
-  creating user objects, assigning roles or groups to users,
-  retrieving or changing user properties, or enumerating users,
-  groups, or roles.  These responsibilities are assumed to be the
-  domain of the WSGI application you're serving.  It also provides no
-  facility for authorization (ensuring whether a user can or cannot
-  perform the operation implied by the request).  This is also the
-  domain of the WSGI application.
+  repoze.who's ideas are largely culled from Zope 2's Pluggable
+  Authentication Service (PAS) (but repoze.who is not dependent on
+  Zope 2 in any way).  It provides no facility for authorization
+  (ensuring whether a user can or cannot perform the operation implied
+  by the request).  This is considered to be the domain of the WSGI
+  application.
  
   It attemtps to reuse implementations from paste.auth for some of its
   functionality.
 
 Middleware Responsibilities
 
-  repoze.pam's middleware has one major function on ingress: it
+  repoze.who's middleware has one major function on ingress: it
   conditionally places identification and authentication information
   (including a REMOTE_USER value) into the WSGI environment and allows
   the request to continue to a downstream WSGI application.
 
-  repoze.pam's middleware has one major function on egress: it
+  repoze.who's middleware has one major function on egress: it
   examines the headers set by the downstream application, the WSGI
   environment, or headers supplied by other plugins and conditionally
   challenges for credentials.
@@ -37,38 +33,38 @@ PasteDeploy Configuration
 
 Classifiers
 
-  repoze.pam "classifies" the request on middleware ingress.  Request
+  repoze.who "classifies" the request on middleware ingress.  Request
   classification happens before identification and authentication.  A
   request from a browser might be classified a different way that a
-  request from an XML-RPC client.  repoze.pam uses request classifiers
+  request from an XML-RPC client.  repoze.who uses request classifiers
   to decide which other components to consult during subsequent
   identification, authentication, and challenge steps.  Plugins are
   free to advertise themselves as willing to participate in
   identification and authorization for a request based on this
   classification.
 
-  The classification system is pluggable.  repoze.pam provides a
+  The classification system is pluggable.  repoze.who provides a
   default classifier that you may use.  You may extend the
-  classification system by making repoze.pam aware of a different
+  classification system by making repoze.who aware of a different
   classifier implementation.
 
 Plugins
 
-  repoze.pam is designed around the concept of plugins.  Plugins are
+  repoze.who is designed around the concept of plugins.  Plugins are
   instances that are willing to perform one or more identification-
   and/or authentication-related duties.  When you register a plugin,
   you register a plugin factory, which is a callable that accepts
   configuration parameters.  The callable must return an instance of a
   plugin when called.  Each plugin can be configured arbitrarily using
-  values in a repoze.pam-specific configuration file.
+  values in a repoze.who-specific configuration file.
 
-  repoze.pam consults the set of configured plugins when it intercepts
+  repoze.who consults the set of configured plugins when it intercepts
   a WSGI request, and gives some subset of them a chance to influence
   what is added to the WSGI environment.
 
 Request (Ingress) Stages
 
-  repoze.pam performs the following operations in the following order
+  repoze.who performs the following operations in the following order
   during middleware ingress:
 
   1.  Request Classification
@@ -113,7 +109,7 @@ Request (Ingress) Stages
 
 Response (Egress) Stages
 
-  repoze.pam performs the following operations in the following order
+  repoze.who performs the following operations in the following order
   during middleware egress:
 
   1.  Challenge Decision
@@ -132,7 +128,7 @@ Response (Egress) Stages
       a challenge.  A challenger plugin can use application-returned
       headers, the WSGI environment, and other items to determine what
       sort of operation should be performed to actuate the challenge.
-      Note that repoze.pam defers to the identifier plugin which
+      Note that repoze.who defers to the identifier plugin which
       provided the identity (if any) to reset credentials at challenge
       time; this is not the responsibility of the challenger.
 
@@ -161,7 +157,7 @@ Plugin Types
     downstream WSGI applications in the "REMOTE_USER' environment
     variable.  Additionally, the "identity" of the user (as provided
     by the identifier from whence the identity came) is passed along
-    to downstream application in the 'repoze.pam.identity' environment
+    to downstream application in the 'repoze.who.identity' environment
     variable.
 
   Metadata Provider Plugins
@@ -176,14 +172,14 @@ Plugin Types
 
     You may register a plugin as willing to act as a "challenger".
     Challenger plugins are responsible for initiating a challenge to
-    the requesting user.  Challenger plugins are invoked by repoze.pam
+    the requesting user.  Challenger plugins are invoked by repoze.who
     when it decides a challenge is necessary. A challenge might
     consist of displaying a form or presenting the user with a basic
     or digest authentication dialog.
 
 Configuration File Example
 
-  repoze.pam is configured using a ConfigParser-style .INI file.  The
+  repoze.who is configured using a ConfigParser-style .INI file.  The
   configuration file has five main types of sections: plugin sections,
   a general section, an identifiers section, an authenticators section,
   and a challengers section.  Each "plugin" section defines a
@@ -192,18 +188,18 @@ Configuration File Example
   form a site configuration.  The general section is general middleware
   configuration.
 
-Example repoze.pam Configuration File (*NOTE: SCIENCE FICTION, not yet
+Example repoze.who Configuration File (*NOTE: SCIENCE FICTION, not yet
 implemented!*)
 
-  repoze.pam is designed to be used within a PasteDeploy configuration
+  repoze.who is designed to be used within a PasteDeploy configuration
   file:
 
-    [filter:pam]
-    use = egg:repoze.pam#pam
-    config_file = %(here)s/pam.ini
+    [filter:who]
+    use = egg:repoze.who#who
+    config_file = %(here)s/who.ini
 
   Below is an example of a configuration file that might be used to
-  configure the repoze.pam middleware.  A set of plugins are defined,
+  configure the repoze.who middleware.  A set of plugins are defined,
   and they are referred to by following non-plugin sections.
 
   In the below configuration, five plugins are defined.  The form, and
@@ -214,46 +210,46 @@ implemented!*)
 
     [plugin:form]
     # identificaion and challenge
-    use = egg:repoze.pam#form
+    use = egg:repoze.who#form
     login_form_qs = __do_login
     rememberer_name = cookie
     form = %(here)s/login_form.html
 
     [plugin:cookie]
     # identification
-    use = egg:repoze.pam#cookie
-    cookie_name = repoze.pam.auth
+    use = egg:repoze.who#cookie
+    cookie_name = repoze.who.auth
 
     [plugin:basicauth]
     # identification and challenge
-    use = egg:repoze.pam#basicauth
+    use = egg:repoze.who#basicauth
     realm = repoze
 
     [plugin:htpasswd]
     # authentication
-    use = egg:repoze.pam#htpasswd
+    use = egg:repoze.who#htpasswd
     filename = %(here)s/users.htpasswd
-    check_fn = egg:repoze.pam#crypt_check
+    check_fn = egg:repoze.who#crypt_check
 
     [plugin:sqlusers]
     # authentication
-    use = egg:repoze.pam#squsersource
+    use = egg:repoze.who#squsersource
     db = sqlite://database?user=foo&pass=bar
     get_userinfo = select id, password from users
-    check_fn = egg:repoze.pam#crypt_check
+    check_fn = egg:repoze.who#crypt_check
 
     [plugin:properties]
-    use = egg:repoze.pam#ini_metadata
+    use = egg:repoze.who#ini_metadata
     filename = %(here)s/etc/properties.ini
-    handler = egg:repoze.pam#ini_default
+    handler = egg:repoze.who#ini_default
 
     [plugin:roles]
-    use = egg:repoze.pam#ini_metadata
+    use = egg:repoze.who#ini_metadata
     filename = %(here)s/etc/roles.ini
 
     [general]
-    request_classifier = egg:repoze.pam#defaultrequestclassifier
-    challenge_decider = egg:repoze.pam#defaultchallengedecider
+    request_classifier = egg:repoze.who#defaultrequestclassifier
+    challenge_decider = egg:repoze.who#defaultchallengedecider
 
     [identifiers]
     # plugin_name:classifier_name:.. or just plugin_name (good for any)
@@ -387,7 +383,7 @@ Writing An Identifier Plugin
   Note that the plugin implements three "interface" methods:
   "identify", "forget" and "remember".  The formal specification for
   the arguments and return values expected from these methods are
-  available in the "interfaces.py" file in repoze.pam as the
+  available in the "interfaces.py" file in repoze.who as the
   'IIdentifier' interface, but let's examine them less formally one at
   a time.
 
@@ -426,7 +422,7 @@ Writing An Identifier Plugin
     identity.  If the identifier plugin knows that the identity is
     "good" (e.g. in the case of ticket-based authentication where the
     userid is embedded into the ticket), it can insert a special key
-    into the identity dictionary: 'repoze.pam.userid'.  If this key is
+    into the identity dictionary: 'repoze.who.userid'.  If this key is
     present in the identity dictionary, no authenticators will be
     asked to authenticate the identity.  This effectively alllows an
     IIdentifier plugin to become an IAuthenticator plugin when
@@ -468,7 +464,7 @@ Writing An Identifier Plugin
 
     Eventually the WSGI application we're serving will issue a "401
     Unauthorized" or another status signifying that the request could
-    not be authorized.  repoze.pam intercepts this status and calls
+    not be authorized.  repoze.who intercepts this status and calls
     IIdentifier plugins asking them to "forget" the credentials
     implied by the identity.  It is the "forget" method's job at this
     point to return HTTP headers that will effectively clear any
@@ -530,7 +526,7 @@ Writing an Authenticator Plugin
   Note that the plugin implements a single "interface" method:
   "authenticate".  The formal specification for the arguments and
   return values expected from this method is available in the
-  "interfaces.py" file in repoze.pam as the 'IAuthenticator'
+  "interfaces.py" file in repoze.who as the 'IAuthenticator'
   interface, but we can explore this a little further here.
 
   The 'authenticate' method accepts two arguments: the WSGI
@@ -577,8 +573,8 @@ Writing a Challenger Plugin
   Note that the plugin implements a single "interface" method:
   "challenge".  The formal specification for the arguments and return
   values expected from this method is available in the "interfaces.py"
-  file in repoze.pam as the 'IChallenger' interface.  This method is
-  called when repoze.pam determines that the application has returned
+  file in repoze.who as the 'IChallenger' interface.  This method is
+  called when repoze.who determines that the application has returned
   an "unauthorized" response (e.g. a 401).  Only one challenger will
   be consulted during "egress" as necessary (the first one to return a
   non-None response).  The challenge method takes environ (the WSGI
@@ -620,5 +616,5 @@ Writing a Metadata Provider Plugin
 
 Interfaces
 
-  See the module repoze.pam.interfaces.
+  See the module repoze.who.interfaces.
 

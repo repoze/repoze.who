@@ -6,8 +6,8 @@ from paste.request import parse_formvars
 
 from zope.interface import implements
 
-from repoze.pam.interfaces import IChallenger
-from repoze.pam.interfaces import IIdentifier
+from repoze.who.interfaces import IChallenger
+from repoze.who.interfaces import IIdentifier
 
 _DEFAULT_FORM = """
 <html>
@@ -76,7 +76,7 @@ class FormPlugin(object):
         return None
 
     def _get_rememberer(self, environ):
-        rememberer = environ['repoze.pam.plugins'][self.rememberer_name]
+        rememberer = environ['repoze.who.plugins'][self.rememberer_name]
         return rememberer
 
     # IIdentifier
@@ -107,7 +107,7 @@ class FormPlugin(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))
 
-def make_plugin(pam_conf, login_form_qs='__do_login', rememberer_name=None,
+def make_plugin(who_conf, login_form_qs='__do_login', rememberer_name=None,
                 form=None):
     if rememberer_name is None:
         raise ValueError(

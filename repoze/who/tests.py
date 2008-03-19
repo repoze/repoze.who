@@ -11,7 +11,7 @@ class Base(unittest.TestCase):
 
 class TestMiddleware(Base):
     def _getTargetClass(self):
-        from repoze.pam.middleware import PluggableAuthenticationMiddleware
+        from repoze.who.middleware import PluggableAuthenticationMiddleware
         return PluggableAuthenticationMiddleware
 
     def _makeOne(self,
@@ -120,7 +120,7 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         mw = self._makeOne()
         plugin1 = DummyIdentifier({'login':'fred','password':'fred'})
-        from repoze.pam.interfaces import IIdentifier
+        from repoze.who.interfaces import IIdentifier
         plugin1.classifications = {IIdentifier:['nomatch']}
         plugin2 = DummyIdentifier({'login':'bob','password':'bob'})
         plugins = [ ('identifier1', plugin1),  ('identifier2', plugin2) ]
@@ -134,7 +134,7 @@ class TestMiddleware(Base):
 
     def test_identify_find_explicit_classifier(self):
         environ = self._makeEnviron()
-        from repoze.pam.interfaces import IIdentifier
+        from repoze.who.interfaces import IIdentifier
         plugin1 = DummyIdentifier({'login':'fred','password':'fred'})
         plugin1.classifications = {IIdentifier:['nomatch']}
         plugin2 = DummyIdentifier({'login':'bob','password':'bob'})
@@ -224,7 +224,7 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         mw = self._makeOne()
         plugin1 = DummyAuthenticator('chris_id1')
-        from repoze.pam.interfaces import IAuthenticator
+        from repoze.who.interfaces import IAuthenticator
         plugin1.classifications = {IAuthenticator:['nomatch']}
         plugin2 = DummyAuthenticator('chris_id2')
         plugins = [ ('auth1', plugin1), ('auth2', plugin2) ]
@@ -244,7 +244,7 @@ class TestMiddleware(Base):
     def test_authenticate_find_explicit_classifier(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        from repoze.pam.interfaces import IAuthenticator
+        from repoze.who.interfaces import IAuthenticator
         plugin1 = DummyAuthenticator('chris_id1')
         plugin1.classifications = {IAuthenticator:['nomatch']}
         plugin2 = DummyAuthenticator('chris_id2')
@@ -277,7 +277,7 @@ class TestMiddleware(Base):
     def test_authenticate_success_multiresult_one_preauthenticated(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
-        preauth = DummyIdentifier({'repoze.pam.userid':'preauthenticated'})
+        preauth = DummyIdentifier({'repoze.who.userid':'preauthenticated'})
         plugin1 = DummyAuthenticator('chris_id1')
         plugin2 = DummyAuthenticator('chris_id2')
         plugins = [ ('dummy1',plugin1), ('dummy2',plugin2) ]
@@ -292,7 +292,7 @@ class TestMiddleware(Base):
         self.assertEqual(rank, (0,0,))
         self.assertEqual(authenticator, None)
         self.assertEqual(identifier, preauth)
-        self.assertEqual(creds['repoze.pam.userid'], 'preauthenticated')
+        self.assertEqual(creds['repoze.who.userid'], 'preauthenticated')
         self.assertEqual(userid, 'preauthenticated')
         result = results[1]
         rank, authenticator, identifier, creds, userid = result
@@ -371,7 +371,7 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         app1 = DummyApp()
         app2 = DummyApp()
-        from repoze.pam.interfaces import IChallenger
+        from repoze.who.interfaces import IChallenger
         challenger1 = DummyChallenger(app1)
         challenger1.classifications = {IChallenger:['nomatch']}
         challenger2 = DummyChallenger(app2)
@@ -390,7 +390,7 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         app1 = DummyApp()
         app2 = DummyApp()
-        from repoze.pam.interfaces import IChallenger
+        from repoze.who.interfaces import IChallenger
         challenger1 = DummyChallenger(app1)
         challenger1.classifications = {IChallenger:['nomatch']}
         challenger2 = DummyChallenger(app2)
@@ -420,7 +420,7 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         plugin1 = DummyMDProvider({'foo':'bar'})
         plugin2 = DummyMDProvider({'fuz':'baz'})
-        from repoze.pam.interfaces import IMetadataProvider
+        from repoze.who.interfaces import IMetadataProvider
         plugin2.classifications = {IMetadataProvider:['foo']}
         plugins = [ ('meta1', plugin1), ('meta2', plugin2) ]
         mw = self._makeOne(mdproviders=plugins)
@@ -525,7 +525,7 @@ class TestMiddleware(Base):
         # @@ unfuck
 ##         self.assertEqual(identifier.forgotten, identifier.credentials)
         self.assertEqual(environ['REMOTE_USER'], 'chris')
-##         self.assertEqual(environ['repoze.pam.identity'], identifier.credentials)
+##         self.assertEqual(environ['repoze.who.identity'], identifier.credentials)
 
     def test_call_200_challenger_and_identifier_and_authenticator(self):
         environ = self._makeEnviron()
@@ -550,7 +550,7 @@ class TestMiddleware(Base):
 ##         self.assertEqual(dict(identifier.remembered)['login'], dict(identifier.credentials)['login'])
 ##         self.assertEqual(dict(identifier.remembered)['password'], dict(identifier.credentials)['password'])
         self.assertEqual(environ['REMOTE_USER'], 'chris')
-##         self.assertEqual(environ['repoze.pam.identity'], identifier.credentials)
+##         self.assertEqual(environ['repoze.who.identity'], identifier.credentials)
 
 
     def test_call_200_identity_reset(self):
@@ -579,7 +579,7 @@ class TestMiddleware(Base):
         # @@ unfuck
 ##         self.assertEqual(identifier.remembered, new_credentials)
         self.assertEqual(environ['REMOTE_USER'], 'chris')
-##         self.assertEqual(environ['repoze.pam.identity'], new_credentials)
+##         self.assertEqual(environ['repoze.who.identity'], new_credentials)
 
     def test_call_200_with_metadata(self):
         environ = self._makeEnviron()
@@ -601,21 +601,21 @@ class TestMiddleware(Base):
                            mdproviders=mdproviders)
         start_response = DummyStartResponse()
         result = mw(environ, start_response)
-        self.assertEqual(environ['repoze.pam.identity']['repoze.pam.metadata'], {'foo':'bar'})
+        self.assertEqual(environ['repoze.who.identity']['repoze.who.metadata'], {'foo':'bar'})
 
     # XXX need more call tests:
     #  - auth_id sorting
 
 class TestMatchClassification(unittest.TestCase):
     def _getFUT(self):
-        from repoze.pam.middleware import match_classification
+        from repoze.who.middleware import match_classification
         return match_classification
 
     def test_match_classification(self):
         f = self._getFUT()
-        from repoze.pam.interfaces import IIdentifier
-        from repoze.pam.interfaces import IChallenger
-        from repoze.pam.interfaces import IAuthenticator
+        from repoze.who.interfaces import IIdentifier
+        from repoze.who.interfaces import IChallenger
+        from repoze.who.interfaces import IAuthenticator
         multi1 = DummyMultiPlugin()
         multi2 = DummyMultiPlugin()
         multi1.classifications = {IIdentifier:('foo', 'bar'),
@@ -634,7 +634,7 @@ class TestMatchClassification(unittest.TestCase):
 
 class TestStartResponseWrapper(unittest.TestCase):
     def _getTargetClass(self):
-        from repoze.pam.middleware import StartResponseWrapper
+        from repoze.who.middleware import StartResponseWrapper
         return StartResponseWrapper
 
     def _makeOne(self, *arg, **kw):
@@ -678,7 +678,7 @@ class TestStartResponseWrapper(unittest.TestCase):
 
 class TestBasicAuthPlugin(Base):
     def _getTargetClass(self):
-        from repoze.pam.plugins.basicauth import BasicAuthPlugin
+        from repoze.who.plugins.basicauth import BasicAuthPlugin
         return BasicAuthPlugin
 
     def _makeOne(self, *arg, **kw):
@@ -687,8 +687,8 @@ class TestBasicAuthPlugin(Base):
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IChallenger
-        from repoze.pam.interfaces import IIdentifier
+        from repoze.who.interfaces import IChallenger
+        from repoze.who.interfaces import IIdentifier
         klass = self._getTargetClass()
         verifyClass(IChallenger, klass)
         verifyClass(IIdentifier, klass)
@@ -769,13 +769,13 @@ class TestBasicAuthPlugin(Base):
 
 
     def test_factory(self):
-        from repoze.pam.plugins.basicauth import make_plugin
+        from repoze.who.plugins.basicauth import make_plugin
         plugin = make_plugin({}, 'realm')
         self.assertEqual(plugin.realm, 'realm')
 
 class TestHTPasswdPlugin(Base):
     def _getTargetClass(self):
-        from repoze.pam.plugins.htpasswd import HTPasswdPlugin
+        from repoze.who.plugins.htpasswd import HTPasswdPlugin
         return HTPasswdPlugin
 
     def _makeOne(self, *arg, **kw):
@@ -784,7 +784,7 @@ class TestHTPasswdPlugin(Base):
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IAuthenticator
+        from repoze.who.interfaces import IAuthenticator
         klass = self._getTargetClass()
         verifyClass(IAuthenticator, klass)
 
@@ -852,22 +852,22 @@ class TestHTPasswdPlugin(Base):
         from crypt import crypt
         salt = '123'
         hashed = crypt('password', salt)
-        from repoze.pam.plugins.htpasswd import crypt_check
+        from repoze.who.plugins.htpasswd import crypt_check
         self.assertEqual(crypt_check('password', hashed), True)
         self.assertEqual(crypt_check('notpassword', hashed), False)
 
     def test_factory(self):
-        from repoze.pam.plugins.htpasswd import make_plugin
-        from repoze.pam.plugins.htpasswd import crypt_check
+        from repoze.who.plugins.htpasswd import make_plugin
+        from repoze.who.plugins.htpasswd import crypt_check
         plugin = make_plugin({}, 'foo',
-                             'repoze.pam.plugins.htpasswd:crypt_check')
+                             'repoze.who.plugins.htpasswd:crypt_check')
         self.assertEqual(plugin.filename, 'foo')
         self.assertEqual(plugin.check, crypt_check)
 
 
 class TestInsecureCookiePlugin(Base):
     def _getTargetClass(self):
-        from repoze.pam.plugins.cookie import InsecureCookiePlugin
+        from repoze.who.plugins.cookie import InsecureCookiePlugin
         return InsecureCookiePlugin
 
     def _makeOne(self, *arg, **kw):
@@ -876,7 +876,7 @@ class TestInsecureCookiePlugin(Base):
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IIdentifier
+        from repoze.who.interfaces import IIdentifier
         klass = self._getTargetClass()
         verifyClass(IIdentifier, klass)
 
@@ -919,7 +919,7 @@ class TestInsecureCookiePlugin(Base):
         self.assertEqual(result, [('Set-Cookie', expected)])
 
     def test_factory(self):
-        from repoze.pam.plugins.cookie import make_plugin
+        from repoze.who.plugins.cookie import make_plugin
         plugin = make_plugin(None, 'foo')
         self.assertEqual(plugin.cookie_name, 'foo')
 
@@ -935,7 +935,7 @@ class TestInsecureCookiePlugin(Base):
 
 class TestFormPlugin(Base):
     def _getTargetClass(self):
-        from repoze.pam.plugins.form import FormPlugin
+        from repoze.who.plugins.form import FormPlugin
         return FormPlugin
 
     def _makeOne(self, login_form_qs='__do_login', rememberer_name='cookie',
@@ -956,7 +956,7 @@ class TestFormPlugin(Base):
                  'CONTENT_TYPE':content_type,
                  'CONTENT_LENGTH':len(body),
                  'REQUEST_METHOD':'POST',
-                 'repoze.pam.plugins': {'cookie':DummyIdentifier()},
+                 'repoze.who.plugins': {'cookie':DummyIdentifier()},
                  'QUERY_STRING':'',
                  }
         if do_login:
@@ -966,8 +966,8 @@ class TestFormPlugin(Base):
     
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IIdentifier
-        from repoze.pam.interfaces import IChallenger
+        from repoze.who.interfaces import IIdentifier
+        from repoze.who.interfaces import IChallenger
         klass = self._getTargetClass()
         verifyClass(IIdentifier, klass)
         verifyClass(IChallenger, klass)
@@ -1009,7 +1009,7 @@ class TestFormPlugin(Base):
         identity = {}
         result = plugin.remember(environ, identity)
         self.assertEqual(result, None)
-        self.assertEqual(environ['repoze.pam.plugins']['cookie'].remembered,
+        self.assertEqual(environ['repoze.who.plugins']['cookie'].remembered,
                          identity)
 
     def test_forget(self):
@@ -1018,12 +1018,12 @@ class TestFormPlugin(Base):
         identity = {}
         result = plugin.forget(environ, identity)
         self.assertEqual(result, None)
-        self.assertEqual(environ['repoze.pam.plugins']['cookie'].forgotten,
+        self.assertEqual(environ['repoze.who.plugins']['cookie'].forgotten,
                          identity
                          )
 
     def test_challenge_defaultform(self):
-        from repoze.pam.plugins.form import _DEFAULT_FORM
+        from repoze.who.plugins.form import _DEFAULT_FORM
         plugin = self._makeOne()
         environ = self._makeFormEnviron()
         app = plugin.challenge(environ, '401 Unauthorized', [], [])
@@ -1054,7 +1054,7 @@ class TestFormPlugin(Base):
         self.assertEqual(sr.status, '200 OK')
 
     def test_factory_withform(self):
-        from repoze.pam.plugins.form import make_plugin
+        from repoze.who.plugins.form import make_plugin
         here = os.path.dirname(__file__)
         fixtures = os.path.join(here, 'fixtures')
         form = os.path.join(fixtures, 'form.html')
@@ -1065,7 +1065,7 @@ class TestFormPlugin(Base):
         self.assertEqual(plugin.formbody, formbody)
 
     def test_factory_defaultform(self):
-        from repoze.pam.plugins.form import make_plugin
+        from repoze.who.plugins.form import make_plugin
         plugin = make_plugin(None, '__login', 'cookie')
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
@@ -1073,7 +1073,7 @@ class TestFormPlugin(Base):
 
 class TestAuthTktCookiePlugin(Base):
     def _getTargetClass(self):
-        from repoze.pam.plugins.auth_tkt import AuthTktCookiePlugin
+        from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
         return AuthTktCookiePlugin
 
     def _makeEnviron(self, *arg, **kw):
@@ -1102,7 +1102,7 @@ class TestAuthTktCookiePlugin(Base):
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IIdentifier
+        from repoze.who.interfaces import IIdentifier
         klass = self._getTargetClass()
         verifyClass(IIdentifier, klass)
 
@@ -1119,7 +1119,7 @@ class TestAuthTktCookiePlugin(Base):
         result = plugin.identify(environ)
         self.assertEqual(len(result), 4)
         self.assertEqual(result['tokens'], [''])
-        self.assertEqual(result['repoze.pam.userid'], 'userid')
+        self.assertEqual(result['repoze.who.userid'], 'userid')
         self.assertEqual(result['userdata'], 'userdata')
         self.failUnless('timestamp' in result)
         self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
@@ -1133,7 +1133,7 @@ class TestAuthTktCookiePlugin(Base):
         result = plugin.identify(environ)
         self.assertEqual(len(result), 4)
         self.assertEqual(result['tokens'], [''])
-        self.assertEqual(result['repoze.pam.userid'], 'userid')
+        self.assertEqual(result['repoze.who.userid'], 'userid')
         self.assertEqual(result['userdata'], 'userdata')
         self.failUnless('timestamp' in result)
         self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
@@ -1150,7 +1150,7 @@ class TestAuthTktCookiePlugin(Base):
         plugin = self._makeOne('secret')
         val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
-        result = plugin.remember(environ, {'repoze.pam.userid':'userid',
+        result = plugin.remember(environ, {'repoze.who.userid':'userid',
                                            'userdata':'userdata'})
         self.assertEqual(result, None)
 
@@ -1159,7 +1159,7 @@ class TestAuthTktCookiePlugin(Base):
         old_val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
         new_val = self._makeTicket(userid='other', userdata='userdata')
-        result = plugin.remember(environ, {'repoze.pam.userid':'other',
+        result = plugin.remember(environ, {'repoze.who.userid':'other',
                                            'userdata':'userdata'})
         expected = 'auth_tkt=%s; Path=/;' % new_val
         self.assertEqual(result, [('Set-Cookie', expected)])
@@ -1183,7 +1183,7 @@ class TestAuthTktCookiePlugin(Base):
         self.assertEqual(value, 'auth_tkt=""; Path=/; Domain=.localhost')
 
     def test_factory(self):
-        from repoze.pam.plugins.auth_tkt import make_plugin
+        from repoze.who.plugins.auth_tkt import make_plugin
         plugin = make_plugin(None, 'secret')
         self.assertEqual(plugin.cookie_name, 'auth_tkt')
         self.assertEqual(plugin.secret, 'secret')
@@ -1192,7 +1192,7 @@ class TestAuthTktCookiePlugin(Base):
 
 class TestDefaultRequestClassifier(Base):
     def _getFUT(self):
-        from repoze.pam.classifiers import default_request_classifier
+        from repoze.who.classifiers import default_request_classifier
         return default_request_classifier
 
     def test_classify_dav_method(self):
@@ -1223,7 +1223,7 @@ class TestDefaultRequestClassifier(Base):
 
 class TestMakeRegistries(unittest.TestCase):
     def _getFUT(self):
-        from repoze.pam.middleware import make_registries
+        from repoze.who.middleware import make_registries
         return make_registries
 
     def test_empty(self):
@@ -1248,9 +1248,9 @@ class TestMakeRegistries(unittest.TestCase):
         dummy_mdprovider = DummyMDProvider()
         mdproviders = [ ('mdproviders', dummy_mdprovider) ]
         iface_reg, name_reg = fn(identifiers, authenticators, challengers, mdproviders)
-        from repoze.pam.interfaces import IIdentifier
-        from repoze.pam.interfaces import IAuthenticator
-        from repoze.pam.interfaces import IChallenger
+        from repoze.who.interfaces import IIdentifier
+        from repoze.who.interfaces import IAuthenticator
+        from repoze.who.interfaces import IChallenger
         self.assertEqual(iface_reg[IIdentifier], [dummy_id1, dummy_id2])
         self.assertEqual(iface_reg[IAuthenticator], [dummy_auth])
         self.assertEqual(iface_reg[IChallenger], [dummy_challenger])
@@ -1268,7 +1268,7 @@ class TestSQLAuthenticatorPlugin(unittest.TestCase):
         return environ
 
     def _getTargetClass(self):
-        from repoze.pam.plugins.sql import SQLAuthenticatorPlugin
+        from repoze.who.plugins.sql import SQLAuthenticatorPlugin
         return SQLAuthenticatorPlugin
 
     def _makeOne(self, dsn, statement, compare_fn, cfactory):
@@ -1284,7 +1284,7 @@ class TestSQLAuthenticatorPlugin(unittest.TestCase):
     
     def test_implements(self):
         from zope.interface.verify import verifyClass
-        from repoze.pam.interfaces import IAuthenticator
+        from repoze.who.interfaces import IAuthenticator
         klass = self._getTargetClass()
         verifyClass(IAuthenticator, klass)
 
@@ -1336,7 +1336,7 @@ class TestSQLAuthenticatorPlugin(unittest.TestCase):
 
 class TestDefaultPasswordCompare(unittest.TestCase):
     def _getFUT(self):
-        from repoze.pam.plugins.sql import default_password_compare
+        from repoze.who.plugins.sql import default_password_compare
         return default_password_compare
 
     def test_shaprefix_success(self):
@@ -1369,7 +1369,7 @@ class TestDefaultPasswordCompare(unittest.TestCase):
 
 class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
     def _getFUT(self):
-        from repoze.pam.plugins.sql import make_plugin
+        from repoze.who.plugins.sql import make_plugin
         return make_plugin
 
     def test_nodsn(self):
@@ -1383,7 +1383,7 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
     def test_comparefunc_specd(self):
         f = self._getFUT()
         plugin = f(None, 'dsn', 'statement',
-                   'repoze.pam.plugins.sql:make_plugin')
+                   'repoze.who.plugins.sql:make_plugin')
         self.assertEqual(plugin.dsn, 'dsn')
         self.assertEqual(plugin.statement, 'statement')
         self.assertEqual(plugin.compare_fn, f)
@@ -1391,7 +1391,7 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
     def test_connfactory_specd(self):
         f = self._getFUT()
         plugin = f(None, 'dsn', 'statement', None,
-                   'repoze.pam.plugins.sql:make_plugin')
+                   'repoze.who.plugins.sql:make_plugin')
         self.assertEqual(plugin.dsn, 'dsn')
         self.assertEqual(plugin.statement, 'statement')
         self.assertEqual(plugin.conn_factory, f)
@@ -1401,14 +1401,14 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
         plugin = f(None, 'dsn', 'statement')
         self.assertEqual(plugin.dsn, 'dsn')
         self.assertEqual(plugin.statement, 'statement')
-        from repoze.pam.plugins.sql import psycopg_connect
-        from repoze.pam.plugins.sql import default_password_compare
+        from repoze.who.plugins.sql import psycopg_connect
+        from repoze.who.plugins.sql import default_password_compare
         self.assertEqual(plugin.conn_factory, psycopg_connect)
         self.assertEqual(plugin.compare_fn, default_password_compare)
 
 class TestIdentityDict(unittest.TestCase):
     def _getTargetClass(self):
-        from repoze.pam.middleware import Identity
+        from repoze.who.middleware import Identity
         return Identity
 
     def _makeOne(self, **kw):
@@ -1417,12 +1417,12 @@ class TestIdentityDict(unittest.TestCase):
 
     def test_str(self):
         identity = self._makeOne(foo=1)
-        self.failUnless(str(identity).startswith('<repoze.pam identity'))
+        self.failUnless(str(identity).startswith('<repoze.who identity'))
         self.assertEqual(identity['foo'], 1)
 
     def test_repr(self):
         identity = self._makeOne(foo=1)
-        self.failUnless(str(identity).startswith('<repoze.pam identity'))
+        self.failUnless(str(identity).startswith('<repoze.who identity'))
         self.assertEqual(identity['foo'], 1)
 
 def compare_success(*arg):
@@ -1482,8 +1482,8 @@ class DummyIdentityResetApp:
 
     def __call__(self, environ, start_response):
         self.environ = environ
-        environ['repoze.pam.identity']['login'] = 'fred'
-        environ['repoze.pam.identity']['password'] = 'schooled'
+        environ['repoze.who.identity']['login'] = 'fred'
+        environ['repoze.who.identity']['password'] = 'schooled'
         start_response(self.status, self.headers)
         return ['body']
     

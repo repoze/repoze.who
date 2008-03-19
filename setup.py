@@ -24,10 +24,10 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
 
-setup(name='repoze.pam',
+setup(name='repoze.who',
       version=__version__,
-      description=('repoze.pam (Pluggable Authentication Middleware) is an'
-                   'identification and authentication framework for WSGI.'),
+      description=('repoze.who is an identification and authentication '
+                   'framework for WSGI.'),
       long_description=README,
       classifiers=[
         "Development Status :: 1 - Planning",
@@ -50,10 +50,10 @@ setup(name='repoze.pam',
       zip_safe=False,
       tests_require = ['Paste', 'zope.interface'],
       install_requires=['Paste', 'zope.interface'],
-      test_suite="repoze.pam.tests",
+      test_suite="repoze.who.tests",
       entry_points = """\
       [paste.filter_app_factory]
-      test = repoze.pam.middleware:make_test_middleware
+      test = repoze.who.middleware:make_test_middleware
       """
       )
 

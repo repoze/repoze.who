@@ -1,6 +1,6 @@
 from zope.interface import implements
 
-from repoze.pam.interfaces import IAuthenticator
+from repoze.who.interfaces import IAuthenticator
 
 def default_password_compare(cleartext_password, stored_password_hash):
     import sha
@@ -54,9 +54,9 @@ class SQLAuthenticatorPlugin:
             if self.compare_fn(identity['password'], password):
                 return user_id
 
-def make_plugin(pam_conf, dsn=None, statement=None, compare_fn=None,
+def make_plugin(who_conf, dsn=None, statement=None, compare_fn=None,
                 conn_factory=None):
-    from repoze.pam.utils import resolveDotted
+    from repoze.who.utils import resolveDotted
     if dsn is None:
         raise ValueError('dsn must be specified')
     if statement is None:

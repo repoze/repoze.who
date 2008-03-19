@@ -4,7 +4,7 @@ from paste.request import get_cookies
 
 from zope.interface import implements
 
-from repoze.pam.interfaces import IIdentifier
+from repoze.who.interfaces import IIdentifier
 
 class InsecureCookiePlugin(object):
 
@@ -54,7 +54,7 @@ class InsecureCookiePlugin(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))
 
-def make_plugin(pam_conf, cookie_name='repoze.pam.plugins.cookie'):
+def make_plugin(who_conf, cookie_name='repoze.who.plugins.cookie'):
     plugin = InsecureCookiePlugin(cookie_name)
     return plugin
 

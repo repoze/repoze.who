@@ -3,7 +3,7 @@ from paste.auth import auth_tkt
 
 from zope.interface import implements
 
-from repoze.pam.interfaces import IIdentifier
+from repoze.who.interfaces import IIdentifier
 
 class AuthTktCookiePlugin(object):
 
@@ -44,7 +44,7 @@ class AuthTktCookiePlugin(object):
         environ['AUTH_TYPE'] = 'cookie'
         identity = {}
         identity['timestamp'] = timestamp
-        identity['repoze.pam.userid'] = userid
+        identity['repoze.who.userid'] = userid
         identity['tokens'] = tokens
         identity['userdata'] = user_data
         return identity
@@ -84,24 +84,24 @@ class AuthTktCookiePlugin(object):
             except auth_tkt.BadTicket:
                 pass
 
-        pam_userid = identity['repoze.pam.userid']
-        pam_tokens = identity.get('tokens', '')
-        pam_userdata = identity.get('userdata', '')
+        who_userid = identity['repoze.who.userid']
+        who_tokens = identity.get('tokens', '')
+        who_userdata = identity.get('userdata', '')
         
         if not isinstance(tokens, basestring):
             tokens = ','.join(tokens)
-        if not isinstance(pam_tokens, basestring):
-            pam_tokens = ','.join(pam_tokens)
+        if not isinstance(who_tokens, basestring):
+            who_tokens = ','.join(who_tokens)
         old_data = (userid, tokens, userdata)
-        new_data = (pam_userid, pam_tokens, pam_userdata)
+        new_data = (who_userid, who_tokens, who_userdata)
 
         if old_data != new_data:
             ticket = auth_tkt.AuthTicket(
                 self.secret,
-                pam_userid,
+                who_userid,
                 remote_addr,
-                tokens=pam_tokens,
-                user_data=pam_userdata,
+                tokens=who_tokens,
+                user_data=who_userdata,
                 cookie_name=self.cookie_name,
                 secure=self.secure)
             new_cookie_value = ticket.cookie_value()
@@ -114,7 +114,7 @@ class AuthTktCookiePlugin(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))
 
-def make_plugin(pam_conf, secret=None,
+def make_plugin(who_conf, secret=None,
                 cookie_name='auth_tkt',
                 secure=False, include_ip=False):
     if secret is None:

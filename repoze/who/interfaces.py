@@ -64,7 +64,7 @@ class IIdentifier(Interface):
           'preauthenticated' (e.g. if the userid is embedded in the
           identity, such as when we're using ticket-based
           authentication), the plugin should set the userid in the
-          special 'repoze.pam.userid' key; no authenticators will be
+          special 'repoze.who.userid' key; no authenticators will be
           asked to authenticate the identity thereafer.
 
         o Return None to indicate that the plugin found no appropriate

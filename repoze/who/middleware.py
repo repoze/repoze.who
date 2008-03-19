@@ -3,13 +3,13 @@ from StringIO import StringIO
 import sys
 from zope.interface.adapter import AdapterRegistry
 from zope.interface.interface import adapter_hooks
-from repoze.pam.interfaces import IIdentifier
-from repoze.pam.interfaces import IAuthenticator
-from repoze.pam.interfaces import IChallenger
-from repoze.pam.interfaces import IMetadataProvider
+from repoze.who.interfaces import IIdentifier
+from repoze.who.interfaces import IAuthenticator
+from repoze.who.interfaces import IChallenger
+from repoze.who.interfaces import IMetadataProvider
 
-_STARTED = '-- repoze.pam request started --'
-_ENDED = '-- repoze.pam request ended --'
+_STARTED = '-- repoze.who request started --'
+_ENDED = '-- repoze.who request ended --'
 
 class PluggableAuthenticationMiddleware(object):
     def __init__(self, app,
@@ -37,7 +37,7 @@ class PluggableAuthenticationMiddleware(object):
             fmt = '%(asctime)s %(message)s'
             formatter = logging.Formatter(fmt)
             handler.setFormatter(formatter)
-            self.logger = logging.Logger('repoze.pam')
+            self.logger = logging.Logger('repoze.who')
             self.logger.addHandler(handler)
             self.logger.setLevel(log_level)
 
@@ -47,8 +47,8 @@ class PluggableAuthenticationMiddleware(object):
             # already set
             return self.app(environ, start_response)
 
-        environ['repoze.pam.plugins'] = self.name_registry
-        environ['repoze.pam.logger'] = self.logger
+        environ['repoze.who.plugins'] = self.name_registry
+        environ['repoze.who.logger'] = self.logger
 
         logger = self.logger
         logger and logger.info(_STARTED)
@@ -79,9 +79,9 @@ class PluggableAuthenticationMiddleware(object):
                 # application can mutate it to do an 'identity reset'
                 # as necessary, e.g. identity['login'] = 'foo',
                 # identity['password'] = 'bar'
-                environ['repoze.pam.identity'] = identity
+                environ['repoze.who.identity'] = identity
                 metadata = self.gather_metadata(environ, classification, userid)
-                identity['repoze.pam.metadata'] = metadata
+                identity['repoze.who.metadata'] = metadata
                 # set the REMOTE_USER
                 environ[self.remote_user_key] = userid
         else:
@@ -183,7 +183,7 @@ class PluggableAuthenticationMiddleware(object):
                         'userid returned from %s: "%s"' % (plugin, userid))
 
                     # stamp the identity with the userid
-                    identity['repoze.pam.userid'] = userid
+                    identity['repoze.who.userid'] = userid
                     rank = (auth_rank, identifier_rank)
                     results.append(
                         (rank, plugin, identifier, identity, userid)
@@ -206,13 +206,13 @@ class PluggableAuthenticationMiddleware(object):
         identifier_rank = 0
         for thing in identities:
             identifier, identity = thing
-            userid = identity.get('repoze.pam.userid')
+            userid = identity.get('repoze.who.userid')
             if userid is not None:
                 # the identifier plugin has already authenticated this
                 # user (domain auth, auth ticket, etc)
                 logger and logger.info(
                   'userid preauthenticated by %s: "%s" '
-                  '(repoze.pam.userid set)' % (identifier, userid)
+                  '(repoze.who.userid set)' % (identifier, userid)
                   )
                 rank = (0, identifier_rank)
                 results.append(
@@ -308,26 +308,26 @@ def make_test_middleware(app, global_conf):
     """ Functionally equivalent to
 
     [plugin:form]
-    use = repoze.pam.plugins.form.FormPlugin
+    use = repoze.who.plugins.form.FormPlugin
     rememberer_name = cookie
     login_form_qs=__do_login
 
     [plugin:cookie]
-    use = repoze.pam.plugins.cookie:InsecureCookiePlugin
+    use = repoze.who.plugins.cookie:InsecureCookiePlugin
     cookie_name = oatmeal
 
     [plugin:basicauth]
-    use = repoze.pam.plugins.basicauth.BasicAuthPlugin
-    realm = repoze.pam
+    use = repoze.who.plugins.basicauth.BasicAuthPlugin
+    realm = repoze.who
 
     [plugin:htpasswd]
-    use = repoze.pam.plugins.htpasswd.HTPasswdPlugin
+    use = repoze.who.plugins.htpasswd.HTPasswdPlugin
     filename = <...>
-    check_fn = repoze.pam.plugins.htpasswd:crypt_check
+    check_fn = repoze.who.plugins.htpasswd:crypt_check
 
     [general]
-    request_classifier = repoze.pam.classifiers:default_request_classifier
-    challenge_decider = repoze.pam.classifiers:default_challenge_decider
+    request_classifier = repoze.who.classifiers:default_request_classifier
+    challenge_decider = repoze.who.classifiers:default_challenge_decider
 
     [identifiers]
     plugins = form:browser cookie basicauth
@@ -339,11 +339,11 @@ def make_test_middleware(app, global_conf):
     plugins = form:browser basicauth
     """
     # be able to test without a config file
-    from repoze.pam.plugins.basicauth import BasicAuthPlugin
-    from repoze.pam.plugins.auth_tkt import AuthTktCookiePlugin
-    from repoze.pam.plugins.cookie import InsecureCookiePlugin
-    from repoze.pam.plugins.form import FormPlugin
-    from repoze.pam.plugins.htpasswd import HTPasswdPlugin
+    from repoze.who.plugins.basicauth import BasicAuthPlugin
+    from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
+    from repoze.who.plugins.cookie import InsecureCookiePlugin
+    from repoze.who.plugins.form import FormPlugin
+    from repoze.who.plugins.htpasswd import HTPasswdPlugin
     io = StringIO()
     salt = 'aa'
     for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
@@ -352,7 +352,7 @@ def make_test_middleware(app, global_conf):
     def cleartext_check(password, hashed):
         return password == hashed
     htpasswd = HTPasswdPlugin(io, cleartext_check)
-    basicauth = BasicAuthPlugin('repoze.pam')
+    basicauth = BasicAuthPlugin('repoze.who')
     auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
     cookie = InsecureCookiePlugin('oatmeal')
     form = FormPlugin('__do_login', rememberer_name='auth_tkt')
@@ -361,11 +361,11 @@ def make_test_middleware(app, global_conf):
     identifiers = [('form', form),('auth_tkt',auth_tkt),('basicauth',basicauth)]
     authenticators = [('htpasswd', htpasswd)]
     challengers = [('form',form), ('basicauth',basicauth)]
-    from repoze.pam.classifiers import default_request_classifier
-    from repoze.pam.classifiers import default_challenge_decider
+    from repoze.who.classifiers import default_request_classifier
+    from repoze.who.classifiers import default_challenge_decider
     log_stream = sys.stdout
     import os
-    if os.environ.get('NO_PAM_LOG'):
+    if os.environ.get('NO_WHO_LOG'):
         log_stream = None
     mdproviders = []
     middleware = PluggableAuthenticationMiddleware(
@@ -411,7 +411,7 @@ class Identity(dict):
     """ dict subclass that prevents its members from being rendered
     during print """
     def __repr__(self):
-        return '<repoze.pam identity (hidden, dict-like) at %s>' % id(self)
+        return '<repoze.who identity (hidden, dict-like) at %s>' % id(self)
     __str__ = __repr__
 
 

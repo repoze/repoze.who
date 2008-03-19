@@ -1,5 +1,7 @@
 Unreleased
 
+ - Renaming: repoze.pam is now repoze.who
+
  - Bump ez_setup.py version.
 
  - Add IMetadataProvider plugin type.  Chris says 'Whit rules'.

@@ -1,7 +1,7 @@
 from zope.interface import implements
 
-from repoze.pam.interfaces import IAuthenticator
-from repoze.pam.utils import resolveDotted
+from repoze.who.interfaces import IAuthenticator
+from repoze.who.utils import resolveDotted
 
 class HTPasswdPlugin(object):
 
@@ -47,7 +47,7 @@ def crypt_check(password, hashed):
     salt = hashed[:2]
     return hashed == crypt(password, salt)
 
-def make_plugin(pam_conf, filename=None, check_fn=None):
+def make_plugin(who_conf, filename=None, check_fn=None):
     if filename is None:
         raise ValueError('filename must be specified')
     if check_fn is None:

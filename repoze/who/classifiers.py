@@ -3,8 +3,8 @@ from paste.httpheaders import REQUEST_METHOD
 from paste.httpheaders import CONTENT_TYPE
 
 import zope.interface
-from repoze.pam.interfaces import IRequestClassifier
-from repoze.pam.interfaces import IChallengeDecider
+from repoze.who.interfaces import IRequestClassifier
+from repoze.who.interfaces import IChallengeDecider
 
 _DAV_METHODS = (
     'OPTIONS',
