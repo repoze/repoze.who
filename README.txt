@@ -102,6 +102,15 @@ Request (Ingress) Stages
       identity, the userid of the user would be returned (which would
       be the same as the login name).
 
+  4.  Metadata Provision
+
+      The identity of the authenticated user found during the
+      authentication step can be augmented with arbitrary metadata.
+      For example, a metadata provider plugin might augment the
+      identity with first, middle and last names, or a more
+      specialized metadata provider might augment the identity with a
+      list of role or group names.
+
 Response (Egress) Stages
 
   repoze.pam performs the following operations in the following order
@@ -150,7 +159,18 @@ Plugin Types
 
     The user id provided by an authenticator is eventually passed to
     downstream WSGI applications in the "REMOTE_USER' environment
+    variable.  Additionally, the "identity" of the user (as provided
+    by the identifier from whence the identity came) is passed along
+    to downstream application in the 'repoze.pam.identity' environment
     variable.
+
+  Metadata Provider Plugins
+
+    You may register a plugin as willing to act as a "metadata
+    provider" (aka mdprovider).  Metadata provider plugins are
+    responsible for computing and returning information related to a
+    user id.  This information is passed on to the backend application
+    within an authenticated identity.
 
   Challenger Plugins
 
@@ -194,9 +214,10 @@ implemented!*)
 
     [plugin:form]
     # identificaion and challenge
+    use = egg:repoze.pam#form
     login_form_qs = __do_login
     rememberer_name = cookie
-    use = egg:repoze.pam#form
+    form = %(here)s/login_form.html
 
     [plugin:cookie]
     # identification
@@ -221,15 +242,14 @@ implemented!*)
     get_userinfo = select id, password from users
     check_fn = egg:repoze.pam#crypt_check
 
-    [plugin:principals]
+    [plugin:properties]
     use = egg:repoze.pam#ini_metadata
-    filename = %(here)s/etc/principals.ini
+    filename = %(here)s/etc/properties.ini
     handler = egg:repoze.pam#ini_default
 
-    [plugin:zope_roles]
+    [plugin:roles]
     use = egg:repoze.pam#ini_metadata
     filename = %(here)s/etc/roles.ini
-    # uses egg:repoze.pam#ini_default
 
     [general]
     request_classifier = egg:repoze.pam#defaultrequestclassifier
@@ -239,7 +259,6 @@ implemented!*)
     # plugin_name:classifier_name:.. or just plugin_name (good for any)
     plugins =
           form:browser
-          cookie
           basicauth
 
     [authenticators]
@@ -254,11 +273,10 @@ implemented!*)
           form:browser
           basicauth
 
-    [metadata.providers]
+    [mdproviders]
     plugins =
-          principals
-          zope_roles:zope
-
+          properties
+          roles
 
 Further Description of Example Config
 
@@ -293,14 +311,24 @@ Further Description of Example Config
   each set of identities found by the identifier plugins.  The first
   identity that can be authenticated is used to set "REMOTE_USER".
 
+  The mdproviders section provides an ordered list of plugins that
+  provide metadata provider capability.  These will be consulted in
+  the defined order.  Each will have a chance (on ingress) to provide
+  metadata about the authenticated user.  Our example mdproviders
+  section shows two plugins configured: "properties", and "roles".
+  The (fictional) properties plugin will return a dictionary related
+  to user properties (e.g. first name, last name, phone number, etc).
+  The (fictional) roles mdprovider will return a dictionary with a
+  single key/value pair representing the user's "roles" in the context
+  of the current request.
+
   The challengers section provides an ordered list of plugins that
   provide challenger capability.  These will be consulted in the
   defined order, so the system will consult the cookie auth plugin
-  first, then the basic auth plugin.  Each will have a chance, based
-  on the response classification, to initiate a challenge.  The above
-  configuration indicates that the form challenger will fire if it's a
-  browser request, and the basic auth challenger will fire if it's not
-  (fallback).
+  first, then the basic auth plugin.  Each will have a chance to
+  initiate a challenge.  The above configuration indicates that the
+  form challenger will fire if it's a browser request, and the basic
+  auth challenger will fire if it's not (fallback).
 
 Writing An Identifier Plugin
 
@@ -567,6 +595,28 @@ Writing a Challenger Plugin
   "WWW-Authenticate" header like ours, then it returns an instance of
   HTTPUnauthorized, passing in merged headers.  This will cause a
   basic authentication dialog to be presented to the user.
+
+Writing a Metadata Provider Plugin
+
+  A metadata provider plugin (aka an IMetadataProvider plugin) must do
+  only one thing (on "ingress"): accept a user id and return a
+  dictionary representing metadata about that user id (or None if no
+  metadata exists).  An IMetadataProvider plugin will be called for
+  the final "best" identity found during the authentication phase, or
+  not at all if no "best" identity could be authenticated.  Thus, each
+  IMetadataProvider plugin will be called exactly zero or one times
+  during a request.
+
+  Here's a simple metadata provider plugin that provides "property"
+  information from a dictionary::
+
+    _DATA = {    'chris': {'first_name':'Chris', 'last_name':'McDonough'} 
+                 'whit': {'first_name':'Whit', 'last_name':'Morriss'} 
+             }
+
+    class SimpleMetadataProvider(object):
+        def metadata(self, environ, userid):
+            return _DATA.get(userid)
 
 Interfaces
 
