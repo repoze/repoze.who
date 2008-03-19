@@ -49,7 +49,7 @@ setup(name='repoze.who',
       namespace_packages=['repoze'],
       zip_safe=False,
       tests_require = ['Paste', 'zope.interface'],
-      install_requires=['Paste', 'zope.interface'],
+      install_requires=['Paste', 'zope.interface', 'setuptools'],
       test_suite="repoze.who.tests",
       entry_points = """\
       [paste.filter_app_factory]
