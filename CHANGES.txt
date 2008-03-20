@@ -1,4 +1,4 @@
-Unreleased
+0.6 (2008-03-20)
 
  - Renaming: repoze.pam is now repoze.who
 
