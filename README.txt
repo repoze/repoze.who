@@ -424,7 +424,7 @@ Writing An Identifier Plugin
     userid is embedded into the ticket), it can insert a special key
     into the identity dictionary: 'repoze.who.userid'.  If this key is
     present in the identity dictionary, no authenticators will be
-    asked to authenticate the identity.  This effectively alllows an
+    asked to authenticate the identity.  This effectively allows an
     IIdentifier plugin to become an IAuthenticator plugin when
     breaking apart the responsibility into two separate plugins is
     "make-work".  Preauthenticated identities will be selected first
@@ -550,8 +550,8 @@ Writing a Challenger Plugin
   thing on "egress": return a WSGI application which performs a
   "challenge".  A WSGI application is a callable that accepts an
   "environ" and a "start_response" as its parameters; see "PEP 333"
-  for further definition of what a WSGI application.  A challenge asks
-  the user for credentials.
+  for further definition of what a WSGI application is.  A challenge
+  asks the user for credentials.
 
   Here's an example of a simple challenger plugin::
 

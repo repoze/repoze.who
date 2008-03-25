@@ -849,6 +849,12 @@ class TestHTPasswdPlugin(Base):
         self.assertEqual(result, 'chrism')
 
     def test_crypt_check(self):
+        import sys
+        # win32 does not have a crypt library, don't
+        # fail here
+        if "win32" == sys.platform:
+            return
+
         from crypt import crypt
         salt = '123'
         hashed = crypt('password', salt)
