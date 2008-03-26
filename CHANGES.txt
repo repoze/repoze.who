@@ -1,4 +1,22 @@
-0.6 (2008-03-20)
+Unreleased
+
+ - Change the IMetadataProvider interface: this interface used to have
+   a "metadata" method which returned a dictionary.  This method is
+   not part of that API anymore.  It's been replaced with an
+   "add_metadata" method which has the signature:
+
+    def add_metadata(environ, identity):
+        """
+        Add metadata to the identity (which is a dictionary)
+        """
+
+   The return value is ignored.  IMetadataProvider plugins are now
+   assumed to be responsible for 'scribbling' directly on the identity
+   that is passed in (it's a dictionary).  The user id can always be
+   retrieved from the identity via identity['repoze.who.userid'] for
+   metadata plugins that rely on that value.
+
+  0.6 (2008-03-20)
 
  - Renaming: repoze.pam is now repoze.who
 

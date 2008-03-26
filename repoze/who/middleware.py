@@ -75,13 +75,15 @@ class PluggableAuthenticationMiddleware(object):
                 best = auth_ids[0]
                 rank, authenticator, identifier, identity, userid = best
                 identity = Identity(identity) # dont show contents at print
+
+                # allow IMetadataProvider plugins to scribble on the identity
+                self.add_metadata(environ, classification, identity)
+
                 # add the identity to the environment; a downstream
                 # application can mutate it to do an 'identity reset'
                 # as necessary, e.g. identity['login'] = 'foo',
                 # identity['password'] = 'bar'
                 environ['repoze.who.identity'] = identity
-                metadata = self.gather_metadata(environ, classification, userid)
-                identity['repoze.who.metadata'] = metadata
                 # set the REMOTE_USER
                 environ[self.remote_user_key] = userid
         else:
@@ -147,15 +149,12 @@ class PluggableAuthenticationMiddleware(object):
         logger and logger.debug('identities found: %s' % results)
         return results
 
-    def gather_metadata(self, environ, classification, userid):
+    def add_metadata(self, environ, classification, identity):
         candidates = self.registry.get(IMetadataProvider, ())
-        plugins = match_classification(IMetadataProvider, candidates, classification)        
-        metadata = {}
+        plugins = match_classification(IMetadataProvider, candidates,
+                                       classification)        
         for plugin in plugins:
-            data = plugin.metadata(environ, userid)
-            if data:
-                metadata.update(data)
-        return metadata
+            plugin.add_metadata(environ, identity)
 
     def authenticate(self, environ, classification, identities):
         logger = self.logger

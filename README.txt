@@ -164,9 +164,8 @@ Plugin Types
 
     You may register a plugin as willing to act as a "metadata
     provider" (aka mdprovider).  Metadata provider plugins are
-    responsible for computing and returning information related to a
-    user id.  This information is passed on to the backend application
-    within an authenticated identity.
+    responsible for adding arbitrary information to the identity
+    dictionary for consumption by downstream applications.
 
   Challenger Plugins
 
@@ -310,13 +309,13 @@ Further Description of Example Config
   The mdproviders section provides an ordered list of plugins that
   provide metadata provider capability.  These will be consulted in
   the defined order.  Each will have a chance (on ingress) to provide
-  metadata about the authenticated user.  Our example mdproviders
+  add metadata to the authenticated identity.  Our example mdproviders
   section shows two plugins configured: "properties", and "roles".
-  The (fictional) properties plugin will return a dictionary related
-  to user properties (e.g. first name, last name, phone number, etc).
-  The (fictional) roles mdprovider will return a dictionary with a
-  single key/value pair representing the user's "roles" in the context
-  of the current request.
+  The (fictional) properties plugin will add information related to
+  user properties (e.g. first name, last name, phone number, etc) to
+  the identity dictionary.  The (fictional) roles mdprovider will add
+  information representing the user's "roles" in the context of the
+  current request to the identity dictionary.
 
   The challengers section provides an ordered list of plugins that
   provide challenger capability.  These will be consulted in the
@@ -595,13 +594,12 @@ Writing a Challenger Plugin
 Writing a Metadata Provider Plugin
 
   A metadata provider plugin (aka an IMetadataProvider plugin) must do
-  only one thing (on "ingress"): accept a user id and return a
-  dictionary representing metadata about that user id (or None if no
-  metadata exists).  An IMetadataProvider plugin will be called for
-  the final "best" identity found during the authentication phase, or
-  not at all if no "best" identity could be authenticated.  Thus, each
-  IMetadataProvider plugin will be called exactly zero or one times
-  during a request.
+  only one thing (on "ingress"): "scribble" on the identity dictionary
+  provided to it when it is called.  An IMetadataProvider plugin will
+  be called with the final "best" identity found during the
+  authentication phase, or not at all if no "best" identity could be
+  authenticated.  Thus, each IMetadataProvider plugin will be called
+  exactly zero or one times during a request.
 
   Here's a simple metadata provider plugin that provides "property"
   information from a dictionary::
@@ -611,8 +609,9 @@ Writing a Metadata Provider Plugin
              }
 
     class SimpleMetadataProvider(object):
-        def metadata(self, environ, userid):
-            return _DATA.get(userid)
+        def add_metadata(self, environ, identity):
+            userid = identity.get('repoze.who.userid')
+            identity.update(_DATA.get(userid))
 
 Interfaces
 

@@ -163,11 +163,14 @@ class IChallenger(Interface):
 
 
 class IMetadataProvider(Interface):
-    """On ingress: Return dictionary of arbitrary user data to stuff
-       into 'identity' dict for later use by applications or
-       middleware
+    """On ingress: When an identity is authenticated, metadata
+       providers may scribble on the identity dictionary arbitrarily.
+       Return values from metadata providers are ignored.  One value
+       is always guaranteed to be in the dictionary:
+       'repoze.who.userid', representing the user id of the identity. 
     """
     
-    def metadata(environ, userid):
-        """returns dictionary of data or None if nothing is known
+    def add_metadata(environ, identity):
+        """
+        Add metadata to the identity (which is a dictionary)
         """

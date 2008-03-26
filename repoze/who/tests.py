@@ -405,18 +405,19 @@ class TestMiddleware(Base):
         self.assertEqual(environ['challenged'], app2)
         self.assertEqual(identifier.forgotten, identity)
 
-    def test_gather_metadata(self): 
+    def test_add_metadata(self): 
         environ = self._makeEnviron()
         plugin1 = DummyMDProvider({'foo':'bar'})
         plugin2 = DummyMDProvider({'fuz':'baz'})
         plugins = [ ('meta1', plugin1), ('meta2', plugin2) ]
         mw = self._makeOne(mdproviders=plugins)
         classification = ''
-        results = mw.gather_metadata(environ, classification, 'theman')
-        self.assertEqual(results['foo'], 'bar')
-        self.assertEqual(results['fuz'], 'baz')
+        identity = {}
+        results = mw.add_metadata(environ, classification, identity)
+        self.assertEqual(identity['foo'], 'bar')
+        self.assertEqual(identity['fuz'], 'baz')
 
-    def test_gather_metadata_w_classification(self): 
+    def test_add_metadata_w_classification(self): 
         environ = self._makeEnviron()
         plugin1 = DummyMDProvider({'foo':'bar'})
         plugin2 = DummyMDProvider({'fuz':'baz'})
@@ -425,9 +426,10 @@ class TestMiddleware(Base):
         plugins = [ ('meta1', plugin1), ('meta2', plugin2) ]
         mw = self._makeOne(mdproviders=plugins)
         classification = 'monkey'
-        results = mw.gather_metadata(environ, classification, 'theman')
-        self.assertEqual(results['foo'], 'bar')
-        self.assertEqual(results.get('fuz'), None)       
+        identity = {}
+        mw.add_metadata(environ, classification, identity)
+        self.assertEqual(identity['foo'], 'bar')
+        self.assertEqual(identity.get('fuz'), None)       
 
     def test_call_remoteuser_already_set(self):
         environ = self._makeEnviron({'REMOTE_USER':'admin'})
@@ -601,7 +603,8 @@ class TestMiddleware(Base):
                            mdproviders=mdproviders)
         start_response = DummyStartResponse()
         result = mw(environ, start_response)
-        self.assertEqual(environ['repoze.who.identity']['repoze.who.metadata'], {'foo':'bar'})
+        # metadata
+        self.assertEqual(environ['repoze.who.identity']['foo'], 'bar')
 
     # XXX need more call tests:
     #  - auth_id sorting
@@ -1552,8 +1555,8 @@ class DummyMDProvider:
     def __init__(self, metadata=None):
         self._metadata = metadata
         
-    def metadata(self, environ, userid):
-        return self._metadata
+    def add_metadata(self, environ, identity):
+        return identity.update(self._metadata)
 
 class DummyChallengeDecider:
     def __call__(self, environ, status, headers):
