@@ -1,4 +1,4 @@
-Unreleased
+0.8 (2008-03-27)
 
  - Add a RedirectingFormIdentifier plugin.  This plugin is willing to
    redirect to an external (or downstream application) login form to
