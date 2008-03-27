@@ -1,8 +1,15 @@
+import urlparse
+import urllib
+import cgi
+
 from paste.httpheaders import CONTENT_LENGTH
 from paste.httpheaders import CONTENT_TYPE
+from paste.httpexceptions import HTTPFound
+from paste.httpexceptions import HTTPUnauthorized
 
 from paste.request import parse_dict_querystring
 from paste.request import parse_formvars
+from paste.request import construct_url
 
 from zope.interface import implements
 
@@ -41,11 +48,30 @@ _DEFAULT_FORM = """
 </html>
 """
 
-class FormPlugin(object):
+class FormPluginBase(object):
+    def _get_rememberer(self, environ):
+        rememberer = environ['repoze.who.plugins'][self.rememberer_name]
+        return rememberer
+
+    # IIdentifier
+    def remember(self, environ, identity):
+        rememberer = self._get_rememberer(environ)
+        return rememberer.remember(environ, identity)
+
+    # IIdentifier
+    def forget(self, environ, identity):
+        rememberer = self._get_rememberer(environ)
+        return rememberer.forget(environ, identity)
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, id(self))
+
+class FormPlugin(FormPluginBase):
 
     implements(IChallenger, IIdentifier)
     
-    def __init__(self, login_form_qs, rememberer_name, formbody=None, formcallable=None):
+    def __init__(self, login_form_qs, rememberer_name, formbody=None,
+                 formcallable=None):
         self.login_form_qs = login_form_qs
         # rememberer_name is the name of another configured plugin which
         # implements IIdentifier, to handle remember and forget duties
@@ -75,23 +101,13 @@ class FormPlugin(object):
 
         return None
 
-    def _get_rememberer(self, environ):
-        rememberer = environ['repoze.who.plugins'][self.rememberer_name]
-        return rememberer
-
     # IIdentifier
     def remember(self, environ, identity):
         rememberer = self._get_rememberer(environ)
-        return rememberer.remember(environ, identity)
-
-    # IIdentifier
-    def forget(self, environ, identity):
-        rememberer = self._get_rememberer(environ)
-        return rememberer.forget(environ, identity)
+        headers = rememberer.remember(environ, identity)
 
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
-        # heck yeah.
         form = self.formbody or _DEFAULT_FORM
         if self.formcallable is not None:
             form = self.formcallable(environ)
@@ -104,8 +120,66 @@ class FormPlugin(object):
 
         return auth_form
 
-    def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, id(self))
+class RedirectingFormPlugin(FormPluginBase):
+
+    implements(IChallenger, IIdentifier)
+    
+    def __init__(self, login_form_url, login_handler_path, logout_handler_path,
+                 rememberer_name):
+        self.login_form_url = login_form_url
+        self.login_handler_path = login_handler_path
+        self.logout_handler_path = logout_handler_path
+        # rememberer_name is the name of another configured plugin which
+        # implements IIdentifier, to handle remember and forget duties
+        # (ala a cookie plugin or a session plugin)
+        self.rememberer_name = rememberer_name
+
+    # IIdentifier
+    def identify(self, environ):
+        path_info = environ['PATH_INFO']
+        query = parse_dict_querystring(environ)
+
+        if path_info == self.logout_handler_path:
+            # we've been asked to perform a logout
+            form = parse_formvars(environ)
+            form.update(query)
+            referer = environ.get('HTTP_REFERER', '/')
+            came_from = form.get('came_from', referer)
+            # set in environ for self.challenge() to find later
+            environ['came_from'] = came_from
+            environ['repoze.who.application'] = HTTPUnauthorized()
+            return None
+
+        elif path_info == self.login_handler_path:
+            # we've been asked to perform a login
+            form = parse_formvars(environ)
+            form.update(query)
+            try:
+                login = form['login']
+                password = form['password']
+                credentials = {
+                    'login':form['login'],
+                    'password':form['password']
+                    }
+            except KeyError:
+                credentials = None
+            referer = environ.get('HTTP_REFERER', '/')
+            came_from = form.get('came_from', referer)
+            environ['repoze.who.application'] = HTTPFound(came_from)
+            return credentials
+
+    # IChallenger
+    def challenge(self, environ, status, app_headers, forget_headers):
+        url_parts = list(urlparse.urlparse(self.login_form_url))
+        query = url_parts[4]
+        query_elements = cgi.parse_qs(query)
+        came_from = environ.get('came_from', construct_url(environ))
+        query_elements['came_from'] = came_from
+        url_parts[4] = urllib.urlencode(query_elements, doseq=True)
+        login_form_url = urlparse.urlunparse(url_parts)
+        headers = [ ('Location', login_form_url) ]
+        headers = headers + forget_headers
+        return HTTPFound(headers=headers)
 
 def make_plugin(who_conf, login_form_qs='__do_login', rememberer_name=None,
                 form=None):
@@ -115,5 +189,28 @@ def make_plugin(who_conf, login_form_qs='__do_login', rememberer_name=None,
     if form is not None:
         form = open(form).read()
     plugin = FormPlugin(login_form_qs, rememberer_name, form)
+    return plugin
+
+def make_redirecting_plugin(who_conf,
+                            login_form_url=None,
+                            login_handler_path='/login_handler',
+                            logout_handler_path='/logout_handler',
+                            rememberer_name=None):
+    if login_form_url is None:
+        raise ValueError(
+            'must include login_form_url in configuration')
+    if login_handler_path is None:
+        raise ValueError(
+            'login_handler_path must not be None')
+    if logout_handler_path is None:
+        raise ValueError(
+            'logout_handler_path must not be None')
+    if rememberer_name is None:
+        raise ValueError(
+            'must include rememberer key (name of another IIdentifier plugin)')
+    plugin = RedirectingFormPlugin(login_form_url,
+                                   login_handler_path,
+                                   logout_handler_path,
+                                   rememberer_name)
     return plugin
 

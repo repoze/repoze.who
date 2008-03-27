@@ -9,6 +9,7 @@ class Base(unittest.TestCase):
             environ.update(kw)
         return environ
 
+
 class TestMiddleware(Base):
     def _getTargetClass(self):
         from repoze.who.middleware import PluggableAuthenticationMiddleware
@@ -55,7 +56,8 @@ class TestMiddleware(Base):
 
     def test_identify_success(self):
         environ = self._makeEnviron()
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         identifiers = [ ('i', identifier) ]
         mw = self._makeOne(identifiers=identifiers)
         results = mw.identify(environ, None)
@@ -88,7 +90,8 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         mw = self._makeOne()
         plugin1 = DummyNoResultsIdentifier()
-        plugin2 = DummyIdentifier() 
+        credentials = {'login':'chris', 'password':'password'}
+        plugin2 = DummyIdentifier(credentials)
         plugins = [ ('identifier1', plugin1), ('identifier2', plugin2) ]
         mw = self._makeOne(identifiers=plugins)
         results = mw.identify(environ, None)
@@ -327,7 +330,8 @@ class TestMiddleware(Base):
     def test_challenge_identifier_noapp(self):
         environ = self._makeEnviron()
         challenger = DummyChallenger()
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         plugins = [ ('challenge', challenger) ]
         mw = self._makeOne(challengers = plugins)
         identity = {'login':'chris', 'password':'password'}
@@ -341,7 +345,8 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         app = DummyApp()
         challenger = DummyChallenger(app)
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         plugins = [ ('challenge', challenger) ]
         mw = self._makeOne(challengers = plugins)
         identity = {'login':'chris', 'password':'password'}
@@ -357,7 +362,8 @@ class TestMiddleware(Base):
         app2 = DummyApp()
         challenger1 = DummyChallenger(app1)
         challenger2 = DummyChallenger(app2)
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
         mw = self._makeOne(challengers = plugins)
         identity = {'login':'chris', 'password':'password'}
@@ -376,7 +382,8 @@ class TestMiddleware(Base):
         challenger1.classifications = {IChallenger:['nomatch']}
         challenger2 = DummyChallenger(app2)
         challenger2.classifications = {IChallenger:None}
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
         mw = self._makeOne(challengers = plugins)
         identity = {'login':'chris', 'password':'password'}
@@ -395,7 +402,8 @@ class TestMiddleware(Base):
         challenger1.classifications = {IChallenger:['nomatch']}
         challenger2 = DummyChallenger(app2)
         challenger2.classifications = {IChallenger:['match']}
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
         mw = self._makeOne(challengers = plugins)
         identity = {'login':'chris', 'password':'password'}
@@ -462,7 +470,8 @@ class TestMiddleware(Base):
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyWorkingApp('200 OK', headers)
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         identifiers = [ ('identifier', identifier) ]
         mw = self._makeOne(app=app, identifiers=identifiers)
         start_response = DummyStartResponse()
@@ -494,11 +503,13 @@ class TestMiddleware(Base):
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
-        identifier = DummyIdentifier()
+        credentials = {'login':'a', 'password':'b'}
+        identifier = DummyIdentifier(credentials)
         identifiers = [ ('identifier', identifier) ]
         mw = self._makeOne(app=app, challengers=challengers,
                            identifiers=identifiers)
         start_response = DummyStartResponse()
+
         result = mw(environ, start_response)
         self.assertEqual(environ['challenged'], challenge_app)
         self.failUnless(result[0].startswith('401 Unauthorized\r\n'))
@@ -513,7 +524,8 @@ class TestMiddleware(Base):
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         identifiers = [ ('identifier', identifier) ]
         authenticator = DummyAuthenticator()
         authenticators = [ ('authenticator', authenticator) ]
@@ -537,7 +549,8 @@ class TestMiddleware(Base):
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         identifiers = [ ('identifier', identifier) ]
         authenticator = DummyAuthenticator()
         authenticators = [ ('authenticator', authenticator) ]
@@ -564,7 +577,8 @@ class TestMiddleware(Base):
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         identifiers = [ ('identifier', identifier) ]
         authenticator = DummyAuthenticator()
         authenticators = [ ('authenticator', authenticator) ]
@@ -591,7 +605,8 @@ class TestMiddleware(Base):
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
-        identifier = DummyIdentifier()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
         identifiers = [ ('identifier', identifier) ]
         authenticator = DummyAuthenticator()
         authenticators = [ ('authenticator', authenticator) ]
@@ -605,6 +620,38 @@ class TestMiddleware(Base):
         result = mw(environ, start_response)
         # metadata
         self.assertEqual(environ['repoze.who.identity']['foo'], 'bar')
+
+    def test_call_ingress_plugin_replaces_application(self):
+        environ = self._makeEnviron()
+        headers = [('a', '1')]
+        app = DummyWorkingApp('200 OK', headers)
+        challengers = []
+        credentials = {'login':'chris', 'password':'password'}
+        from paste.httpexceptions import HTTPFound
+        identifier = DummyIdentifier(
+            credentials,
+            remember_headers=[('a', '1')],
+            replace_app = HTTPFound('http://example.com/redirect')
+            )
+        identifiers = [ ('identifier', identifier) ]
+        authenticator = DummyAuthenticator()
+        authenticators = [ ('authenticator', authenticator) ]
+        mdproviders = []
+        mw = self._makeOne(app=app,
+                           challengers=challengers,
+                           identifiers=identifiers,
+                           authenticators=authenticators,
+                           mdproviders=mdproviders)
+        start_response = DummyStartResponse()
+        result = ''.join(mw(environ, start_response))
+        self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(start_response.status, '302 Found')
+        self.assertEqual(start_response.headers,
+              [('location', 'http://example.com/redirect'),
+               ('content-type', 'text/plain'),
+               ('a', '1')])
+        self.assertEqual(start_response.exc_info, None)
+        self.failIf(environ.has_key('repoze.who.application'))
 
     # XXX need more call tests:
     #  - auth_id sorting
@@ -961,11 +1008,14 @@ class TestFormPlugin(Base):
         if password:
             fields.append(('password', password))
         content_type, body = encode_multipart_formdata(fields)
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+
         extra = {'wsgi.input':StringIO(body),
                  'CONTENT_TYPE':content_type,
                  'CONTENT_LENGTH':len(body),
                  'REQUEST_METHOD':'POST',
-                 'repoze.who.plugins': {'cookie':DummyIdentifier()},
+                 'repoze.who.plugins': {'cookie':identifier},
                  'QUERY_STRING':'',
                  }
         if do_login:
@@ -1079,6 +1129,230 @@ class TestFormPlugin(Base):
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
         self.assertEqual(plugin.formbody, None)
+
+class TestRedirectingFormPlugin(Base):
+    def _getTargetClass(self):
+        from repoze.who.plugins.form import RedirectingFormPlugin
+        return RedirectingFormPlugin
+
+    def _makeOne(self, login_form_url='http://example.com/login.html',
+                 login_handler_path = '/login_handler',
+                 logout_handler_path = '/logout_handler',
+                 rememberer_name='cookie'):
+        plugin = self._getTargetClass()(login_form_url, login_handler_path,
+                                        logout_handler_path,
+                                        rememberer_name)
+        return plugin
+
+    def _makeFormEnviron(self, login=None, password=None, came_from=None,
+                         path_info='/', identifier=None):
+        from StringIO import StringIO
+        fields = []
+        if login:
+            fields.append(('login', login))
+        if password:
+            fields.append(('password', password))
+        if came_from:
+            fields.append(('came_from', came_from))
+        if identifier is None:
+            credentials = {'login':'chris', 'password':'password'}
+            identifier = DummyIdentifier(credentials)
+        content_type, body = encode_multipart_formdata(fields)
+        extra = {'wsgi.input':StringIO(body),
+                 'wsgi.url_scheme':'http',
+                 'SERVER_NAME':'www.example.com',
+                 'SERVER_PORT':'80',
+                 'CONTENT_TYPE':content_type,
+                 'CONTENT_LENGTH':len(body),
+                 'REQUEST_METHOD':'POST',
+                 'repoze.who.plugins': {'cookie':identifier},
+                 'QUERY_STRING':'default=1',
+                 'PATH_INFO':path_info,
+                 }
+        environ = self._makeEnviron(extra)
+        return environ
+    
+    def test_implements(self):
+        from zope.interface.verify import verifyClass
+        from repoze.who.interfaces import IIdentifier
+        from repoze.who.interfaces import IChallenger
+        klass = self._getTargetClass()
+        verifyClass(IIdentifier, klass)
+        verifyClass(IChallenger, klass)
+
+    def test_identify_pathinfo_miss(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/not_login_handler')
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+        self.failIf(environ.get('repoze.who.application'))
+        
+    def test_identify_via_login_handler(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/login_handler',
+                                        login='chris',
+                                        password='password',
+                                        came_from='http://example.com')
+        result = plugin.identify(environ)
+        self.assertEqual(result, {'login':'chris', 'password':'password'})
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 1)
+        name, value = app.headers[0]
+        self.assertEqual(name, 'location')
+        self.assertEqual(value, 'http://example.com')
+        self.assertEqual(app.code, 302)
+
+    def test_identify_via_login_handler_no_username_pass(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/login_handler')
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 1)
+        name, value = app.headers[0]
+        self.assertEqual(name, 'location')
+        self.assertEqual(value, '/')
+        self.assertEqual(app.code, 302)
+
+    def test_identify_via_login_handler_no_came_from_no_http_referer(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/login_handler',
+                                        login='chris',
+                                        password='password')
+        result = plugin.identify(environ)
+        self.assertEqual(result, {'login':'chris', 'password':'password'})
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 1)
+        name, value = app.headers[0]
+        self.assertEqual(name, 'location')
+        self.assertEqual(value, '/')
+        self.assertEqual(app.code, 302)
+
+    def test_identify_via_login_handler_no_came_from(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/login_handler',
+                                        login='chris',
+                                        password='password')
+        environ['HTTP_REFERER'] = 'http://foo.bar'
+        result = plugin.identify(environ)
+        self.assertEqual(result, {'login':'chris', 'password':'password'})
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 1)
+        name, value = app.headers[0]
+        self.assertEqual(name, 'location')
+        self.assertEqual(value, 'http://foo.bar')
+        self.assertEqual(app.code, 302)
+
+    def test_identify_via_logout_handler(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/logout_handler',
+                                        login='chris',
+                                        password='password',
+                                        came_from='http://example.com')
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 0)
+        self.assertEqual(app.code, 401)
+        self.assertEqual(environ['came_from'], 'http://example.com')
+
+    def test_identify_via_logout_handler_no_came_from_no_http_referer(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/logout_handler',
+                                        login='chris',
+                                        password='password')
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 0)
+        self.assertEqual(app.code, 401)
+        self.assertEqual(environ['came_from'], '/')
+
+    def test_identify_via_logout_handler_no_came_from(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron(path_info='/logout_handler',
+                                        login='chris',
+                                        password='password')
+        environ['HTTP_REFERER'] = 'http://example.com/referer'
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 0)
+        self.assertEqual(app.code, 401)
+        self.assertEqual(environ['came_from'], 'http://example.com/referer')
+
+    def test_remember(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        identity = {}
+        result = plugin.remember(environ, identity)
+        self.assertEqual(result, None)
+        self.assertEqual(environ['repoze.who.plugins']['cookie'].remembered,
+                         identity)
+
+    def test_forget(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        identity = {}
+        result = plugin.forget(environ, identity)
+        self.assertEqual(result, None)
+        self.assertEqual(environ['repoze.who.plugins']['cookie'].forgotten,
+                         identity
+                         )
+
+    def test_challenge(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        app = plugin.challenge(environ, '401 Unauthorized', [('app', '1')],
+                               [('forget', '1')])
+        sr = DummyStartResponse()
+        result = ''.join(app(environ, sr))
+        self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(len(sr.headers), 3)
+        self.assertEqual(sr.headers[0][0], 'Location')
+        url = sr.headers[0][1]
+        import urlparse
+        import cgi
+        parts = urlparse.urlparse(url)
+        parts_qsl = cgi.parse_qsl(parts[4])
+        self.assertEqual(len(parts_qsl), 1)
+        came_from_key, came_from_value = parts_qsl[0]
+        self.assertEqual(parts[0], 'http')
+        self.assertEqual(parts[1], 'example.com')
+        self.assertEqual(parts[2], '/login.html')
+        self.assertEqual(parts[3], '')
+        self.assertEqual(came_from_key, 'came_from')
+        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
+        self.assertEqual(sr.headers[1][0], 'forget')
+        self.assertEqual(sr.headers[1][1], '1')
+        self.assertEqual(sr.headers[2][0], 'content-type')
+        self.assertEqual(sr.headers[2][1], 'text/plain')
+        self.assertEqual(sr.status, '302 Found')
+
+    def test_challenge_came_from_in_environ(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        environ['came_from'] = 'http://example.com/came_from'
+        app = plugin.challenge(environ, '401 Unauthorized', [('app', '1')],
+                               [('forget', '1')])
+        sr = DummyStartResponse()
+        result = ''.join(app(environ, sr))
+        self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(len(sr.headers), 3)
+        self.assertEqual(sr.headers[0][0], 'Location')
+        url = sr.headers[0][1]
+        import urlparse
+        import cgi
+        parts = urlparse.urlparse(url)
+        parts_qsl = cgi.parse_qsl(parts[4])
+        self.assertEqual(len(parts_qsl), 1)
+        came_from_key, came_from_value = parts_qsl[0]
+        self.assertEqual(parts[0], 'http')
+        self.assertEqual(parts[1], 'example.com')
+        self.assertEqual(parts[2], '/login.html')
+        self.assertEqual(parts[3], '')
+        self.assertEqual(came_from_key, 'came_from')
+        self.assertEqual(came_from_value, 'http://example.com/came_from')
 
 class TestAuthTktCookiePlugin(Base):
     def _getTargetClass(self):
@@ -1247,8 +1521,10 @@ class TestMakeRegistries(unittest.TestCase):
 
     def test_ok(self):
         fn = self._getFUT()
-        dummy_id1 = DummyIdentifier()
-        dummy_id2 = DummyIdentifier()
+        credentials1 = {'login':'chris', 'password':'password'}
+        dummy_id1 = DummyIdentifier(credentials1)
+        credentials2 = {'login':'chris', 'password':'password'}
+        dummy_id2 = DummyIdentifier(credentials2)
         identifiers = [ ('id1', dummy_id1), ('id2', dummy_id2) ]
         dummy_auth = DummyAuthenticator(None)
         authenticators = [ ('auth', dummy_auth) ]
@@ -1503,19 +1779,26 @@ class DummyRequestClassifier:
 class DummyIdentifier:
     forgotten = False
     remembered = False
-    def __init__(self, credentials=None):
-        if credentials is None:
-            credentials = {'login':'chris', 'password':'password'}
+
+    def __init__(self, credentials=None, remember_headers=None,
+                 forget_headers=None, replace_app=None):
         self.credentials = credentials
+        self.remember_headers = remember_headers
+        self.forget_headers = forget_headers
+        self.replace_app = replace_app
 
     def identify(self, environ):
+        if self.replace_app:
+            environ['repoze.who.application'] = self.replace_app
         return self.credentials
 
     def forget(self, environ, identity):
         self.forgotten = identity
+        return self.forget_headers
 
     def remember(self, environ, identity):
         self.remembered = identity
+        return self.remember_headers
 
 class DummyNoResultsIdentifier:
     def identify(self, environ):

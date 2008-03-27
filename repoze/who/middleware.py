@@ -1,8 +1,7 @@
 import logging
 from StringIO import StringIO
 import sys
-from zope.interface.adapter import AdapterRegistry
-from zope.interface.interface import adapter_hooks
+
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IChallenger
@@ -49,6 +48,7 @@ class PluggableAuthenticationMiddleware(object):
 
         environ['repoze.who.plugins'] = self.name_registry
         environ['repoze.who.logger'] = self.logger
+        environ['repoze.who.application'] = self.app
 
         logger = self.logger
         logger and logger.info(_STARTED)
@@ -59,6 +59,7 @@ class PluggableAuthenticationMiddleware(object):
         identifier = None
 
         ids = self.identify(environ, classification)
+            
         # ids will be list of tuples: [ (IIdentifier, identity) ]
         if ids:
             auth_ids = self.authenticate(environ, classification, ids)
@@ -86,11 +87,20 @@ class PluggableAuthenticationMiddleware(object):
                 environ['repoze.who.identity'] = identity
                 # set the REMOTE_USER
                 environ[self.remote_user_key] = userid
+
         else:
             logger and logger.info('no identities found, not authenticating')
 
+        # allow identifier plugins to replace the downstream
+        # application (to do redirection and unauthorized themselves
+        # mostly)
+        app = environ.pop('repoze.who.application')
+        if  app is not self.app:
+            logger and logger.info(
+                'static downstream application replaced with %s' % app)
+
         wrapper = StartResponseWrapper(start_response)
-        app_iter = self.app(environ, wrapper.wrap_start_response)
+        app_iter = app(environ, wrapper.wrap_start_response)
 
         if self.challenge_decider(environ, wrapper.status, wrapper.headers):
             logger and logger.info('challenge required')
@@ -414,4 +424,3 @@ class Identity(dict):
     __str__ = __repr__
 
 
-_plugin_registry = AdapterRegistry()

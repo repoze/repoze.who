@@ -1,5 +1,23 @@
 Unreleased
 
+ - Add a RedirectingFormIdentifier plugin.  This plugin is willing to
+   redirect to an external (or downstream application) login form to
+   perform identification.  The external login form must post to the
+   "login_handler_path" of the plugin (optimally with a "came_from"
+   value to tell the plugin where to redirect the response to if the
+   authentication works properly).  The "logout_handler_path" of this
+   plugin can be visited to perform a logout.  The "came_from" value
+   also works there.
+
+ - Identifier plugins are now permitted to set a key in the
+   environment named 'repoze.who.application' on ingress (in
+   'identify').  If an identifier plugin does so, this application is
+   used instead of the "normal" downstream application.  This feature
+   was added to more simply support the redirecting form identifier
+   plugin.
+
+0.7 (2008-03-26)
+
  - Change the IMetadataProvider interface: this interface used to have
    a "metadata" method which returned a dictionary.  This method is
    not part of that API anymore.  It's been replaced with an
@@ -16,7 +34,7 @@ Unreleased
    retrieved from the identity via identity['repoze.who.userid'] for
    metadata plugins that rely on that value.
 
-  0.6 (2008-03-20)
+0.6 (2008-03-20)
 
  - Renaming: repoze.pam is now repoze.who
 
