@@ -1532,7 +1532,8 @@ class TestMakeRegistries(unittest.TestCase):
         challengers = [ ('challenger', dummy_challenger) ]
         dummy_mdprovider = DummyMDProvider()
         mdproviders = [ ('mdproviders', dummy_mdprovider) ]
-        iface_reg, name_reg = fn(identifiers, authenticators, challengers, mdproviders)
+        iface_reg, name_reg = fn(identifiers, authenticators, challengers,
+                                 mdproviders)
         from repoze.who.interfaces import IIdentifier
         from repoze.who.interfaces import IAuthenticator
         from repoze.who.interfaces import IChallenger
@@ -1556,68 +1557,59 @@ class TestSQLAuthenticatorPlugin(unittest.TestCase):
         from repoze.who.plugins.sql import SQLAuthenticatorPlugin
         return SQLAuthenticatorPlugin
 
-    def _makeOne(self, dsn, statement, compare_fn, cfactory):
-        plugin = self._getTargetClass()(dsn, statement, compare_fn, cfactory)
+    def _makeOne(self, *arg, **kw):
+        plugin = self._getTargetClass()(*arg, **kw)
         return plugin
 
-    def _makeConnectionFactory(self, result):
-        cursor = DummyCursor(result)
-        def connect(dsn):
-            conn = DummyConnection(dsn, cursor)
-            return conn
-        return connect
-    
     def test_implements(self):
         from zope.interface.verify import verifyClass
         from repoze.who.interfaces import IAuthenticator
         klass = self._getTargetClass()
-        verifyClass(IAuthenticator, klass)
+        verifyClass(IAuthenticator, klass, tentative=True)
 
     def test_authenticate_noresults(self):
-        conn_factory = self._makeConnectionFactory(())
-        plugin = self._makeOne('dsn', 'statement', compare_fail, conn_factory)
+        dummy_factory = DummyConnectionFactory([])
+        plugin = self._makeOne('select foo from bar', dummy_factory,
+                               compare_succeed)
         environ = self._makeEnviron()
         identity = {'login':'foo', 'password':'bar'}
         result = plugin.authenticate(environ, identity)
         self.assertEqual(result, None)
-        self.assertEqual(plugin.conn.dsn, 'dsn')
-        self.assertEqual(plugin.conn.curs.statement, 'statement')
-        self.assertEqual(plugin.conn.curs.bindargs, identity)
-        self.assertEqual(plugin.conn.curs.closed, True)
+        self.assertEqual(dummy_factory.query, 'select foo from bar')
+        self.assertEqual(dummy_factory.closed, True)
 
     def test_authenticate_comparefail(self):
-        conn_factory = self._makeConnectionFactory(('user_id', 'password'))
-        plugin = self._makeOne('dsn', 'statement', compare_fail, conn_factory)
+        dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
+        plugin = self._makeOne('select foo from bar', dummy_factory,
+                               compare_fail)
         environ = self._makeEnviron()
-        identity = {'login':'user_id', 'password':'bar'}
+        identity = {'login':'fred', 'password':'bar'}
         result = plugin.authenticate(environ, identity)
         self.assertEqual(result, None)
-        self.assertEqual(plugin.conn.dsn, 'dsn')
-        self.assertEqual(plugin.conn.curs.statement, 'statement')
-        self.assertEqual(plugin.conn.curs.bindargs, identity)
-        self.assertEqual(plugin.conn.curs.closed, True)
+        self.assertEqual(dummy_factory.query, 'select foo from bar')
+        self.assertEqual(dummy_factory.closed, True)
 
     def test_authenticate_comparesuccess(self):
-        conn_factory = self._makeConnectionFactory(('userid', 'password'))
-        plugin = self._makeOne('dsn', 'statement', compare_success,
-                               conn_factory)
+        dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
+        plugin = self._makeOne('select foo from bar', dummy_factory,
+                               compare_succeed)
         environ = self._makeEnviron()
-        identity = {'login':'foo', 'password':'bar'}
+        identity = {'login':'fred', 'password':'bar'}
         result = plugin.authenticate(environ, identity)
         self.assertEqual(result, 'userid')
-        self.assertEqual(plugin.conn.dsn, 'dsn')
-        self.assertEqual(plugin.conn.curs.statement, 'statement')
-        self.assertEqual(plugin.conn.curs.bindargs, identity)
-        self.assertEqual(plugin.conn.curs.closed, True)
+        self.assertEqual(dummy_factory.query, 'select foo from bar')
+        self.assertEqual(dummy_factory.closed, True)
 
     def test_authenticate_nologin(self):
-        conn_factory = self._makeConnectionFactory(('userid', 'password'))
-        plugin = self._makeOne('dsn', 'statement', compare_success,
-                               conn_factory)
+        dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
+        plugin = self._makeOne('select foo from bar', dummy_factory,
+                               compare_succeed)
         environ = self._makeEnviron()
         identity = {}
         result = plugin.authenticate(environ, identity)
         self.assertEqual(result, None)
+        self.assertEqual(dummy_factory.query, None)
+        self.assertEqual(dummy_factory.closed, False)
 
 class TestDefaultPasswordCompare(unittest.TestCase):
     def _getFUT(self):
@@ -1652,44 +1644,108 @@ class TestDefaultPasswordCompare(unittest.TestCase):
         result = compare('notpassword', stored)
         self.assertEqual(result, False)
 
+class TestSQLMetadataProviderPlugin(unittest.TestCase):
+    def _getTargetClass(self):
+        from repoze.who.plugins.sql import SQLMetadataProviderPlugin
+        return SQLMetadataProviderPlugin
+
+    def _makeOne(self, *arg, **kw):
+        klass = self._getTargetClass()
+        return klass(*arg, **kw)
+
+    def test_implements(self):
+        from zope.interface.verify import verifyClass
+        from repoze.who.interfaces import IMetadataProvider
+        klass = self._getTargetClass()
+        verifyClass(IMetadataProvider, klass, tentative=True)
+
+    def test_add_metadata(self):
+        dummy_factory = DummyConnectionFactory([ [1, 2, 3] ])
+        def dummy_filter(results):
+            return results
+        plugin = self._makeOne('md', 'select foo from bar', dummy_factory,
+                               dummy_filter)
+        environ = {}
+        identity = {'repoze.who.userid':1}
+        plugin.add_metadata(environ, identity)
+        self.assertEqual(dummy_factory.closed, True)
+        self.assertEqual(identity['md'], [ [1,2,3] ])
+        self.assertEqual(dummy_factory.query, 'select foo from bar')
+        self.failIf(identity.has_key('__userid'))
+
 class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
     def _getFUT(self):
-        from repoze.who.plugins.sql import make_plugin
-        return make_plugin
+        from repoze.who.plugins.sql import make_authenticator_plugin
+        return make_authenticator_plugin
 
-    def test_nodsn(self):
+    def test_noquery(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None, None, 'statement')
+        self.assertRaises(ValueError, f, None, None, 'conn', 'compare')
 
-    def test_nostatement(self):
+    def test_no_connfactory(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None, 'dsn', None)
+        self.assertRaises(ValueError, f, None, 'statement', None, 'compare')
 
-    def test_comparefunc_specd(self):
+    def test_bad_connfactory(self):
         f = self._getFUT()
-        plugin = f(None, 'dsn', 'statement',
-                   'repoze.who.plugins.sql:make_plugin')
-        self.assertEqual(plugin.dsn, 'dsn')
-        self.assertEqual(plugin.statement, 'statement')
-        self.assertEqual(plugin.compare_fn, f)
+        self.assertRaises(ValueError, f, None, 'statement', 'does.not:exist',
+                          None)
 
     def test_connfactory_specd(self):
         f = self._getFUT()
-        plugin = f(None, 'dsn', 'statement', None,
-                   'repoze.who.plugins.sql:make_plugin')
-        self.assertEqual(plugin.dsn, 'dsn')
-        self.assertEqual(plugin.statement, 'statement')
-        self.assertEqual(plugin.conn_factory, f)
-
-    def test_onlydsnandstatement(self):
-        f = self._getFUT()
-        plugin = f(None, 'dsn', 'statement')
-        self.assertEqual(plugin.dsn, 'dsn')
-        self.assertEqual(plugin.statement, 'statement')
-        from repoze.who.plugins.sql import psycopg_connect
+        plugin = f(None, 'statement',
+                   'repoze.who.tests:make_dummy_connfactory',
+                   None)
+        self.assertEqual(plugin.query, 'statement')
+        self.assertEqual(plugin.conn_factory, DummyConnFactory)
         from repoze.who.plugins.sql import default_password_compare
-        self.assertEqual(plugin.conn_factory, psycopg_connect)
         self.assertEqual(plugin.compare_fn, default_password_compare)
+
+    def test_comparefunc_specd(self):
+        f = self._getFUT()
+        plugin = f(None, 'statement',
+                   'repoze.who.tests:make_dummy_connfactory',
+                   'repoze.who.tests:make_dummy_connfactory')
+        self.assertEqual(plugin.query, 'statement')
+        self.assertEqual(plugin.conn_factory, DummyConnFactory)
+        self.assertEqual(plugin.compare_fn, make_dummy_connfactory)
+
+class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
+    def _getFUT(self):
+        from repoze.who.plugins.sql import make_metadata_plugin
+        return make_metadata_plugin
+
+    def test_no_name(self):
+        f = self._getFUT()
+        self.assertRaises(ValueError, f, None)
+
+    def test_no_query(self):
+        f = self._getFUT()
+        self.assertRaises(ValueError, f, None, 'name', None, None)
+
+    def test_bad_connfactory(self):
+        f = self._getFUT()
+        self.assertRaises(ValueError, f, None, 'name', 'statement',
+                          'does.not:exist', None)
+
+    def test_connfactory_specd(self):
+        f = self._getFUT()
+        plugin = f(None, 'name', 'statement',
+                   'repoze.who.tests:make_dummy_connfactory', None)
+        self.assertEqual(plugin.name, 'name')
+        self.assertEqual(plugin.query, 'statement')
+        self.assertEqual(plugin.conn_factory, DummyConnFactory)
+        self.assertEqual(plugin.filter, None)
+
+    def test_comparefn_specd(self):
+        f = self._getFUT()
+        plugin = f(None, 'name', 'statement',
+                   'repoze.who.tests:make_dummy_connfactory',
+                   'repoze.who.tests:make_dummy_connfactory')
+        self.assertEqual(plugin.name, 'name')
+        self.assertEqual(plugin.query, 'statement')
+        self.assertEqual(plugin.conn_factory, DummyConnFactory)
+        self.assertEqual(plugin.filter, make_dummy_connfactory)
 
 class TestIdentityDict(unittest.TestCase):
     def _getTargetClass(self):
@@ -1852,7 +1908,49 @@ class DummyStartResponse:
         self.headers = headers
         self.exc_info = exc_info
         return []
-        
+
+class DummyConnectionFactory:
+    # acts as all of: a factory, a connection, and a cursor
+    closed = False
+    query = None
+    def __init__(self, results):
+        self.results = results
+
+    def __call__(self):
+        return self
+
+    def cursor(self):
+        return self
+
+    def execute(self, query, *arg):
+        self.query = query
+        self.bindargs = arg
+
+    def fetchall(self):
+        return self.results
+
+    def fetchone(self):
+        if self.results:
+            return self.results[0]
+        return []
+
+    def close(self):
+        self.closed = True
+
+def compare_fail(cleartext, stored):
+    return False
+
+def compare_succeed(cleartext, stored):
+    return True
+
+class _DummyConnFactory:
+    pass
+
+DummyConnFactory = _DummyConnFactory()
+
+def make_dummy_connfactory(who_conf, **kw):
+    return DummyConnFactory
+
 def encode_multipart_formdata(fields):
     BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
     CRLF = '\r\n'

@@ -1,3 +1,31 @@
+Unreleased
+
+ - Add a SQLMetadataProviderPlugin (in plugins/sql).
+
+ - Change constructor of SQLAuthenticatorPlugin: it now accepts only
+   "query", "conn_factory", and "compare_fn".  The old constructor
+   accepted a DSN, but some database systems don't use DBAPI DSNs.
+   The new constructor accepts no DSN; the conn_factory is assumed to
+   do all the work to make a connection, including knowing the DSN if
+   one is required.  The "conn_factory" should return something that,
+   when called with no arguments, returns a database connection.
+
+ - The "make_plugin" helper in plugins/sql has been renamed
+   "make_authenticator_plugin".  When called, this helper will return
+   a SQLAuthenticatorPlugin.  A bit of helper logic in the
+   "make_authenticator_plugin" allows a connection factory to be
+   computed.  The top-level callable referred to by conn_factory in
+   this helper should return a function that, when called with no
+   arguments, returns a datbase connection.  The top-level callable
+   itself is called with "who_conf" (global who configuration) and any
+   number of non-top-level keyword arguments as they are passed into
+   the helper, to allow for a DSN or URL or whatever to be passed in.
+
+ - A "make_metatata_plugin" helper has been added to plugins/sql. When
+   called, this will make a SQLMetadataProviderPlugin.  See the
+   implementation for details.  It is similar to the
+   "make_authenticator_plugin" helper.
+
 0.8 (2008-03-27)
 
  - Add a RedirectingFormIdentifier plugin.  This plugin is willing to

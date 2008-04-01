@@ -370,13 +370,13 @@ def make_test_middleware(app, global_conf):
     identifiers = [('form', form),('auth_tkt',auth_tkt),('basicauth',basicauth)]
     authenticators = [('htpasswd', htpasswd)]
     challengers = [('form',form), ('basicauth',basicauth)]
+    mdproviders = []
     from repoze.who.classifiers import default_request_classifier
     from repoze.who.classifiers import default_challenge_decider
-    log_stream = sys.stdout
+    log_stream = None
     import os
-    if os.environ.get('NO_WHO_LOG'):
-        log_stream = None
-    mdproviders = []
+    if os.environ.get('WHO_LOG'):
+        log_stream = sys.stdout
     middleware = PluggableAuthenticationMiddleware(
         app,
         identifiers,

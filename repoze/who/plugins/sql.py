@@ -1,6 +1,7 @@
 from zope.interface import implements
 
 from repoze.who.interfaces import IAuthenticator
+from repoze.who.interfaces import IMetadataProvider
 
 def default_password_compare(cleartext_password, stored_password_hash):
     import sha
@@ -19,34 +20,32 @@ def default_password_compare(cleartext_password, stored_password_hash):
 
     return False
 
-def psycopg_connect(dsn):
+def make_psycopg_conn_factory(who_conf, **kw):
     # convenience (I always seem to use Postgres)
-    import psycopg2
-    return psycopg2.connect(dsn)
+    def conn_factory():
+        import psycopg2
+        return psycopg2.connect(kw['repoze.who.dsn'])
+    return conn_factory
 
 class SQLAuthenticatorPlugin:
     implements(IAuthenticator)
-
-    def __init__(self, dsn, statement, compare_fn, conn_factory):
-        self.dsn = dsn
+    
+    def __init__(self, query, conn_factory, compare_fn):
         # statement should be pyformat dbapi binding-style, e.g.
         # "select user_id, password from users where login=%(login)s"
-        self.statement = statement
+        self.query = query
+        self.conn_factory = conn_factory
         self.compare_fn = compare_fn or default_password_compare
-        self.conn_factory = conn_factory or psycopg_connect
         self.conn = None
-
-    def _connect(self):
-        return self.conn_factory(self.dsn)
 
     # IAuthenticator
     def authenticate(self, environ, identity):
         if not 'login' in identity:
             return None
         if not self.conn:
-            self.conn = self._connect()
+            self.conn = self.conn_factory()
         curs = self.conn.cursor()
-        curs.execute(self.statement, identity)
+        curs.execute(self.query, identity)
         result = curs.fetchone()
         curs.close()
         if result:
@@ -54,17 +53,60 @@ class SQLAuthenticatorPlugin:
             if self.compare_fn(identity['password'], password):
                 return user_id
 
-def make_plugin(who_conf, dsn=None, statement=None, compare_fn=None,
-                conn_factory=None):
+class SQLMetadataProviderPlugin:
+    implements(IMetadataProvider)
+    
+    def __init__(self, name, query, conn_factory, filter):
+        self.name = name
+        self.query = query
+        self.conn_factory = conn_factory
+        self.filter = filter
+        self.conn = None
+
+    # IMetadataProvider
+    def add_metadata(self, environ, identity):
+        if self.conn is None:
+            self.conn = self.conn_factory()
+        curs = self.conn.cursor()
+        # can't use dots in names in python string formatting :-(
+        identity['__userid'] = identity['repoze.who.userid']
+        curs.execute(self.query, identity)
+        result = curs.fetchall()
+        if self.filter:
+            result = self.filter(result)
+        curs.close()
+        del identity['__userid']
+        identity[self.name] =  result
+
+def make_authenticator_plugin(who_conf, query=None, conn_factory=None,
+                              compare_fn=None, **kw):
     from repoze.who.utils import resolveDotted
-    if dsn is None:
-        raise ValueError('dsn must be specified')
-    if statement is None:
-        raise ValueError('statement must be specified')
+    if query is None:
+        raise ValueError('query must be specified')
+    if conn_factory is None:
+        raise ValueError('conn_factory must be specified')
+    try:
+        conn_factory = resolveDotted(conn_factory)(who_conf, **kw)
+    except Exception, why:
+        raise ValueError('conn_factory could not be resolved: %s' % why)
     if compare_fn is not None:
         compare_fn = resolveDotted(compare_fn)
-    if conn_factory is not None:
-        conn_factory = resolveDotted(conn_factory)
-    return SQLAuthenticatorPlugin(dsn, statement, compare_fn, conn_factory)
+    return SQLAuthenticatorPlugin(query, conn_factory, compare_fn)
 
+def make_metadata_plugin(who_conf, name=None, query=None, conn_factory=None,
+                         filter=None, **kw):
+    from repoze.who.utils import resolveDotted
+    if name is None:
+        raise ValueError('name must be specified')
+    if query is None:
+        raise ValueError('query must be specified')
+    if conn_factory is None:
+        raise ValueError('conn_factory must be specified')
+    try:
+        conn_factory = resolveDotted(conn_factory)(who_conf, **kw)
+    except Exception, why:
+        raise ValueError('conn_factory could not be resolved: %s' % why)
+    if filter is not None:
+        filter = resolveDotted(filter)
+    return SQLMetadataProviderPlugin(name, query, conn_factory, filter)
     
