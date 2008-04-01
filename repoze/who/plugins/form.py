@@ -101,11 +101,6 @@ class FormPlugin(FormPluginBase):
 
         return None
 
-    # IIdentifier
-    def remember(self, environ, identity):
-        rememberer = self._get_rememberer(environ)
-        headers = rememberer.remember(environ, identity)
-
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
         form = self.formbody or _DEFAULT_FORM

@@ -7,8 +7,8 @@ from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IChallenger
 from repoze.who.interfaces import IMetadataProvider
 
-_STARTED = '-- repoze.who request started --'
-_ENDED = '-- repoze.who request ended --'
+_STARTED = '-- repoze.who request started (%s) --'
+_ENDED = '-- repoze.who request ended (%s) --'
 
 class PluggableAuthenticationMiddleware(object):
     def __init__(self, app,
@@ -46,12 +46,14 @@ class PluggableAuthenticationMiddleware(object):
             # already set
             return self.app(environ, start_response)
 
+        path_info = environ.get('PATH_INFO', None)
+
         environ['repoze.who.plugins'] = self.name_registry
         environ['repoze.who.logger'] = self.logger
         environ['repoze.who.application'] = self.app
 
         logger = self.logger
-        logger and logger.info(_STARTED)
+        logger and logger.info(_STARTED % path_info)
         classification = self.classifier(environ)
         logger and logger.info('request classification: %s' % classification)
         userid = None
@@ -132,7 +134,7 @@ class PluggableAuthenticationMiddleware(object):
                                            % (identifier, remember_headers))
             wrapper.finish_response(remember_headers)
 
-        logger and logger.info(_ENDED)
+        logger and logger.info(_ENDED % path_info)
         return app_iter
 
     def identify(self, environ, classification):
