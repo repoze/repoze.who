@@ -12,8 +12,6 @@
 #
 ##############################################################################
 
-__version__ = '0.9'
-
 import os
 
 from ez_setup import use_setuptools
@@ -23,12 +21,15 @@ from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
+CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+VERSION_TXT = os.path.join(here, 'repoze', 'who', 'version.txt')
+version = open(VERSION_TXT).readline().rstrip()
 
 setup(name='repoze.who',
-      version=__version__,
+      version=version,
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
-      long_description=README,
+      long_description='\n\n'.join([README, CHANGES]),
       classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",

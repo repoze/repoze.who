@@ -1,3 +1,6 @@
+repoze.who changes
+==================
+
 0.9 (2008-04-01)
 
  - Fix bug introduced in FormPlugin in 0.8 release (rememberer headers not
