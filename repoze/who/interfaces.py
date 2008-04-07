@@ -73,6 +73,16 @@ class IIdentifier(Interface):
         o Only IIdentifier plugins which match one of the the current
           request's classifications will be asked to perform
           identification.
+
+        o An identifier plugin is permitted to add a key to the
+          environment named 'repoze.who.application', which should be
+          an arbitrary WSGI application.  If an identifier plugin does
+          so, this application is used instead of the downstream
+          application set up within the middleware.  This feature is
+          useful for identifier plugins which need to perform
+          redirection to obtain credentials.  If two identifier
+          plugins add a 'repoze.who.application' WSGI application to
+          the environment, the last one consulted will"win".
         """
 
     def remember(environ, identity):
@@ -112,8 +122,10 @@ class IAuthenticator(Interface):
         o 'identity' will be a dictionary (with arbitrary keys and
           values).
  
-        o The IAuthenticator should return a single user id (should be
-          a string) or None if the identify cannot be authenticated.
+        o The IAuthenticator should return a single user id (optimally
+          a string) if the identity can be authenticated.  If the
+          identify cannot be authenticated, the IAuthenticator should
+          return None.
 
         Each instance of a registered IAuthenticator plugin that
         matches the request classifier will be called N times during a
@@ -165,12 +177,15 @@ class IChallenger(Interface):
 class IMetadataProvider(Interface):
     """On ingress: When an identity is authenticated, metadata
        providers may scribble on the identity dictionary arbitrarily.
-       Return values from metadata providers are ignored.  One value
-       is always guaranteed to be in the dictionary:
-       'repoze.who.userid', representing the user id of the identity. 
+       Return values from metadata providers are ignored.
     """
     
     def add_metadata(environ, identity):
         """
-        Add metadata to the identity (which is a dictionary)
+        Add metadata to the identity (which is a dictionary).  One
+        value is always guaranteed to be in the dictionary when
+        add_metadata is called: 'repoze.who.userid', representing the
+        user id of the identity.  Availability and composition of
+        other keys will depend on the identifier plugin which created
+        the identity.
         """

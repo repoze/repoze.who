@@ -94,7 +94,8 @@ during middleware ingress:
     into one "type" of request.  The callable named as the
     ``classifer`` argument to the ``repoze.who`` middleware
     constructor is used to perform the classification.  It returns a
-    value that is considered to be the request classification.
+    value that is considered to be the request classification (a
+    single string).
 
 2.  Identification
 
@@ -105,7 +106,7 @@ during middleware ingress:
     the ``HTTP_AUTHORIZATION`` header to find login and password
     information.  Identifiers are also responsible for providing
     header information to set and remove authentication information in
-    the response.
+    the response during egress.
 
 3.  Authentication
 
@@ -139,21 +140,31 @@ during middleware egress:
     The WSGI environment and the status and headers returned by the
     downstream application may be examined to determine whether a
     challenge is required.  Typically, only the status is used (if it
-    starts with ``401``, a challenge is required).  This behavior is
-    pluggable.  It is replaced by changing the ``challenge_decider``
-    argument to the middleware.
+    starts with ``401``, a challenge is required, and the challenge
+    decider returns True).  This behavior is pluggable.  It is
+    replaced by changing the ``challenge_decider`` argument to the
+    middleware.  If a challenge is required, the challenge decider
+    will return True; if it's not, it will return False.
 
 2.  Challenge
 
-    Challengers which nominate themselves as willing to execute a
-    challenge for a particular class of request (as provided by the
-    classifier) will be consulted, and one will be chosen to perform
-    a challenge.  A challenger plugin can use application-returned
-    headers, the WSGI environment, and other items to determine what
-    sort of operation should be performed to actuate the challenge.
-    Note that ``repoze.who`` defers to the identifier plugin which
-    provided the identity (if any) to reset credentials at challenge
-    time; this is not the responsibility of the challenger.
+    If the challenge decider returns True, challengers which nominate
+    themselves as willing to execute a challenge for a particular
+    class of request (as provided by the classifier) will be
+    consulted, and one will be chosen to perform a challenge.  A
+    challenger plugin can use application-returned headers, the WSGI
+    environment, and other items to determine what sort of operation
+    should be performed to actuate the challenge.  Note that
+    ``repoze.who`` defers to the identifier plugin which provided the
+    identity (if any) to reset credentials at challenge time; this is
+    not the responsibility of the challenger.  This is known as
+    "forgetting" credentials.
+
+3.  Remember
+
+    The identifier plugin that the "best" set of credentials came from
+    (if any) will be consulted to "remember" these credentials if the
+    challenge decider returns False.
 
 Plugin Types
 ============
@@ -213,7 +224,7 @@ authentication, identification, challenge and metadata provision.
 
 .. module:: repoze.who.plugins.auth_tkt
 
-.. class:: AuthTktCookiePlugin(secret, cookie_name='auth_tkt', secure=False, include_ip=False)
+.. class:: AuthTktCookiePlugin(secret [, cookie_name='auth_tkt' [, secure=False [, include_ip=False]]])
 
   An :class:`AuthTktCookiePlugin` is an ``IIdentifier`` plugin which
   remembers its identity state in a client-side cookie.  This plugin
@@ -252,19 +263,23 @@ authentication, identification, challenge and metadata provision.
 
 .. module:: repoze.who.plugins.form
 
-.. class:: FormPlugin(login_form_qs, rememberer_name, formbody=None, formcallable=None)
+.. class:: FormPlugin(login_form_qs, rememberer_name [, formbody=None [, formcallable=None]])
 
   A :class:`FormPlugin` is both an ``IIdentifier`` and ``IChallenger``
   plugin.  It intercepts form POSTs to gather identification at
   ingress and conditionally displays a login form at egress if
-  challenge is required.  *login_form_qs* is a query string value used
-  to denote that a form POST is destined for the form plugin,
-  *rememberer_name* is the configuration name of another
-  ``IIdentifier`` plugin that will be used to perform ``remember`` and
-  ``forget`` duties for the FormPlugin (it does not do these itself),
-  *formbody* is a literal string that should be displayed as the form
-  body.  *formcallable* is a callable that will return a form body if
-  *formbody* is None.
+  challenge is required.  *login_form_qs* is a query string name used
+  to denote that a form POST is destined for the form plugin (anything
+  unique is fine), *rememberer_name* is the "configuration name" of
+  another ``IIdentifier`` plugin that will be used to perform
+  ``remember`` and ``forget`` duties for the FormPlugin (it does not
+  do these itself).  For example, if you have a cookie identification
+  plugin named ``cookie`` defined in your middleware configuration,
+  you might set *rememberer_name* to ``cookie``.  *formbody* is a
+  literal string that should be displayed as the form body.
+  *formcallable* is a callable that will return a form body if
+  *formbody* is None.  If both *formbody* and *formcallable* are None,
+  a default form is used.
 
 .. class:: RedirectingFormPlugin(login_form_url, login_handler_path, logout_handler_path, rememberer_name)
 
@@ -280,25 +295,75 @@ authentication, identification, challenge and metadata provision.
   log the current user out when visited. *rememberer_name* is the
   configuration name of another ``IIdentifier`` plugin that will be
   used to perform ``remember`` and ``forget`` duties for the
-  FormPlugin (it does not do these itself).
+  RedirectingFormPlugin (it does not do these itself).  For example,
+  if you have a cookie identification plugin named ``cookie`` defined
+  in your middleware configuration, you might set *rememberer_name* to
+  ``cookie``.
 
 .. module:: repoze.who.plugins.htpasswd
 
 .. class:: HTPasswdPlugin(filename, check)
 
+  A :class:`HTPasswdPlugin` is an ``IAuthenticator`` implementation
+  which compares identity information against an Apache-style htpasswd
+  file.  The *filename* argument should be an absolute path to the
+  htpasswd file' the *check* argument is a callable which takes two
+  arguments: "password" and "hashed", where the "password" argument is
+  the unencrypted password provided by the identifier plugin, and the
+  hashed value is the value stored in the htpasswd file.  If the
+  hashed value of the password matches the hash, this callable should
+  return True.  A default implementation named ``crypt_check`` is
+  available for use as a check function (on UNIX) as
+  ``repoze.who.plugins.htpasswd:crypt_check``; it assumes the values
+  in the htpasswd file are encrypted with the UNIX ``crypt`` function.
+
 .. module:: repoze.who.plugins.sql
 
 .. class:: SQLAuthenticatorPlugin(query, conn_factory, compare_fn)
 
+  A :class:`SQLAuthenticatorPlugin` is an ``IAuthenticator``
+  implementation which compares login-password identity information
+  against data in an arbitrary SQL database.  The *query* argument
+  should be a SQL query that returns two columns in a single row
+  considered to be the user id and the password respectively.  The SQL
+  query should contain Python-DBAPI style substitution values for
+  ``%(login)``, e.g. ``SELECT user_id, password FROM users WHERE login
+  = %(login)``.  The *conn_factory* argument should be a callable that
+  returns a DBAPI database connection.  The *compare_fn* argument
+  should be a callable that accepts two arguments: ``cleartext`` and
+  ``stored_password_hash``.  It should compare the hashed version of
+  cleartext and return True if it matches the stored password hash,
+  otherwise it should return False.  A comparison function named
+  ``default_password_compare`` exists in the
+  ``repoze.who.plugins.sql`` module demonstrating this.  The
+  :class:`SQLAuthenticatorPlugin`\'s ``authenticate`` method will
+  return the user id of the user unchanged to ``repoze.who``.
+
 .. class:: SQLMetadataProviderPlugin(name, query, conn_factory, filter)
 
+  A :class:`SQLMetatadaProviderPlugin` is an ``IMetadataProvider``
+  implementation which adds arbitrary metadata to the identity on
+  ingress using data from an arbitrary SQL database.  The *name*
+  argument should be a string.  It will be used as a key in the
+  identity dictionary.  The *query* argument should be a SQL query
+  that returns arbitrary data from the database in a form that accepts
+  Python-binding style DBAPI arguments.  It should expect that a
+  ``__userid`` value will exist in the dictionary that is bound.  The
+  SQL query should contain Python-DBAPI style substitution values for
+  (at least) ``%(__userid)``, e.g. ``SELECT group FROM groups WHERE
+  user_id = %(__userid)``.  The *conn_factory* argument should be a
+  callable that returns a DBAPI database connection.  The *filter*
+  argument should be a callable that accepts the result of the DBAPI
+  ``fetchall`` based on the SQL query.  It should massage the data
+  into something that will be set in the environment under the *name*
+  key.  
 
 Middleware Configuration via Python Code
 ========================================
 
 .. module:: repoze.who.middleware
 
-.. class:: PluggableAuthenticationMiddleware(app, identifiers, challengers, mdproviders, classifier, challenge_decider, log_stream=None, log_level=logging.INFO, remote_user_key='REMOTE_USER')
+.. class:: PluggableAuthenticationMiddleware(app, identifiers, challengers, mdproviders, classifier, challenge_decider [, log_stream=None [, log_level=logging.INFO[, remote_user_key='REMOTE_USER']]])
 
   The primary method of configuring the ``repoze.who`` middleware is
   to use straight Python code, meant to be consumed by frameworks
