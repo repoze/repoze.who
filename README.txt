@@ -3,7 +3,7 @@
 ***************************************************
 
 :Author: Chris McDonough
-:Release: 0.1
+:Version: |version|
 
 .. module:: repoze.who
    :synopsis: WSGI authentication middleware
@@ -384,11 +384,14 @@ Middleware Configuration via Python Code
 
 An example configuration which uses the default plugins follows::
 
+    from repoze.who.interfaces import IIdentifier
+    from repoze.who.interfaces import IChallenger
     from repoze.who.plugins.basicauth import BasicAuthPlugin
     from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
     from repoze.who.plugins.cookie import InsecureCookiePlugin
     from repoze.who.plugins.form import FormPlugin
     from repoze.who.plugins.htpasswd import HTPasswdPlugin
+
     io = StringIO()
     salt = 'aa'
     for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
@@ -406,12 +409,14 @@ An example configuration which uses the default plugins follows::
     authenticators = [('htpasswd', htpasswd)]
     challengers = [('form',form), ('basicauth',basicauth)]
     mdproviders = []
+
     from repoze.who.classifiers import default_request_classifier
     from repoze.who.classifiers import default_challenge_decider
     log_stream = None
     import os
     if os.environ.get('WHO_LOG'):
         log_stream = sys.stdout
+
     middleware = PluggableAuthenticationMiddleware(
         app,
         identifiers,
@@ -423,16 +428,21 @@ An example configuration which uses the default plugins follows::
         log_stream = log_stream,
         log_level = logging.DEBUG
         )
+
     return middleware
 
 The above example configures the repoze.who middleware with:
 
 - Three ``IIdentifier`` plugins (form auth, auth_tkt cookie, and a
   basic auth plugin).  The form auth plugin is set up to fire only
-  when the request is a ``browser`` request (as per the request
-  classifier).  In this setup, when "identification" needs to be
-  performed, the form auth plugin will be checked first, then the
-  auth_tkt cookie plugin, then the basic auth plugin.
+  when the request is a ``browser`` request (as per the combination of
+  the request classifier returning ``browser`` and the framework
+  checking against the *classifications* attribute of the plugin,
+  which limits ``IIdentifier`` and ``IChallenger`` to the ``browser``
+  classification only).  In this setup, when "identification" needs to
+  be performed, the form auth plugin will be checked first (if the
+  request is a browser request), then the auth_tkt cookie plugin, then
+  the basic auth plugin.
 
 - One ``IAuthenticator`` plugin: an htpasswd one.  This htpasswd
   plugin is configured with two valid username/password combinations:
@@ -445,8 +455,8 @@ The above example configures the repoze.who middleware with:
   request, otherwise the baisc auth plugin will fire.
 
 The rest of the middleware configuration is for values like logging
-and the classifier and decider implementations.  These use the default
-implementations.
+and the classifier and decider implementations.  These use the "stock"
+implementations and values.
 
 Middleware Configuration via Config File
 ========================================
@@ -663,103 +673,94 @@ things ::
         def __repr__(self):
             return '<%s %s>' % (self.__class__.__name__, id(self))
 
-Note that the plugin implements three "interface" methods: "identify",
-"forget" and "remember".  The formal specification for the arguments
-and return values expected from these methods are available in the
-``interfaces.py`` file in ``repoze.who`` as the ``IIdentifier``
-interface, but let's examine them less formally one at a time.
+.identify
+~~~~~~~~~
 
-.. module:: repoze.who.interfaces
+The ``identify`` method of our InsecureCookiePlugin accepts a single
+argument "environ".  This will be the WSGI environment dictionary.
+Our plugin attempts to grub through the cookies sent by the client,
+trying to find one that matches our cookie name.  If it finds one that
+matches, it attempts to decode it and turn it into a login and a
+password, which it returns as values in a dictionary.  This dictionary
+is thereafter known as an "identity".  If it finds no credentials in
+cookies, it returns None (which is not considered an identity).
 
-.. class:: IIdentifier
+More generally, the ``identify`` method of an ``IIdentifier`` plugin
+is called once on WSGI request "ingress", and it is expected to grub
+arbitrarily through the WSGI environment looking for credential
+information.  In our above plugin, the credential information is
+expected to be in a cookie but credential information could be in a
+cookie, a form field, basic/digest auth information, a header, a WSGI
+environment variable set by some upstream middleware or whatever else
+someone might use to stash authentication information.  If the plugin
+finds credentials in the request, it's expected to return an
+"identity": this must be a dictionary.  The dictionary is not required
+to have any particular keys or value composition, although it's wise
+if the identification plugin looks for both a login name and a
+password information to return at least {'login':login_name,
+'password':password}, as some authenticator plugins may depend on
+presence of the names "login" and "password" (e.g. the htpasswd and
+sql ``IAuthenticator`` plugins).  If an ``IIdentifier`` plugin finds
+no credentials, it is expected to return None.
 
-.. method::  IIdentifier.identify(environ)
+An ``IIdentifier`` plugin is also permitted to "preauthenticate" an
+identity.  If the identifier plugin knows that the identity is "good"
+(e.g. in the case of ticket-based authentication where the userid is
+embedded into the ticket), it can insert a special key into the
+identity dictionary: ``repoze.who.userid``.  If this key is present in
+the identity dictionary, no authenticators will be asked to
+authenticate the identity.  This effectively allows an ``IIdentifier``
+plugin to become an ``IAuthenticator`` plugin when breaking apart the
+responsibility into two separate plugins is "make-work".
+Preauthenticated identities will be selected first when deciding which
+identity to use for any given request.  Our cookie plugin doesn't use
+this feature.
 
-   The ``identify`` method of our InsecureCookiePlugin accepts a
-   single argument "environ".  This will be the WSGI environment
-   dictionary.  Our plugin attempts to grub through the cookies sent
-   by the client, trying to find one that matches our cookie name.  If
-   it finds one that matches, it attempts to decode it and turn it
-   into a login and a password, which it returns as values in a
-   dictionary.  This dictionary is thereafter known as an "identity".
-   If it finds no credentials in cookies, it returns None (which is
-   not considered an identity).
+.remember
+~~~~~~~~~
 
-   More generally, the ``identify`` method of an ``IIdentifier``
-   plugin is called once on WSGI request "ingress", and it is expected
-   to grub arbitrarily through the WSGI environment looking for
-   credential information.  In our above plugin, the credential
-   information is expected to be in a cookie but credential
-   information could be in a cookie, a form field, basic/digest auth
-   information, a header, a WSGI environment variable set by some
-   upstream middleware or whatever else someone might use to stash
-   authentication information.  If the plugin finds credentials in the
-   request, it's expected to return an "identity": this must be a
-   dictionary.  The dictionary is not required to have any particular
-   keys or value composition, although it's wise if the identification
-   plugin looks for both a login name and a password information to
-   return at least {'login':login_name, 'password':password}, as some
-   authenticator plugins may depend on presence of the names "login"
-   and "password" (e.g. the htpasswd and sql ``IAuthenticator``
-   plugins).  If an ``IIdentifier`` plugin finds no credentials, it is
-   expected to return None.
-
-   An ``IIdentifier`` plugin is also permitted to "preauthenticate" an
-   identity.  If the identifier plugin knows that the identity is
-   "good" (e.g. in the case of ticket-based authentication where the
-   userid is embedded into the ticket), it can insert a special key
-   into the identity dictionary: ``repoze.who.userid``.  If this key
-   is present in the identity dictionary, no authenticators will be
-   asked to authenticate the identity.  This effectively allows an
-   ``IIdentifier`` plugin to become an ``IAuthenticator`` plugin when
-   breaking apart the responsibility into two separate plugins is
-   "make-work".  Preauthenticated identities will be selected first
-   when deciding which identity to use for any given request.  Our
-   cookie plugin doesn't use this feature.
-
-.. method::  IIdentifier.remember(environ, identity)
-
-   If we've passed a REMOTE_USER to the WSGI application during
-   ingress (as a result of providing an identity that could be
-   authenticated), and the downstream application doesn't kick back
-   with an unauthorized response, on egress we want the requesting
-   client to "remember" the identity we provided if there's some way
-   to do that and if he hasn't already, in order to ensure he will
-   pass it back to us on subsequent requests without requiring another
-   login.  The remember method of an ``IIdentifier`` plugin is called for
-   each non-unauthenticated response.  It is the responsibility of the
-   ``IIdentifier`` plugin to conditionally return HTTP headers that will
-   cause the client to remember the credentials implied by "identity".
+If we've passed a REMOTE_USER to the WSGI application during ingress
+(as a result of providing an identity that could be authenticated),
+and the downstream application doesn't kick back with an unauthorized
+response, on egress we want the requesting client to "remember" the
+identity we provided if there's some way to do that and if he hasn't
+already, in order to ensure he will pass it back to us on subsequent
+requests without requiring another login.  The remember method of an
+``IIdentifier`` plugin is called for each non-unauthenticated
+response.  It is the responsibility of the ``IIdentifier`` plugin to
+conditionally return HTTP headers that will cause the client to
+remember the credentials implied by "identity".
     
-   Our InsecureCookiePlugin implements the "remember" method by
-   returning headers which set a cookie if and only if one is not
-   already set with the same name and value in the WSGI environment.
-   These headers will be tacked on to the response headers provided by
-   the downstream application during the response.
+Our InsecureCookiePlugin implements the "remember" method by returning
+headers which set a cookie if and only if one is not already set with
+the same name and value in the WSGI environment.  These headers will
+be tacked on to the response headers provided by the downstream
+application during the response.
 
-   When you write a remember method, most of the work involved is
-   determining *whether or not* you need to return headers.  It's
-   typical to see remember methods that compute an "old state" and a
-   "new state" and compare the two against each other in order to
-   determine if headers need to be returned.  In our example
-   InsecureCookiePlugin, the "old state" is ``cookie_value`` and the
-   "new state" is ``value``.
+When you write a remember method, most of the work involved is
+determining *whether or not* you need to return headers.  It's typical
+to see remember methods that compute an "old state" and a "new state"
+and compare the two against each other in order to determine if
+headers need to be returned.  In our example InsecureCookiePlugin, the
+"old state" is ``cookie_value`` and the "new state" is ``value``.
 
-.. method::  IIdentifier.forget(environ, identity)
+.forget
+~~~~~~~
 
-   Eventually the WSGI application we're serving will issue a "401
-   Unauthorized" or another status signifying that the request could
-   not be authorized.  ``repoze.who`` intercepts this status and calls
-   ``IIdentifier`` plugins asking them to "forget" the credentials implied
-   by the identity.  It is the "forget" method's job at this point to
-   return HTTP headers that will effectively clear any credentials on
-   the requesting client implied by the "identity" argument.
+Eventually the WSGI application we're serving will issue a "401
+ Unauthorized" or another status signifying that the request could not
+ be authorized.  ``repoze.who`` intercepts this status and calls
+ ``IIdentifier`` plugins asking them to "forget" the credentials
+ implied by the identity.  It is the "forget" method's job at this
+ point to return HTTP headers that will effectively clear any
+ credentials on the requesting client implied by the "identity"
+ argument.
 
-   Our InsecureCookiePlugin implements the "forget" method by
-   returning a header which resets the cookie that was set earlier by
-   the remember method to one that expires in the past (on my
-   birthday, in fact).  This header will be tacked onto the response
-   headers provided by the downstream application.
+ Our InsecureCookiePlugin implements the "forget" method by returning
+ a header which resets the cookie that was set earlier by the remember
+ method to one that expires in the past (on my birthday, in fact).
+ This header will be tacked onto the response headers provided by the
+ downstream application.
 
 Writing an Authenticator Plugin
 -------------------------------
@@ -814,24 +815,25 @@ return values expected from these methods are available in the
 ``interfaces.py`` file in ``repoze.who`` as the ``IAuthenticator``
 interface, but let's examine this method here less formally.
 
-.. class:: IAuthenticator
+.authenticate
+~~~~~~~~~~~~~
 
-.. method::  IAuthenticator.authenticate(environ, identity)
+The ``authenticate`` method accepts two arguments: the WSGI
+environment and an identity.  Our SimpleHTPasswdPlugin
+``authenticate`` implementation grabs the login and password out of
+the identity and attempts to find the login in the htpasswd file.  If
+it finds it, it compares the crypted version of the password provided
+by the user to the crypted version stored in the htpasswd file, and
+finally, if they match, it returns the login.  If they do not match,
+it returns None.
 
-  The ``authenticate`` method accepts two arguments: the WSGI
-  environment and an identity.  Our SimpleHTPasswdPlugin
-  ``authenticate`` implementation grabs the login and password out of
-  the identity and attempts to find the login in the htpasswd file.
-  If it finds it, it compares the crypted version of the password
-  provided by the user to the crypted version stored in the htpasswd
-  file, and finally, if they match, it returns the login.  If they do
-  not match, it returns None.
+.. note::
 
-  Note that our plugin's ``authenticate`` method does not assume that
-  the keys ``login`` or ``password`` exist in the identity; although
-  it requires them to do "real work" it returns None if they are not
-  present instead of raising an exception.  This is required by the
-  ``IAuthenticator`` interface specification.
+   Our plugin's ``authenticate`` method does not assume that the keys
+   ``login`` or ``password`` exist in the identity; although it
+   requires them to do "real work" it returns None if they are not
+   present instead of raising an exception.  This is required by the
+   ``IAuthenticator`` interface specification.
 
 Writing a Challenger Plugin
 ---------------------------
@@ -869,23 +871,22 @@ returned an "unauthorized" response (e.g. a 401).  Only one challenger
 will be consulted during "egress" as necessary (the first one to
 return a non-None response).
 
-.. class:: IChallenger
+.challenge
+~~~~~~~~~~
 
-.. method:: IChallenger.challenge(environ, status, app_headers, forget_headers)
+The challenge method takes environ (the WSGI environment), 'status'
+(the status as set by the downstream application), the "app_headers"
+(headers returned by the application), and the "forget_headers"
+(headers returned by all participating ``IIdentifier`` plugins whom
+were asked to "forget" this user).
 
-   The challenge method takes environ (the WSGI environment), 'status'
-   (the status as set by the downstream application), the
-   "app_headers" (headers returned by the application), and the
-   "forget_headers" (headers returned by all participating
-   ``IIdentifier`` plugins whom were asked to "forget" this user).
-
-   Our BasicAuthChallengerPlugin takes advantage of the fact that the
-   HTTPUnauthorized exception imported from paste.httpexceptions can
-   be used as a WSGI application.  It first makes sure that we don't
-   repeat headers if an identification plugin has already set a
-   "WWW-Authenticate" header like ours, then it returns an instance of
-   HTTPUnauthorized, passing in merged headers.  This will cause a
-   basic authentication dialog to be presented to the user.
+Our BasicAuthChallengerPlugin takes advantage of the fact that the
+HTTPUnauthorized exception imported from paste.httpexceptions can be
+used as a WSGI application.  It first makes sure that we don't repeat
+headers if an identification plugin has already set a
+"WWW-Authenticate" header like ours, then it returns an instance of
+HTTPUnauthorized, passing in merged headers.  This will cause a basic
+authentication dialog to be presented to the user.
 
 Writing a Metadata Provider Plugin
 ----------------------------------
@@ -914,16 +915,33 @@ information from a dictionary::
             if info is not None:
                 identity.update(info)
 
-.. class:: IMetadataProvider
+.add_metadata
+~~~~~~~~~~~~~
 
-.. method:: IMetadataProvider.add_metadata(environ, identity)
+Arbitrarily add information to the identity dict based in other data
+in the environment or identity.  Our plugin adds ``first_name`` and
+``last_name`` values to the identity if the userid matches ``chris``
+or ``whit``.
 
-  Arbitrarily add information to the identity dict based in other data
-  in the environment or identity.
+Interfaces
+==========
 
-Further Information about Interfaces
-====================================
+.. module:: repoze.who.interfaces
 
-For further information about interfaces, see the module
-``repoze.who.interfaces``.
+.. autointerface:: repoze.who.interfaces.IRequestClassifier
+   :members:
 
+.. autointerface:: repoze.who.interfaces.IChallengeDecider
+   :members:
+
+.. autointerface:: repoze.who.interfaces.IIdentifier
+   :members:
+
+.. autointerface:: repoze.who.interfaces.IAuthenticator
+   :members:
+
+.. autointerface:: repoze.who.interfaces.IChallenger
+   :members:
+
+.. autointerface:: repoze.who.interfaces.IMetadataProvider
+   :members:
