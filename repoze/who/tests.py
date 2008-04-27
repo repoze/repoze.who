@@ -1423,6 +1423,34 @@ class TestAuthTktCookiePlugin(Base):
         self.assertEqual(environ['REMOTE_USER_DATA'],'userdata')
         self.assertEqual(environ['AUTH_TYPE'],'cookie')
 
+    def test_identify_good_cookie_int_useridtype(self):
+        plugin = self._makeOne('secret', include_ip=False)
+        val = self._makeTicket(userid='1', userdata='userid_type:int')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        result = plugin.identify(environ)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result['tokens'], [''])
+        self.assertEqual(result['repoze.who.userid'], 1)
+        self.assertEqual(result['userdata'], 'userid_type:int')
+        self.failUnless('timestamp' in result)
+        self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
+        self.assertEqual(environ['REMOTE_USER_DATA'],'userid_type:int')
+        self.assertEqual(environ['AUTH_TYPE'],'cookie')
+
+    def test_identify_good_cookie_unknown_useridtype(self):
+        plugin = self._makeOne('secret', include_ip=False)
+        val = self._makeTicket(userid='userid', userdata='userid_type:unknown')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        result = plugin.identify(environ)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result['tokens'], [''])
+        self.assertEqual(result['repoze.who.userid'], 'userid')
+        self.assertEqual(result['userdata'], 'userid_type:unknown')
+        self.failUnless('timestamp' in result)
+        self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
+        self.assertEqual(environ['REMOTE_USER_DATA'],'userid_type:unknown')
+        self.assertEqual(environ['AUTH_TYPE'],'cookie')
+
     def test_identify_bad_cookie(self):
         plugin = self._makeOne('secret', include_ip=True)
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=bogus'})
@@ -1444,6 +1472,28 @@ class TestAuthTktCookiePlugin(Base):
         new_val = self._makeTicket(userid='other', userdata='userdata')
         result = plugin.remember(environ, {'repoze.who.userid':'other',
                                            'userdata':'userdata'})
+        expected = 'auth_tkt=%s; Path=/;' % new_val
+        self.assertEqual(result, [('Set-Cookie', expected)])
+
+    def test_remember_creds_different_int_userid(self):
+        plugin = self._makeOne('secret')
+        old_val = self._makeTicket(userid='userid')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
+        new_val = self._makeTicket(userid='1', userdata='userid_type:int')
+        result = plugin.remember(environ, {'repoze.who.userid':1,
+                                           'userdata':''})
+        
+        expected = 'auth_tkt=%s; Path=/;' % new_val
+        self.assertEqual(result, [('Set-Cookie', expected)])
+
+    def test_remember_creds_different_unicode_userid(self):
+        plugin = self._makeOne('secret')
+        old_val = self._makeTicket(userid='userid')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
+        new_val = self._makeTicket(userid=unicode('myid'), userdata='')
+        result = plugin.remember(environ, {'repoze.who.userid':unicode('myid'),
+                                           'userdata':''})
+        
         expected = 'auth_tkt=%s; Path=/;' % new_val
         self.assertEqual(result, [('Set-Cookie', expected)])
 

@@ -8,6 +8,14 @@ from repoze.who.interfaces import IIdentifier
 class AuthTktCookiePlugin(object):
 
     implements(IIdentifier)
+
+    userid_type_decoders = {
+        'int':int,
+        }
+
+    userid_type_encoders = {
+        int: ('int', str),
+        }
     
     def __init__(self, secret, cookie_name='auth_tkt',
                  secure=False, include_ip=False):
@@ -35,6 +43,15 @@ class AuthTktCookiePlugin(object):
                 self.secret, cookie.value, remote_addr)
         except auth_tkt.BadTicket:
             return None
+
+        userid_typename = 'userid_type:'
+        user_data_info = user_data.split('|')
+        for datum in filter(None, user_data_info):
+            if datum.startswith(userid_typename):
+                userid_type = datum[len(userid_typename):]
+                decoder = self.userid_type_decoders.get(userid_type)
+                if decoder:
+                    userid = decoder(userid)
             
         if environ.get('REMOTE_USER_TOKENS'):
             # We want to add tokens/roles to what's there:
@@ -87,6 +104,12 @@ class AuthTktCookiePlugin(object):
         who_userid = identity['repoze.who.userid']
         who_tokens = identity.get('tokens', '')
         who_userdata = identity.get('userdata', '')
+
+        encoding_data = self.userid_type_encoders.get(type(who_userid))
+        if encoding_data:
+            encoding, encoder = encoding_data
+            who_userid = encoder(who_userid)
+            who_userdata = 'userid_type:%s' % encoding
         
         if not isinstance(tokens, basestring):
             tokens = ','.join(tokens)
