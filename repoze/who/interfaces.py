@@ -1,6 +1,9 @@
 from zope.interface import Interface
 
-class IRequestClassifier(Interface):
+class IPlugin(Interface):
+    pass
+
+class IRequestClassifier(IPlugin):
     """ On ingress: classify a request.
     """
     def __call__(environ):
@@ -12,7 +15,7 @@ class IRequestClassifier(Interface):
         o 'environ' is the WSGI environment.
         """
 
-class IChallengeDecider(Interface):
+class IChallengeDecider(IPlugin):
     """ On egress: decide whether a challenge needs to be presented
     to the user.
     """
@@ -31,7 +34,7 @@ class IChallengeDecider(Interface):
         a challenge needs to be presented to the user, False otherwise.
         """
 
-class IIdentifier(Interface):
+class IIdentifier(IPlugin):
 
     """
     On ingress: Extract credentials from the WSGI environment and
@@ -109,7 +112,7 @@ class IIdentifier(Interface):
         included in the response provided by the challenge app.
         """
 
-class IAuthenticator(Interface):
+class IAuthenticator(IPlugin):
 
     """ On ingress: validate the identity and return a user id or None.
     """
@@ -140,7 +143,7 @@ class IAuthenticator(Interface):
         should return None).
         """
 
-class IChallenger(Interface):
+class IChallenger(IPlugin):
 
     """ On egress: Conditionally initiate a challenge to the user to
         provide credentials.
@@ -174,7 +177,7 @@ class IChallenger(Interface):
         """
 
 
-class IMetadataProvider(Interface):
+class IMetadataProvider(IPlugin):
     """On ingress: When an identity is authenticated, metadata
        providers may scribble on the identity dictionary arbitrarily.
        Return values from metadata providers are ignored.

@@ -54,7 +54,7 @@ class InsecureCookiePlugin(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))
 
-def make_plugin(who_conf, cookie_name='repoze.who.plugins.cookie'):
+def make_plugin(cookie_name='repoze.who.plugins.cookie'):
     plugin = InsecureCookiePlugin(cookie_name)
     return plugin
 

@@ -31,7 +31,6 @@ _DAV_USERAGENTS = (
     'Microsoft-WebDAV'
     )
 
-@zope.interface.implementer(IRequestClassifier)
 def default_request_classifier(environ):
     """ Returns one of the classifiers 'dav', 'xmlpost', or 'browser',
     depending on the imperative logic below"""
@@ -47,9 +46,10 @@ def default_request_classifier(environ):
         if CONTENT_TYPE(environ) == 'text/xml':
             return 'xmlpost'
     return 'browser'
+zope.interface.directlyProvides(default_request_classifier, IRequestClassifier)
 
-@zope.interface.implementer(IChallengeDecider)
 def default_challenge_decider(environ, status, headers):
     if status.startswith('401 '):
         return True
     return False
+zope.interface.directlyProvides(default_challenge_decider, IChallengeDecider)

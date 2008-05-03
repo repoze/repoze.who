@@ -47,7 +47,7 @@ def crypt_check(password, hashed):
     salt = hashed[:2]
     return hashed == crypt(password, salt)
 
-def make_plugin(who_conf, filename=None, check_fn=None):
+def make_plugin(filename=None, check_fn=None):
     if filename is None:
         raise ValueError('filename must be specified')
     if check_fn is None:

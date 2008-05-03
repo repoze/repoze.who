@@ -3,6 +3,14 @@ repoze.who changes
 
 After 0.9.1
 
+ - Fixed interface declarations of 'classifiers.default_request_classifier'
+   and 'classifiers.default_password_compare'.
+
+ - Added actual config-driven middleware factory,
+   'config.make_middleware_with_config'
+
+ - Removed fossilized 'who_conf' argument from plugin factory functions.
+
  - Added ConfigParser-based WhoConfig, implementing the spec outlined at
    http://www.plope.com/static/misc/sphinxtest/intro.html#middleware-configuration-via-config-file, with the following changes:
 

@@ -20,7 +20,7 @@ def default_password_compare(cleartext_password, stored_password_hash):
 
     return False
 
-def make_psycopg_conn_factory(who_conf, **kw):
+def make_psycopg_conn_factory(**kw):
     # convenience (I always seem to use Postgres)
     def conn_factory():
         import psycopg2
@@ -78,7 +78,7 @@ class SQLMetadataProviderPlugin:
         del identity['__userid']
         identity[self.name] =  result
 
-def make_authenticator_plugin(who_conf, query=None, conn_factory=None,
+def make_authenticator_plugin(query=None, conn_factory=None,
                               compare_fn=None, **kw):
     from repoze.who.utils import resolveDotted
     if query is None:
@@ -86,14 +86,14 @@ def make_authenticator_plugin(who_conf, query=None, conn_factory=None,
     if conn_factory is None:
         raise ValueError('conn_factory must be specified')
     try:
-        conn_factory = resolveDotted(conn_factory)(who_conf, **kw)
+        conn_factory = resolveDotted(conn_factory)(**kw)
     except Exception, why:
         raise ValueError('conn_factory could not be resolved: %s' % why)
     if compare_fn is not None:
         compare_fn = resolveDotted(compare_fn)
     return SQLAuthenticatorPlugin(query, conn_factory, compare_fn)
 
-def make_metadata_plugin(who_conf, name=None, query=None, conn_factory=None,
+def make_metadata_plugin(name=None, query=None, conn_factory=None,
                          filter=None, **kw):
     from repoze.who.utils import resolveDotted
     if name is None:
@@ -103,7 +103,7 @@ def make_metadata_plugin(who_conf, name=None, query=None, conn_factory=None,
     if conn_factory is None:
         raise ValueError('conn_factory must be specified')
     try:
-        conn_factory = resolveDotted(conn_factory)(who_conf, **kw)
+        conn_factory = resolveDotted(conn_factory)(**kw)
     except Exception, why:
         raise ValueError('conn_factory could not be resolved: %s' % why)
     if filter is not None:

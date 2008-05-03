@@ -61,7 +61,7 @@ class BasicAuthPlugin(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))
 
-def make_plugin(who_conf, realm='basic'):
+def make_plugin(realm='basic'):
     plugin = BasicAuthPlugin(realm)
     return plugin
 

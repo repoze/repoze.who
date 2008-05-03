@@ -820,7 +820,7 @@ class TestBasicAuthPlugin(Base):
 
     def test_factory(self):
         from repoze.who.plugins.basicauth import make_plugin
-        plugin = make_plugin({}, 'realm')
+        plugin = make_plugin('realm')
         self.assertEqual(plugin.realm, 'realm')
 
 class TestHTPasswdPlugin(Base):
@@ -915,7 +915,7 @@ class TestHTPasswdPlugin(Base):
     def test_factory(self):
         from repoze.who.plugins.htpasswd import make_plugin
         from repoze.who.plugins.htpasswd import crypt_check
-        plugin = make_plugin({}, 'foo',
+        plugin = make_plugin('foo',
                              'repoze.who.plugins.htpasswd:crypt_check')
         self.assertEqual(plugin.filename, 'foo')
         self.assertEqual(plugin.check, crypt_check)
@@ -976,7 +976,7 @@ class TestInsecureCookiePlugin(Base):
 
     def test_factory(self):
         from repoze.who.plugins.cookie import make_plugin
-        plugin = make_plugin(None, 'foo')
+        plugin = make_plugin('foo')
         self.assertEqual(plugin.cookie_name, 'foo')
 
     def test_forget(self):
@@ -1118,14 +1118,14 @@ class TestFormPlugin(Base):
         fixtures = os.path.join(here, 'fixtures')
         form = os.path.join(fixtures, 'form.html')
         formbody = open(form).read()
-        plugin = make_plugin(None, '__login', 'cookie', form)
+        plugin = make_plugin('__login', 'cookie', form)
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
         self.assertEqual(plugin.formbody, formbody)
 
     def test_factory_defaultform(self):
         from repoze.who.plugins.form import make_plugin
-        plugin = make_plugin(None, '__login', 'cookie')
+        plugin = make_plugin('__login', 'cookie')
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
         self.assertEqual(plugin.formbody, None)
@@ -1517,7 +1517,7 @@ class TestAuthTktCookiePlugin(Base):
 
     def test_factory(self):
         from repoze.who.plugins.auth_tkt import make_plugin
-        plugin = make_plugin(None, 'secret')
+        plugin = make_plugin('secret')
         self.assertEqual(plugin.cookie_name, 'auth_tkt')
         self.assertEqual(plugin.secret, 'secret')
         self.assertEqual(plugin.include_ip, False)
@@ -1730,20 +1730,19 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
 
     def test_noquery(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None, None, 'conn', 'compare')
+        self.assertRaises(ValueError, f, None, 'conn', 'compare')
 
     def test_no_connfactory(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None, 'statement', None, 'compare')
+        self.assertRaises(ValueError, f, 'statement', None, 'compare')
 
     def test_bad_connfactory(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None, 'statement', 'does.not:exist',
-                          None)
+        self.assertRaises(ValueError, f, 'statement', 'does.not:exist', None)
 
     def test_connfactory_specd(self):
         f = self._getFUT()
-        plugin = f(None, 'statement',
+        plugin = f('statement',
                    'repoze.who.tests:make_dummy_connfactory',
                    None)
         self.assertEqual(plugin.query, 'statement')
@@ -1753,7 +1752,7 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
 
     def test_comparefunc_specd(self):
         f = self._getFUT()
-        plugin = f(None, 'statement',
+        plugin = f('statement',
                    'repoze.who.tests:make_dummy_connfactory',
                    'repoze.who.tests:make_dummy_connfactory')
         self.assertEqual(plugin.query, 'statement')
@@ -1767,20 +1766,20 @@ class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
 
     def test_no_name(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None)
+        self.assertRaises(ValueError, f)
 
     def test_no_query(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None, 'name', None, None)
+        self.assertRaises(ValueError, f, 'name', None, None)
 
     def test_bad_connfactory(self):
         f = self._getFUT()
-        self.assertRaises(ValueError, f, None, 'name', 'statement',
+        self.assertRaises(ValueError, f, 'name', 'statement',
                           'does.not:exist', None)
 
     def test_connfactory_specd(self):
         f = self._getFUT()
-        plugin = f(None, 'name', 'statement',
+        plugin = f('name', 'statement',
                    'repoze.who.tests:make_dummy_connfactory', None)
         self.assertEqual(plugin.name, 'name')
         self.assertEqual(plugin.query, 'statement')
@@ -1789,7 +1788,7 @@ class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
 
     def test_comparefn_specd(self):
         f = self._getFUT()
-        plugin = f(None, 'name', 'statement',
+        plugin = f('name', 'statement',
                    'repoze.who.tests:make_dummy_connfactory',
                    'repoze.who.tests:make_dummy_connfactory')
         self.assertEqual(plugin.name, 'name')
@@ -1824,6 +1823,12 @@ class TestWhoConfig(unittest.TestCase):
 
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
+
+    def _getDummyPluginClass(self, iface):
+        from zope.interface import classImplements
+        if not iface.implementedBy(DummyPlugin):
+            classImplements(DummyPlugin, iface)
+        return DummyPlugin
 
     def test_defaults_before_parse(self):
         config = self._makeOne()
@@ -1863,9 +1868,9 @@ class TestWhoConfig(unittest.TestCase):
         config.parse(PLUGINS_ONLY)
         self.assertEqual(len(config.plugins), 2)
         self.failUnless(isinstance(config.plugins['foo'],
-                                   DummyRequestClassifier))
+                                   DummyPlugin))
         bar = config.plugins['bar']
-        self.failUnless(isinstance(bar, DummyIdentifier))
+        self.failUnless(isinstance(bar, DummyPlugin))
         self.assertEqual(bar.credentials, 'qux')
 
     def test_parse_general_empty(self):
@@ -1876,118 +1881,165 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(len(config.plugins), 0)
 
     def test_parse_general_only(self):
+        from repoze.who.interfaces import IRequestClassifier
+        from repoze.who.interfaces import IChallengeDecider
+        class IDummy(IRequestClassifier, IChallengeDecider):
+            pass
+        PLUGIN_CLASS = self._getDummyPluginClass(IDummy)
         config = self._makeOne()
         config.parse(GENERAL_ONLY)
-        self.failUnless(isinstance(config.request_classifier,
-                                   DummyRequestClassifier))
-        self.failUnless(isinstance(config.challenge_decider,
-                                   DummyChallengeDecider))
+        self.failUnless(isinstance(config.request_classifier, PLUGIN_CLASS))
+        self.failUnless(isinstance(config.challenge_decider, PLUGIN_CLASS))
         self.assertEqual(len(config.plugins), 0)
 
     def test_parse_general_with_plugins(self):
+        from repoze.who.interfaces import IRequestClassifier
+        from repoze.who.interfaces import IChallengeDecider
+        class IDummy(IRequestClassifier, IChallengeDecider):
+            pass
+        PLUGIN_CLASS = self._getDummyPluginClass(IDummy)
         config = self._makeOne()
         config.parse(GENERAL_WITH_PLUGINS)
-        self.failUnless(isinstance(config.request_classifier,
-                                   DummyRequestClassifier))
-        self.failUnless(isinstance(config.challenge_decider,
-                                   DummyChallengeDecider))
+        self.failUnless(isinstance(config.request_classifier, PLUGIN_CLASS))
+        self.failUnless(isinstance(config.challenge_decider, PLUGIN_CLASS))
 
     def test_parse_identifiers_only(self):
+        from repoze.who.interfaces import IIdentifier
+        PLUGIN_CLASS = self._getDummyPluginClass(IIdentifier)
         config = self._makeOne()
         config.parse(IDENTIFIERS_ONLY)
         identifiers = config.identifiers
         self.assertEqual(len(identifiers), 2)
-        self.failUnless(identifiers[0]['plugin'] is cp_first)
-        self.assertEqual(identifiers[0]['classifier'], 'klass1')
-        self.failUnless(identifiers[1]['plugin'] is cp_second)
-        self.assertEqual(identifiers[1]['classifier'], None)
+        first, second = identifiers
+        self.assertEqual(first[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IIdentifier], 'klass1')
+        self.assertEqual(second[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_identifiers_with_plugins(self):
+        from repoze.who.interfaces import IIdentifier
+        PLUGIN_CLASS = self._getDummyPluginClass(IIdentifier)
         config = self._makeOne()
         config.parse(IDENTIFIERS_WITH_PLUGINS)
         identifiers = config.identifiers
         self.assertEqual(len(identifiers), 2)
-        self.failUnless(identifiers[0]['plugin'] is cp_first)
-        self.assertEqual(identifiers[0]['classifier'], 'klass1')
-        self.failUnless(identifiers[1]['plugin'] is cp_second)
-        self.assertEqual(identifiers[1]['classifier'], None)
+        first, second = identifiers
+        self.assertEqual(first[0], 'foo')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IIdentifier], 'klass1')
+        self.assertEqual(second[0], 'bar')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_authenticators_only(self):
+        from repoze.who.interfaces import IAuthenticator
+        PLUGIN_CLASS = self._getDummyPluginClass(IAuthenticator)
         config = self._makeOne()
         config.parse(AUTHENTICATORS_ONLY)
         authenticators = config.authenticators
         self.assertEqual(len(authenticators), 2)
-        self.failUnless(authenticators[0]['plugin'] is cp_first)
-        self.assertEqual(authenticators[0]['classifier'], 'klass1')
-        self.failUnless(authenticators[1]['plugin'] is cp_second)
-        self.assertEqual(authenticators[1]['classifier'], None)
+        first, second = authenticators
+        self.assertEqual(first[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IAuthenticator], 'klass1')
+        self.assertEqual(second[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_authenticators_with_plugins(self):
+        from repoze.who.interfaces import IAuthenticator
+        PLUGIN_CLASS = self._getDummyPluginClass(IAuthenticator)
         config = self._makeOne()
         config.parse(AUTHENTICATORS_WITH_PLUGINS)
         authenticators = config.authenticators
         self.assertEqual(len(authenticators), 2)
-        self.failUnless(authenticators[0]['plugin'] is cp_first)
-        self.assertEqual(authenticators[0]['classifier'], 'klass1')
-        self.failUnless(authenticators[1]['plugin'] is cp_second)
-        self.assertEqual(authenticators[1]['classifier'], None)
+        first, second = authenticators
+        self.assertEqual(first[0], 'foo')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IAuthenticator], 'klass1')
+        self.assertEqual(second[0], 'bar')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_challengers_only(self):
+        from repoze.who.interfaces import IChallenger
+        PLUGIN_CLASS = self._getDummyPluginClass(IChallenger)
         config = self._makeOne()
         config.parse(CHALLENGERS_ONLY)
         challengers = config.challengers
         self.assertEqual(len(challengers), 2)
-        self.failUnless(challengers[0]['plugin'] is cp_first)
-        self.assertEqual(challengers[0]['classifier'], 'klass1')
-        self.failUnless(challengers[1]['plugin'] is cp_second)
-        self.assertEqual(challengers[1]['classifier'], None)
+        first, second = challengers
+        self.assertEqual(first[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IChallenger], 'klass1')
+        self.assertEqual(second[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_challengers_with_plugins(self):
+        from repoze.who.interfaces import IChallenger
+        PLUGIN_CLASS = self._getDummyPluginClass(IChallenger)
         config = self._makeOne()
         config.parse(CHALLENGERS_WITH_PLUGINS)
         challengers = config.challengers
         self.assertEqual(len(challengers), 2)
-        self.failUnless(challengers[0]['plugin'] is cp_first)
-        self.assertEqual(challengers[0]['classifier'], 'klass1')
-        self.failUnless(challengers[1]['plugin'] is cp_second)
-        self.assertEqual(challengers[1]['classifier'], None)
+        first, second = challengers
+        self.assertEqual(first[0], 'foo')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IChallenger], 'klass1')
+        self.assertEqual(second[0], 'bar')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_mdproviders_only(self):
+        from repoze.who.interfaces import IMetadataProvider
+        PLUGIN_CLASS = self._getDummyPluginClass(IMetadataProvider)
         config = self._makeOne()
         config.parse(MDPROVIDERS_ONLY)
         mdproviders = config.mdproviders
         self.assertEqual(len(mdproviders), 2)
-        self.failUnless(mdproviders[0]['plugin'] is cp_first)
-        self.assertEqual(mdproviders[0]['classifier'], 'klass1')
-        self.failUnless(mdproviders[1]['plugin'] is cp_second)
-        self.assertEqual(mdproviders[1]['classifier'], None)
+        first, second = mdproviders
+        self.assertEqual(first[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IMetadataProvider], 'klass1')
+        self.assertEqual(second[0], 'repoze.who.tests:DummyPlugin')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_mdproviders_with_plugins(self):
+        from repoze.who.interfaces import IMetadataProvider
+        PLUGIN_CLASS = self._getDummyPluginClass(IMetadataProvider)
         config = self._makeOne()
         config.parse(MDPROVIDERS_WITH_PLUGINS)
         mdproviders = config.mdproviders
         self.assertEqual(len(mdproviders), 2)
-        self.failUnless(mdproviders[0]['plugin'] is cp_first)
-        self.assertEqual(mdproviders[0]['classifier'], 'klass1')
-        self.failUnless(mdproviders[1]['plugin'] is cp_second)
-        self.assertEqual(mdproviders[1]['classifier'], None)
+        first, second = mdproviders
+        self.assertEqual(first[0], 'foo')
+        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertEqual(len(first[1].classifications), 1)
+        self.assertEqual(first[1].classifications[IMetadataProvider], 'klass1')
+        self.assertEqual(second[0], 'bar')
+        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
-cp_first = object()
-cp_second = object()
+class DummyPlugin:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
 
 PLUGINS_ONLY = """\
 [plugin:foo]
-use = repoze.who.tests:DummyRequestClassifier
+use = repoze.who.tests:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests:DummyIdentifier
+use = repoze.who.tests:DummyPlugin
 credentials = qux
 """
 
 GENERAL_ONLY = """\
 [general]
-request_classifier = repoze.who.tests:DummyRequestClassifier
-challenge_decider = repoze.who.tests:DummyChallengeDecider
+request_classifier = repoze.who.tests:DummyPlugin
+challenge_decider = repoze.who.tests:DummyPlugin
 """
 
 GENERAL_WITH_PLUGINS = """\
@@ -1996,17 +2048,17 @@ request_classifier = classifier
 challenge_decider = decider
 
 [plugin:classifier]
-use = repoze.who.tests:DummyRequestClassifier
+use = repoze.who.tests:DummyPlugin
 
 [plugin:decider]
-use = repoze.who.tests:DummyChallengeDecider
+use = repoze.who.tests:DummyPlugin
 """
 
 IDENTIFIERS_ONLY = """\
 [identifiers]
 plugins = 
-    repoze.who.tests:cp_first;klass1
-    repoze.who.tests:cp_second
+    repoze.who.tests:DummyPlugin;klass1
+    repoze.who.tests:DummyPlugin
 """
 
 IDENTIFIERS_WITH_PLUGINS = """\
@@ -2016,17 +2068,17 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests:cp_first
+use = repoze.who.tests:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests:cp_second
+use = repoze.who.tests:DummyPlugin
 """
 
 AUTHENTICATORS_ONLY = """\
 [authenticators]
 plugins = 
-    repoze.who.tests:cp_first;klass1
-    repoze.who.tests:cp_second
+    repoze.who.tests:DummyPlugin;klass1
+    repoze.who.tests:DummyPlugin
 """
 
 AUTHENTICATORS_WITH_PLUGINS = """\
@@ -2036,17 +2088,17 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests:cp_first
+use = repoze.who.tests:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests:cp_second
+use = repoze.who.tests:DummyPlugin
 """
 
 CHALLENGERS_ONLY = """\
 [challengers]
 plugins = 
-    repoze.who.tests:cp_first;klass1
-    repoze.who.tests:cp_second
+    repoze.who.tests:DummyPlugin;klass1
+    repoze.who.tests:DummyPlugin
 """
 
 CHALLENGERS_WITH_PLUGINS = """\
@@ -2056,17 +2108,17 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests:cp_first
+use = repoze.who.tests:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests:cp_second
+use = repoze.who.tests:DummyPlugin
 """
 
 MDPROVIDERS_ONLY = """\
 [mdproviders]
 plugins = 
-    repoze.who.tests:cp_first;klass1
-    repoze.who.tests:cp_second
+    repoze.who.tests:DummyPlugin;klass1
+    repoze.who.tests:DummyPlugin
 """
 
 MDPROVIDERS_WITH_PLUGINS = """\
@@ -2076,10 +2128,79 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests:cp_first
+use = repoze.who.tests:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests:cp_second
+use = repoze.who.tests:DummyPlugin
+"""
+
+class TestConfigMiddleware(unittest.TestCase):
+    tempfile = None
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        if self.tempfile is not None:
+            self.tempfile.close()
+
+    def _getFactory(self):
+        from repoze.who.config import make_middleware_with_config
+        return make_middleware_with_config
+
+    def _getTempfile(self, text):
+        import tempfile
+        tf = self.tempfile = tempfile.NamedTemporaryFile()
+        text = text % {'here': os.getcwd()}
+        tf.write(text)
+        tf.flush()
+        return tf
+
+    def test_sample_config(self):
+        app = DummyApp()
+        factory = self._getFactory()
+        tempfile = self._getTempfile(SAMPLE_CONFIG)
+        middleware = factory(app, config_file=tempfile.name)
+
+SAMPLE_CONFIG = """\
+[plugin:form]
+use = repoze.who.plugins.form:make_plugin
+login_form_qs = __do_login
+rememberer_name = auth_tkt
+
+[plugin:auth_tkt]
+use = repoze.who.plugins.auth_tkt:make_plugin
+secret = s33kr1t
+cookie_name = oatmeal
+secure = False
+include_ip = True
+
+[plugin:basicauth]
+use = repoze.who.plugins.basicauth:make_plugin
+realm = 'sample'
+
+[plugin:htpasswd]
+use = repoze.who.plugins.htpasswd:make_plugin
+filename = %(here)s/etc/passwd
+check_fn = repoze.who.plugins.htpasswd:crypt_check
+
+[general]
+request_classifier = repoze.who.classifiers:default_request_classifier
+challenge_decider = repoze.who.classifiers:default_challenge_decider
+
+[identifiers]
+plugins = 
+    form;browser
+    auth_tkt
+    basicauth
+
+[authenticators]
+plugins = htpasswd
+
+[challengers]
+plugins =
+    form;browser
+    basicauth
 """
 
 def compare_success(*arg):
@@ -2264,7 +2385,7 @@ class _DummyConnFactory:
 
 DummyConnFactory = _DummyConnFactory()
 
-def make_dummy_connfactory(who_conf, **kw):
+def make_dummy_connfactory(**kw):
     return DummyConnFactory
 
 def encode_multipart_formdata(fields):

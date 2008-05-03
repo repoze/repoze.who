@@ -176,7 +176,7 @@ class RedirectingFormPlugin(FormPluginBase):
         headers = headers + forget_headers
         return HTTPFound(headers=headers)
 
-def make_plugin(who_conf, login_form_qs='__do_login', rememberer_name=None,
+def make_plugin(login_form_qs='__do_login', rememberer_name=None,
                 form=None):
     if rememberer_name is None:
         raise ValueError(
@@ -186,8 +186,7 @@ def make_plugin(who_conf, login_form_qs='__do_login', rememberer_name=None,
     plugin = FormPlugin(login_form_qs, rememberer_name, form)
     return plugin
 
-def make_redirecting_plugin(who_conf,
-                            login_form_url=None,
+def make_redirecting_plugin(login_form_url=None,
                             login_handler_path='/login_handler',
                             logout_handler_path='/logout_handler',
                             rememberer_name=None):

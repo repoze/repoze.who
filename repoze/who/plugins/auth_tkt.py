@@ -137,11 +137,17 @@ class AuthTktCookiePlugin(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))
 
-def make_plugin(who_conf, secret=None,
+def _bool(value):
+    if isinstance(value, basestring):
+        return value.lower() in ('yes', 'true', '1')
+    return value
+
+def make_plugin(secret=None,
                 cookie_name='auth_tkt',
                 secure=False, include_ip=False):
     if secret is None:
         raise ValueError('secret must not be None')
-    plugin = AuthTktCookiePlugin(secret, cookie_name, secure, include_ip)
+    plugin = AuthTktCookiePlugin(secret, cookie_name,
+                                 _bool(secure), _bool(include_ip))
     return plugin
 
