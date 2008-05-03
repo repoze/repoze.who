@@ -97,6 +97,8 @@ class FormPlugin(FormPluginBase):
                 password = form['password']
             except KeyError:
                 return None
+            del query[self.login_form_qs]
+            environ['QUERY_STRING'] = urllib.urlencode(query)
             return {'login':login, 'password':password}
 
         return None
