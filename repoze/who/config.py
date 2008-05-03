@@ -21,7 +21,8 @@ def _isClassOrType(obj):
     return type(obj) in (type(WhoConfig), type)
 
 class WhoConfig:
-    def __init__(self):
+    def __init__(self, here):
+        self.here = here
         self.request_classifier = None
         self.challenge_decider = None
         self.plugins = {}
@@ -66,7 +67,7 @@ class WhoConfig:
     def parse(self, text):
         if getattr(text, 'readline', None) is None:
             text = StringIO(text)
-        cp = ConfigParser()
+        cp = ConfigParser(defaults={'here': self.here})
         cp.readfp(text)
 
         for s_id in [x for x in cp.sections() if x.startswith('plugin:')]:
@@ -74,6 +75,7 @@ class WhoConfig:
             options = dict(cp.items(s_id))
             if 'use' in options:
                 name = options.pop('use')
+                del options['here']
                 obj = self._makePlugin(name, IPlugin, **options)
                 self.plugins[plugin_id] = obj
 
@@ -119,8 +121,8 @@ class WhoConfig:
                                      )
 
 
-def make_middleware_with_config(app, config_file):
-    parser = WhoConfig()
+def make_middleware_with_config(app, global_conf, config_file):
+    parser = WhoConfig(global_conf['here'])
     parser.parse(open(config_file))
     return PluggableAuthenticationMiddleware(
                 app,

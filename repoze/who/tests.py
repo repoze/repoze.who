@@ -1821,8 +1821,8 @@ class TestWhoConfig(unittest.TestCase):
         from repoze.who.config import WhoConfig
         return WhoConfig
 
-    def _makeOne(self, *args, **kw):
-        return self._getTargetClass()(*args, **kw)
+    def _makeOne(self, here='/', *args, **kw):
+        return self._getTargetClass()(here, *args, **kw)
 
     def _getDummyPluginClass(self, iface):
         from zope.interface import classImplements
@@ -2151,7 +2151,6 @@ class TestConfigMiddleware(unittest.TestCase):
     def _getTempfile(self, text):
         import tempfile
         tf = self.tempfile = tempfile.NamedTemporaryFile()
-        text = text % {'here': os.getcwd()}
         tf.write(text)
         tf.flush()
         return tf
@@ -2160,7 +2159,8 @@ class TestConfigMiddleware(unittest.TestCase):
         app = DummyApp()
         factory = self._getFactory()
         tempfile = self._getTempfile(SAMPLE_CONFIG)
-        middleware = factory(app, config_file=tempfile.name)
+        global_cohf = {'here': '/'}
+        middleware = factory(app, global_cohf, config_file=tempfile.name)
 
 SAMPLE_CONFIG = """\
 [plugin:form]
