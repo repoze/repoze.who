@@ -1012,10 +1012,14 @@ class TestFormPlugin(Base):
         identifier = DummyIdentifier(credentials)
 
         extra = {'wsgi.input':StringIO(body),
+                 'wsgi.url_scheme': 'http',
+                 'SERVER_NAME': 'localhost',
+                 'SERVER_PORT': '8080',
                  'CONTENT_TYPE':content_type,
                  'CONTENT_LENGTH':len(body),
                  'REQUEST_METHOD':'POST',
                  'repoze.who.plugins': {'cookie':identifier},
+                 'PATH_INFO': '/protected',
                  'QUERY_STRING':'',
                  }
         if do_login:
@@ -1056,11 +1060,15 @@ class TestFormPlugin(Base):
         self.assertEqual(result, None)
 
     def test_identify_success(self):
+        from paste.httpexceptions import HTTPFound
         plugin = self._makeOne()
         environ = self._makeFormEnviron(do_login=True, login='chris',
                                         password='password')
         result = plugin.identify(environ)
         self.assertEqual(result, {'login':'chris', 'password':'password'})
+        app = environ['repoze.who.application']
+        self.failUnless(isinstance(app, HTTPFound))
+        self.assertEqual(app.location(), 'http://localhost:8080/protected')
 
     def test_remember(self):
         plugin = self._makeOne()

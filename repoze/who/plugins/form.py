@@ -99,6 +99,8 @@ class FormPlugin(FormPluginBase):
                 return None
             del query[self.login_form_qs]
             environ['QUERY_STRING'] = urllib.urlencode(query)
+            environ['repoze.who.application'] = HTTPFound(
+                                                    construct_url(environ))
             return {'login':login, 'password':password}
 
         return None
