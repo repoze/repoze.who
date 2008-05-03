@@ -1816,6 +1816,272 @@ class TestIdentityDict(unittest.TestCase):
         self.failUnless(str(identity).startswith('<repoze.who identity'))
         self.assertEqual(identity['foo'], 1)
 
+class TestWhoConfig(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from repoze.who.config import WhoConfig
+        return WhoConfig
+
+    def _makeOne(self, *args, **kw):
+        return self._getTargetClass()(*args, **kw)
+
+    def test_defaults_before_parse(self):
+        config = self._makeOne()
+        self.assertEqual(config.request_classifier, None)
+        self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(len(config.plugins), 0)
+        self.assertEqual(len(config.identifiers), 0)
+        self.assertEqual(len(config.authenticators), 0)
+        self.assertEqual(len(config.challengers), 0)
+        self.assertEqual(len(config.mdproviders), 0)
+
+    def test_parse_empty_string(self):
+        config = self._makeOne()
+        config.parse('')
+        self.assertEqual(config.request_classifier, None)
+        self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(len(config.plugins), 0)
+        self.assertEqual(len(config.identifiers), 0)
+        self.assertEqual(len(config.authenticators), 0)
+        self.assertEqual(len(config.challengers), 0)
+        self.assertEqual(len(config.mdproviders), 0)
+
+    def test_parse_empty_file(self):
+        from StringIO import StringIO
+        config = self._makeOne()
+        config.parse(StringIO())
+        self.assertEqual(config.request_classifier, None)
+        self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(len(config.plugins), 0)
+        self.assertEqual(len(config.identifiers), 0)
+        self.assertEqual(len(config.authenticators), 0)
+        self.assertEqual(len(config.challengers), 0)
+        self.assertEqual(len(config.mdproviders), 0)
+
+    def test_parse_plugins(self):
+        config = self._makeOne()
+        config.parse(PLUGINS_ONLY)
+        self.assertEqual(len(config.plugins), 2)
+        self.failUnless(isinstance(config.plugins['foo'],
+                                   DummyRequestClassifier))
+        bar = config.plugins['bar']
+        self.failUnless(isinstance(bar, DummyIdentifier))
+        self.assertEqual(bar.credentials, 'qux')
+
+    def test_parse_general_empty(self):
+        config = self._makeOne()
+        config.parse('[general]')
+        self.assertEqual(config.request_classifier, None)
+        self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(len(config.plugins), 0)
+
+    def test_parse_general_only(self):
+        config = self._makeOne()
+        config.parse(GENERAL_ONLY)
+        self.failUnless(isinstance(config.request_classifier,
+                                   DummyRequestClassifier))
+        self.failUnless(isinstance(config.challenge_decider,
+                                   DummyChallengeDecider))
+        self.assertEqual(len(config.plugins), 0)
+
+    def test_parse_general_with_plugins(self):
+        config = self._makeOne()
+        config.parse(GENERAL_WITH_PLUGINS)
+        self.failUnless(isinstance(config.request_classifier,
+                                   DummyRequestClassifier))
+        self.failUnless(isinstance(config.challenge_decider,
+                                   DummyChallengeDecider))
+
+    def test_parse_identifiers_only(self):
+        config = self._makeOne()
+        config.parse(IDENTIFIERS_ONLY)
+        identifiers = config.identifiers
+        self.assertEqual(len(identifiers), 2)
+        self.failUnless(identifiers[0]['plugin'] is cp_first)
+        self.assertEqual(identifiers[0]['classifier'], 'klass1')
+        self.failUnless(identifiers[1]['plugin'] is cp_second)
+        self.assertEqual(identifiers[1]['classifier'], None)
+
+    def test_parse_identifiers_with_plugins(self):
+        config = self._makeOne()
+        config.parse(IDENTIFIERS_WITH_PLUGINS)
+        identifiers = config.identifiers
+        self.assertEqual(len(identifiers), 2)
+        self.failUnless(identifiers[0]['plugin'] is cp_first)
+        self.assertEqual(identifiers[0]['classifier'], 'klass1')
+        self.failUnless(identifiers[1]['plugin'] is cp_second)
+        self.assertEqual(identifiers[1]['classifier'], None)
+
+    def test_parse_authenticators_only(self):
+        config = self._makeOne()
+        config.parse(AUTHENTICATORS_ONLY)
+        authenticators = config.authenticators
+        self.assertEqual(len(authenticators), 2)
+        self.failUnless(authenticators[0]['plugin'] is cp_first)
+        self.assertEqual(authenticators[0]['classifier'], 'klass1')
+        self.failUnless(authenticators[1]['plugin'] is cp_second)
+        self.assertEqual(authenticators[1]['classifier'], None)
+
+    def test_parse_authenticators_with_plugins(self):
+        config = self._makeOne()
+        config.parse(AUTHENTICATORS_WITH_PLUGINS)
+        authenticators = config.authenticators
+        self.assertEqual(len(authenticators), 2)
+        self.failUnless(authenticators[0]['plugin'] is cp_first)
+        self.assertEqual(authenticators[0]['classifier'], 'klass1')
+        self.failUnless(authenticators[1]['plugin'] is cp_second)
+        self.assertEqual(authenticators[1]['classifier'], None)
+
+    def test_parse_challengers_only(self):
+        config = self._makeOne()
+        config.parse(CHALLENGERS_ONLY)
+        challengers = config.challengers
+        self.assertEqual(len(challengers), 2)
+        self.failUnless(challengers[0]['plugin'] is cp_first)
+        self.assertEqual(challengers[0]['classifier'], 'klass1')
+        self.failUnless(challengers[1]['plugin'] is cp_second)
+        self.assertEqual(challengers[1]['classifier'], None)
+
+    def test_parse_challengers_with_plugins(self):
+        config = self._makeOne()
+        config.parse(CHALLENGERS_WITH_PLUGINS)
+        challengers = config.challengers
+        self.assertEqual(len(challengers), 2)
+        self.failUnless(challengers[0]['plugin'] is cp_first)
+        self.assertEqual(challengers[0]['classifier'], 'klass1')
+        self.failUnless(challengers[1]['plugin'] is cp_second)
+        self.assertEqual(challengers[1]['classifier'], None)
+
+    def test_parse_mdproviders_only(self):
+        config = self._makeOne()
+        config.parse(MDPROVIDERS_ONLY)
+        mdproviders = config.mdproviders
+        self.assertEqual(len(mdproviders), 2)
+        self.failUnless(mdproviders[0]['plugin'] is cp_first)
+        self.assertEqual(mdproviders[0]['classifier'], 'klass1')
+        self.failUnless(mdproviders[1]['plugin'] is cp_second)
+        self.assertEqual(mdproviders[1]['classifier'], None)
+
+    def test_parse_mdproviders_with_plugins(self):
+        config = self._makeOne()
+        config.parse(MDPROVIDERS_WITH_PLUGINS)
+        mdproviders = config.mdproviders
+        self.assertEqual(len(mdproviders), 2)
+        self.failUnless(mdproviders[0]['plugin'] is cp_first)
+        self.assertEqual(mdproviders[0]['classifier'], 'klass1')
+        self.failUnless(mdproviders[1]['plugin'] is cp_second)
+        self.assertEqual(mdproviders[1]['classifier'], None)
+
+cp_first = object()
+cp_second = object()
+
+PLUGINS_ONLY = """\
+[plugin:foo]
+use = repoze.who.tests:DummyRequestClassifier
+
+[plugin:bar]
+use = repoze.who.tests:DummyIdentifier
+credentials = qux
+"""
+
+GENERAL_ONLY = """\
+[general]
+request_classifier = repoze.who.tests:DummyRequestClassifier
+challenge_decider = repoze.who.tests:DummyChallengeDecider
+"""
+
+GENERAL_WITH_PLUGINS = """\
+[general]
+request_classifier = classifier
+challenge_decider = decider
+
+[plugin:classifier]
+use = repoze.who.tests:DummyRequestClassifier
+
+[plugin:decider]
+use = repoze.who.tests:DummyChallengeDecider
+"""
+
+IDENTIFIERS_ONLY = """\
+[identifiers]
+plugins = 
+    repoze.who.tests:cp_first;klass1
+    repoze.who.tests:cp_second
+"""
+
+IDENTIFIERS_WITH_PLUGINS = """\
+[identifiers]
+plugins = 
+    foo;klass1
+    bar
+
+[plugin:foo]
+use = repoze.who.tests:cp_first
+
+[plugin:bar]
+use = repoze.who.tests:cp_second
+"""
+
+AUTHENTICATORS_ONLY = """\
+[authenticators]
+plugins = 
+    repoze.who.tests:cp_first;klass1
+    repoze.who.tests:cp_second
+"""
+
+AUTHENTICATORS_WITH_PLUGINS = """\
+[authenticators]
+plugins = 
+    foo;klass1
+    bar
+
+[plugin:foo]
+use = repoze.who.tests:cp_first
+
+[plugin:bar]
+use = repoze.who.tests:cp_second
+"""
+
+CHALLENGERS_ONLY = """\
+[challengers]
+plugins = 
+    repoze.who.tests:cp_first;klass1
+    repoze.who.tests:cp_second
+"""
+
+CHALLENGERS_WITH_PLUGINS = """\
+[challengers]
+plugins = 
+    foo;klass1
+    bar
+
+[plugin:foo]
+use = repoze.who.tests:cp_first
+
+[plugin:bar]
+use = repoze.who.tests:cp_second
+"""
+
+MDPROVIDERS_ONLY = """\
+[mdproviders]
+plugins = 
+    repoze.who.tests:cp_first;klass1
+    repoze.who.tests:cp_second
+"""
+
+MDPROVIDERS_WITH_PLUGINS = """\
+[mdproviders]
+plugins = 
+    foo;klass1
+    bar
+
+[plugin:foo]
+use = repoze.who.tests:cp_first
+
+[plugin:bar]
+use = repoze.who.tests:cp_second
+"""
+
 def compare_success(*arg):
     return True
 

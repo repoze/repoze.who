@@ -1,6 +1,28 @@
 repoze.who changes
 ==================
 
+After 0.9.1
+
+ - Added ConfigParser-based WhoConfig, implementing the spec outlined at
+   http://www.plope.com/static/misc/sphinxtest/intro.html#middleware-configuration-via-config-file, with the following changes:
+
+   o "Bare" plugins (requiring no configuration options) may be specified
+     as either egg entry points (e.g., 'egg:distname#entry_point_name') or
+     as dotted-path-with-colon (e.g., 'dotted.name:object_id').
+
+   o Therefore, the separator between a plugin and its classifier is
+     now a semicolon, rather than a colon. E.g.:
+
+     [plugins:id_plugin]
+     use = egg:another.package#identify_with_frobnatz
+     frobnatz = baz
+
+     [identifiers]
+     plugins =
+       egg:my.egg#identify;browser
+       dotted.name:identifier
+       id_plugin
+
 0.9.1 (2008-04-27)
 
  - Fix auth_tkt plugin to be able to encode and decode integer user
