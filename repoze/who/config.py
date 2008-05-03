@@ -2,7 +2,9 @@
 """
 from ConfigParser import ConfigParser
 from StringIO import StringIO
+import logging
 from pkg_resources import EntryPoint
+import sys
 
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IChallengeDecider
@@ -121,9 +123,29 @@ class WhoConfig:
                                      )
 
 
-def make_middleware_with_config(app, global_conf, config_file):
+_LEVELS = {'debug': logging.DEBUG,
+           'info': logging.INFO,
+           'warning': logging.WARNING,
+           'error': logging.ERROR,
+          }
+
+def make_middleware_with_config(app, global_conf, config_file,
+                                log_file=None, log_level=None):
     parser = WhoConfig(global_conf['here'])
     parser.parse(open(config_file))
+    log_stream = None
+
+    if log_file is not None:
+        if log_file == 'stdout':
+            log_stream = sys.stdout
+        else:
+            log_stream = open(log_file, 'wb')
+
+    if log_level is None:
+        log_level = logging.INFO
+    else:
+        log_level = _LEVELS[log_level.lower()]
+
     return PluggableAuthenticationMiddleware(
                 app,
                 parser.identifiers,
@@ -132,4 +154,5 @@ def make_middleware_with_config(app, global_conf, config_file):
                 parser.mdproviders,
                 parser.request_classifier,
                 parser.challenge_decider,
+                log_stream,
            )
