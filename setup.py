@@ -55,6 +55,7 @@ setup(name='repoze.who',
       entry_points = """\
       [paste.filter_app_factory]
       test = repoze.who.middleware:make_test_middleware
+      config = repoze.who.config:make_middleware_with_config
       """
       )
 
