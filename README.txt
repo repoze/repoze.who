@@ -461,14 +461,14 @@ implementations and values.
 Middleware Configuration via Config File
 ========================================
 
-``repoze.who`` may be configured using a ConfigParser-style .INI file.
-The configuration file has five main types of sections: plugin
-sections, a general section, an identifiers section, an authenticators
-section, and a challengers section.  Each "plugin" section defines a
-configuration for a particular plugin.  The identifiers,
-authenticators, and challengers sections refer to these plugins to
-form a site configuration.  The general section is general middleware
-configuration.
+``repoze.who`` may optionally be configured using a ConfigParser-style
+.INI file.  The configuration file has five main types of sections:
+plugin sections, a general section, an identifiers section, an
+authenticators section, and a challengers section.  Each "plugin"
+section defines a configuration for a particular plugin.  The
+identifiers, authenticators, and challengers sections refer to these
+plugins to form a site configuration.  The general section is general
+middleware configuration.
 
 ``repoze.who``'s configuration file can be pointed to within a PasteDeploy
 configuration file ::

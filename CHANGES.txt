@@ -1,7 +1,7 @@
 repoze.who changes
 ==================
 
-After 0.9.1
+1.0
 
  - The plugin at plugins.form.FormPlugin didn't redirect properly
    after collecting identification information.  Symptom: a downstream
