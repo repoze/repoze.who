@@ -3,6 +3,11 @@ repoze.who changes
 
 After 0.9.1
 
+ - The plugin at plugins.form.FormPlugin didn't redirect properly
+   after collecting identification information.  Symptom: a downstream
+   app would receive a POST request with a blank body, which would
+   sometimes result in a Bad Request error.
+
  - Fixed interface declarations of 'classifiers.default_request_classifier'
    and 'classifiers.default_password_compare'.
 
