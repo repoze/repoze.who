@@ -2168,7 +2168,17 @@ class TestConfigMiddleware(unittest.TestCase):
         factory = self._getFactory()
         tempfile = self._getTempfile(SAMPLE_CONFIG)
         global_cohf = {'here': '/'}
-        middleware = factory(app, global_cohf, config_file=tempfile.name)
+        middleware = factory(app, global_cohf, config_file=tempfile.name,
+                             log_file='stdout', log_level='debug')
+        from repoze.who.interfaces import IIdentifier
+        from repoze.who.interfaces import IAuthenticator
+        from repoze.who.interfaces import IChallenger
+        self.assertEqual(len(middleware.registry[IIdentifier]), 3)
+        self.assertEqual(len(middleware.registry[IAuthenticator]), 1)
+        self.assertEqual(len(middleware.registry[IChallenger]), 2)
+        self.failUnless(middleware.logger, middleware.logger)
+        import logging
+        self.assertEqual(middleware.logger.getEffectiveLevel(), logging.DEBUG)
 
 SAMPLE_CONFIG = """\
 [plugin:form]
@@ -2209,6 +2219,10 @@ plugins = htpasswd
 plugins =
     form;browser
     basicauth
+
+[mdproviders]
+plugins =
+
 """
 
 def compare_success(*arg):

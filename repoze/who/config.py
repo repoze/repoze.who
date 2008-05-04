@@ -155,4 +155,5 @@ def make_middleware_with_config(app, global_conf, config_file,
                 parser.request_classifier,
                 parser.challenge_decider,
                 log_stream,
+                log_level,
            )
