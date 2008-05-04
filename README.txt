@@ -461,13 +461,6 @@ implementations and values.
 Middleware Configuration via Config File
 ========================================
 
-.. note::
-
-   Configuration via a config file is complete "science fiction"
-   currently; it is meant to be implemented in a later revision.  See
-   "Middleware Configuration via Python Code" for the baseline
-   mechanisms.
-
 ``repoze.who`` may be configured using a ConfigParser-style .INI file.
 The configuration file has five main types of sections: plugin
 sections, a general section, an identifiers section, an authenticators
@@ -481,12 +474,15 @@ configuration.
 configuration file ::
 
     [filter:who]
-    use = egg:repoze.who#who
+    use = egg:repoze.who#config
     config_file = %(here)s/who.ini
+    log_file = stdout
+    log_level = debug
 
-Below is an example of a configuration file that might be used to
-configure the ``repoze.who`` middleware.  A set of plugins are defined,
-and they are referred to by following non-plugin sections.
+Below is an example of a configuration file (what ``config_file``
+might point at above ) that might be used to configure the
+``repoze.who`` middleware.  A set of plugins are defined, and they are
+referred to by following non-plugin sections.
 
 In the below configuration, five plugins are defined.  The form, and
 basicauth plugins are nominated to act as challenger plugins.  The
@@ -496,84 +492,85 @@ nominated to act as authenticator plugins. ::
 
     [plugin:form]
     # identificaion and challenge
-    use = egg:repoze.who#form
+    use = repoze.who.plugins.form:make_plugin
     login_form_qs = __do_login
     rememberer_name = cookie
     form = %(here)s/login_form.html
 
-    [plugin:cookie]
+    [plugin:auth_tkt]
     # identification
-    use = egg:repoze.who#cookie
-    cookie_name = repoze.who.auth
+    use = repoze.who.plugins.auth_tkt:make_plugin
+    secret = s33kr1t
+    cookie_name = oatmeal
+    secure = False
+    include_ip = False
 
     [plugin:basicauth]
     # identification and challenge
-    use = egg:repoze.who#basicauth
-    realm = repoze
+    use = repoze.who.plugins.basicauth:make_plugin
+    realm = 'sample'
 
     [plugin:htpasswd]
     # authentication
-    use = egg:repoze.who#htpasswd
-    filename = %(here)s/users.htpasswd
-    check_fn = egg:repoze.who#crypt_check
+    use = repoze.who.plugins.htpasswd:make_plugin
+    filename = %(here)s/passwd
+    check_fn = repoze.who.plugins.htpasswd:crypt_check
 
     [plugin:sqlusers]
     # authentication
-    use = egg:repoze.who#squsersource
-    db = sqlite://database?user=foo&pass=bar
-    get_userinfo = select id, password from users
-    check_fn = egg:repoze.who#crypt_check
+    use = repoze.who.plugins.sql:make_authenticator_plugin
+    query = "SELECT userid, password FROM users where login = %(login)s;"
+    conn_factory = repoze.who.plugins.sql:make_psycopg_conn_factory
+    compare_fn = repoze.who.plugins.sql:default_password_compare
 
-    [plugin:properties]
-    use = egg:repoze.who#ini_metadata
-    filename = %(here)s/etc/properties.ini
-    handler = egg:repoze.who#ini_default
-
-    [plugin:roles]
-    use = egg:repoze.who#ini_metadata
-    filename = %(here)s/etc/roles.ini
+    [plugin:sqlproperties]
+    name = properties
+    use = repoze.who.plugins.sql:make_metadata_plugin
+    query = "SELECT firstname, lastname FROM users where userid = %(__userid)s;"
+    filter = my.package:filter_propmd
+    conn_factory = repoze.who.plugins.sql:make_psycopg_conn_factory
 
     [general]
-    request_classifier = egg:repoze.who#defaultrequestclassifier
-    challenge_decider = egg:repoze.who#defaultchallengedecider
+    request_classifier = repoze.who.classifiers:default_request_classifier
+    challenge_decider = repoze.who.classifiers:default_challenge_decider
 
     [identifiers]
-    # plugin_name:classifier_name:.. or just plugin_name (good for any)
+    # plugin_name;classifier_name:.. or just plugin_name (good for any)
     plugins =
-          form:browser
+          form;browser
+          auth_tkt
           basicauth
 
     [authenticators]
-    # plugin_name:classifier_name.. or just plugin_name (good for any)
+    # plugin_name;classifier_name.. or just plugin_name (good for any)
     plugins =
           htpasswd
           sqlusers
 
     [challengers]
-    # plugin_name:classifier_name:.. or just plugin_name (good for any)
+    # plugin_name;classifier_name:.. or just plugin_name (good for any)
     plugins =
-          form:browser
+          form;browser
           basicauth
 
     [mdproviders]
     plugins =
-          properties
-          roles
+          sqlproperties
 
 The basicauth section configures a plugin that does identification and
 challenge for basic auth credentials.  The form section configures a
 plugin that does identification and challenge (its implementation
 defers to the cookie plugin for identification "forget" and "remember"
 duties, thus the "identifier_impl_name" key; this is looked up at
-runtime).  The cookie section configures a plugin that does
+runtime).  The auth_tkt section configures a plugin that does
 identification for cookie auth credentials.  The htpasswd plugin
 obtains its user info from a file.  The sqlusers plugin obtains its
-user info from a sqlite database.
+user info from a Postgres database.
 
 The identifiers section provides an ordered list of plugins that are
 willing to provide identification capability.  These will be consulted
 in the defined order.  The tokens on each line of the ``plugins=`` key
-are in the form "plugin_name:requestclassifier_name:..."  (or just
+are in the form "plugin_name;requestclassifier_name:..."  (or just
 "plugin_name" if the plugin can be consulted regardless of the
 classification of the request).  The configuration above indicates
 that the system will look for credentials using the form plugin (if
@@ -595,12 +592,9 @@ The mdproviders section provides an ordered list of plugins that
 provide metadata provider capability.  These will be consulted in the
 defined order.  Each will have a chance (on ingress) to provide add
 metadata to the authenticated identity.  Our example mdproviders
-section shows two plugins configured: "properties", and "roles".  The
-(fictional) properties plugin will add information related to user
-properties (e.g. first name, last name, phone number, etc) to the
-identity dictionary.  The (fictional) roles mdprovider will add
-information representing the user's "roles" in the context of the
-current request to the identity dictionary.
+section shows one plugin configured: "sqlproperties".  The
+sqlproperties plugin will add information related to user properties
+(e.g. first name and last name) to the identity dictionary.
 
 The challengers section provides an ordered list of plugins that
 provide challenger capability.  These will be consulted in the defined
