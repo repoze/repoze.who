@@ -2169,7 +2169,7 @@ class TestConfigMiddleware(unittest.TestCase):
         tempfile = self._getTempfile(SAMPLE_CONFIG)
         global_cohf = {'here': '/'}
         middleware = factory(app, global_cohf, config_file=tempfile.name,
-                             log_file='stdout', log_level='debug')
+                             log_file='STDOUT', log_level='debug')
         from repoze.who.interfaces import IIdentifier
         from repoze.who.interfaces import IAuthenticator
         from repoze.who.interfaces import IChallenger

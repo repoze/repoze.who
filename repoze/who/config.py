@@ -136,7 +136,7 @@ def make_middleware_with_config(app, global_conf, config_file,
     log_stream = None
 
     if log_file is not None:
-        if log_file == 'stdout':
+        if log_file.lower() == 'stdout':
             log_stream = sys.stdout
         else:
             log_stream = open(log_file, 'wb')
