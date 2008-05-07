@@ -1,6 +1,12 @@
 repoze.who changes
 ==================
 
+1.0.1
+
+ - Remove dependency-link to dist.repoze.org to prevent easy_install
+   from inserting that path into its search paths (the dependencies
+   are available from PyPI).
+
 1.0
 
  - The plugin at plugins.form.FormPlugin didn't redirect properly
