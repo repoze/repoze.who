@@ -55,6 +55,8 @@ setup(name='repoze.who',
       [paste.filter_app_factory]
       test = repoze.who.middleware:make_test_middleware
       config = repoze.who.config:make_middleware_with_config
+      predicate = repoze.who.restrict:make_predicate_restriction
+      authenticated = repoze.who.restrict:make_authenticated_restriction
       """
       )
 

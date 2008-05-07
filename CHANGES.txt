@@ -1,6 +1,25 @@
 repoze.who changes
 ==================
 
+After 1.0.1
+
+ - Added predicate-based "restriction" middleware support
+   (repoze.who.restrict), allowing configuratio-driven authorization
+   as a WSGI filter.  One example predicate, 'authenticated_predicate',
+   is supplied, which requires that the user be authenticated either via
+   'REMOTE_USER' or via 'repoze.who.identity'.  To use the filter to
+   restrict access::
+
+     [filter:authenticated_only]
+     use = egg:repoze.who#authenticated
+
+   or::
+
+     [filter:some_predicate]
+     use = egg:repoze.who#predicate
+     predicate = my.module:some_predicate
+     some_option = a value
+
 1.0.1
 
  - Remove dependency-link to dist.repoze.org to prevent easy_install
