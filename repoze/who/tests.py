@@ -1494,6 +1494,17 @@ class TestAuthTktCookiePlugin(Base):
         expected = 'auth_tkt=%s; Path=/;' % new_val
         self.assertEqual(result, [('Set-Cookie', expected)])
 
+    def test_remember_creds_different_long_userid(self):
+        plugin = self._makeOne('secret')
+        old_val = self._makeTicket(userid='userid')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
+        new_val = self._makeTicket(userid='1', userdata='userid_type:int')
+        result = plugin.remember(environ, {'repoze.who.userid':long(1),
+                                           'userdata':''})
+        
+        expected = 'auth_tkt=%s; Path=/;' % new_val
+        self.assertEqual(result, [('Set-Cookie', expected)])
+
     def test_remember_creds_different_unicode_userid(self):
         plugin = self._makeOne('secret')
         old_val = self._makeTicket(userid='userid')

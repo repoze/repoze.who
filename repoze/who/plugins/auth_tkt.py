@@ -15,6 +15,7 @@ class AuthTktCookiePlugin(object):
 
     userid_type_encoders = {
         int: ('int', str),
+        long: ('int', str),
         }
     
     def __init__(self, secret, cookie_name='auth_tkt',

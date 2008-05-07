@@ -3,6 +3,11 @@ repoze.who changes
 
 After 1.0.1
 
+ - Fix bug found by Chris Perkins: the auth_tkt plugin's "remember"
+   method didn't handle userids which are Python "long" instances
+   properly.  Symptom: TypeError: cannot concatenate 'str' and 'long'
+   objects in "paste.auth.auth_tkt".
+
  - Added predicate-based "restriction" middleware support
    (repoze.who.restrict), allowing configuratio-driven authorization
    as a WSGI filter.  One example predicate, 'authenticated_predicate',
