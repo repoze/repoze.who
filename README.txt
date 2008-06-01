@@ -494,7 +494,7 @@ nominated to act as authenticator plugins. ::
     # identificaion and challenge
     use = repoze.who.plugins.form:make_plugin
     login_form_qs = __do_login
-    rememberer_name = cookie
+    rememberer_name = auth_tkt
     form = %(here)s/login_form.html
 
     [plugin:auth_tkt]
