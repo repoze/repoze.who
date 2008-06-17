@@ -1,7 +1,7 @@
 repoze.who changes
 ==================
 
-After 1.0.1
+1.0.2 (2008/06/16)
 
  - Fix bug found by Chris Perkins: the auth_tkt plugin's "remember"
    method didn't handle userids which are Python "long" instances

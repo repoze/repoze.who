@@ -646,10 +646,14 @@ class TestMiddleware(Base):
         result = ''.join(mw(environ, start_response))
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(start_response.status, '302 Found')
-        self.assertEqual(start_response.headers,
-              [('location', 'http://example.com/redirect'),
-               ('content-type', 'text/plain'),
-               ('a', '1')])
+        headers = start_response.headers
+        self.assertEqual(len(headers), 3)
+        self.assertEqual(headers[0],
+                         ('location', 'http://example.com/redirect'))
+        self.assertEqual(headers[1],
+                         ('content-type', 'text/plain; charset=utf8'))
+        self.assertEqual(headers[2],
+                         ('a', '1'))
         self.assertEqual(start_response.exc_info, None)
         self.failIf(environ.has_key('repoze.who.application'))
 
@@ -1331,10 +1335,12 @@ class TestRedirectingFormPlugin(Base):
         self.assertEqual(parts[3], '')
         self.assertEqual(came_from_key, 'came_from')
         self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
+        headers = sr.headers
+        self.assertEqual(len(headers), 3)
         self.assertEqual(sr.headers[1][0], 'forget')
         self.assertEqual(sr.headers[1][1], '1')
         self.assertEqual(sr.headers[2][0], 'content-type')
-        self.assertEqual(sr.headers[2][1], 'text/plain')
+        self.assertEqual(sr.headers[2][1], 'text/plain; charset=utf8')
         self.assertEqual(sr.status, '302 Found')
 
     def test_challenge_came_from_in_environ(self):
