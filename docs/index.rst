@@ -471,6 +471,13 @@ authenticators, and challengers sections refer to these plugins to
 form a site configuration.  The general section is general middleware
 configuration.
 
+To configure :mod:`repoze.who` in Python, using an .INI file, call
+the `make_middleware_with_config` entry point, passing the right-hand
+application and the path to the confi file ::
+
+    from repoze.who.config import make_middleware_with_config
+    who = make_middleware_with_config(app, '/path/to/who.ini')
+
 :mod:`repoze.who`'s configuration file can be pointed to within a PasteDeploy
 configuration file ::
 
