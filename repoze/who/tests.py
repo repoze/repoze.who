@@ -902,6 +902,24 @@ class TestHTPasswdPlugin(Base):
         result = plugin.authenticate(environ, creds)
         self.assertEqual(result, 'chrism')
 
+    def test_authenticate_bad_filename_logs_to_repoze_who_logger(self):
+        here = os.path.abspath(os.path.dirname(__file__))
+        htpasswd = os.path.join(here, 'fixtures', 'test.htpasswd.nonesuch')
+        def check(password, hashed):
+            return True
+        plugin = self._makeOne(htpasswd, check)
+        environ = self._makeEnviron()
+        class DummyLogger:
+            warnings = []
+            def warn(self, msg):
+                self.warnings.append(msg)
+        logger = environ['repoze.who.logger'] = DummyLogger()
+        creds = {'login':'chrism', 'password':'pass'}
+        result = plugin.authenticate(environ, creds)
+        self.assertEqual(result, None)
+        self.assertEqual(len(logger.warnings), 1)
+        self.failUnless('could not open htpasswd' in logger.warnings[0])
+
     def test_crypt_check(self):
         import sys
         # win32 does not have a crypt library, don't

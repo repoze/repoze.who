@@ -1,6 +1,11 @@
 repoze.who changes
 ==================
 
+After 1.0.2
+
+ - Applied patch from Olaf Conradi which logs an error when an invalid
+   filename is passed to the HTPasswdPlugin.
+
 1.0.2 (2008/06/16)
 
  - Fix bug found by Chris Perkins: the auth_tkt plugin's "remember"

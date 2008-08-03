@@ -27,6 +27,8 @@ class HTPasswdPlugin(object):
             try:
                 f = open(self.filename, 'r')
             except IOError:
+                environ['repoze.who.logger'].warn('could not open htpasswd '
+                                                  'file %s' % self.filename)
                 return None
 
         for line in f:
