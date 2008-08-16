@@ -1,7 +1,12 @@
 repoze.who changes
 ==================
 
-After 1.0.2
+1.0.3 (2008/08/16)
+
+ - A bug in the middleware's ``authenticate`` method made it
+   impossible to authenticate a user with a userid that was null
+   (e.g. 0, False), which are valid identifiers.  The only invalid
+   userid is now None.
 
  - Applied patch from Olaf Conradi which logs an error when an invalid
    filename is passed to the HTPasswdPlugin.

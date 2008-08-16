@@ -189,7 +189,7 @@ class PluggableAuthenticationMiddleware(object):
             identifier_rank = id_rank_start
             for identifier, identity in identities:
                 userid = plugin.authenticate(environ, identity)
-                if userid:
+                if userid is not None:
                     logger and logger.debug(
                         'userid returned from %s: "%s"' % (plugin, userid))
 

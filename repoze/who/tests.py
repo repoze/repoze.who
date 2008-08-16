@@ -266,6 +266,23 @@ class TestMiddleware(Base):
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris_id2')
 
+    def test_authenticate_user_null_but_not_none(self):
+        environ = self._makeEnviron()
+        plugin1 = DummyAuthenticator(0)
+        plugins = [ ('identifier1', plugin1) ]
+        mw = self._makeOne(authenticators=plugins)
+        identities = [ (None, {'login':'chris', 'password':'password'}) ]
+        results = mw.authenticate(environ, None, identities)
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        rank, authenticator, identifier, creds, userid = result
+        self.assertEqual(rank, (0,0))
+        self.assertEqual(authenticator, plugin1)
+        self.assertEqual(identifier, None)
+        self.assertEqual(creds['login'], 'chris')
+        self.assertEqual(creds['password'], 'password')
+        self.assertEqual(userid, 0)
+
     def test_challenge_noidentifier_noapp(self):
         environ = self._makeEnviron()
         challenger = DummyChallenger()
