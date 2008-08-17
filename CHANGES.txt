@@ -1,6 +1,11 @@
 repoze.who changes
 ==================
 
+Next release
+
+ - Allowed 'cookie_path' argument to InsecureCookiePlugin (and config
+   constructor).  Thanks to Gustavo Narea.
+
 1.0.3 (2008/08/16)
 
  - A bug in the middleware's ``authenticate`` method made it
