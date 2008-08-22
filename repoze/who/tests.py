@@ -1550,11 +1550,13 @@ class TestAuthTktCookiePlugin(Base):
         plugin = self._makeOne('secret')
         old_val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
-        new_val = self._makeTicket(userid=unicode('myid'), userdata='')
-        result = plugin.remember(environ, {'repoze.who.userid':unicode('myid'),
+        userid = unicode('\xc2\xa9', 'utf-8')
+        new_val = self._makeTicket(userid=userid.encode('utf-8'),
+                                   userdata='userid_type:unicode')
+        result = plugin.remember(environ, {'repoze.who.userid':userid,
                                            'userdata':''})
-        
         expected = 'auth_tkt=%s; Path=/;' % new_val
+        self.assertEqual(type(result[0][1]), str)
         self.assertEqual(result, [('Set-Cookie', expected)])
 
     def test_forget(self):
@@ -1894,6 +1896,7 @@ class TestWhoConfig(unittest.TestCase):
         config = self._makeOne()
         self.assertEqual(config.request_classifier, None)
         self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(config.remote_user_key, 'REMOTE_USER')
         self.assertEqual(len(config.plugins), 0)
         self.assertEqual(len(config.identifiers), 0)
         self.assertEqual(len(config.authenticators), 0)
@@ -1905,6 +1908,7 @@ class TestWhoConfig(unittest.TestCase):
         config.parse('')
         self.assertEqual(config.request_classifier, None)
         self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(config.remote_user_key, 'REMOTE_USER')
         self.assertEqual(len(config.plugins), 0)
         self.assertEqual(len(config.identifiers), 0)
         self.assertEqual(len(config.authenticators), 0)
@@ -1917,6 +1921,7 @@ class TestWhoConfig(unittest.TestCase):
         config.parse(StringIO())
         self.assertEqual(config.request_classifier, None)
         self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(config.remote_user_key, 'REMOTE_USER')
         self.assertEqual(len(config.plugins), 0)
         self.assertEqual(len(config.identifiers), 0)
         self.assertEqual(len(config.authenticators), 0)
@@ -1938,6 +1943,7 @@ class TestWhoConfig(unittest.TestCase):
         config.parse('[general]')
         self.assertEqual(config.request_classifier, None)
         self.assertEqual(config.challenge_decider, None)
+        self.assertEqual(config.remote_user_key, 'REMOTE_USER')
         self.assertEqual(len(config.plugins), 0)
 
     def test_parse_general_only(self):
@@ -1950,6 +1956,7 @@ class TestWhoConfig(unittest.TestCase):
         config.parse(GENERAL_ONLY)
         self.failUnless(isinstance(config.request_classifier, PLUGIN_CLASS))
         self.failUnless(isinstance(config.challenge_decider, PLUGIN_CLASS))
+        self.assertEqual(config.remote_user_key, 'ANOTHER_REMOTE_USER')
         self.assertEqual(len(config.plugins), 0)
 
     def test_parse_general_with_plugins(self):
@@ -2100,6 +2107,7 @@ GENERAL_ONLY = """\
 [general]
 request_classifier = repoze.who.tests:DummyPlugin
 challenge_decider = repoze.who.tests:DummyPlugin
+remote_user_key = ANOTHER_REMOTE_USER
 """
 
 GENERAL_WITH_PLUGINS = """\

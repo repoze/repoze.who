@@ -1,3 +1,6 @@
+from codecs import utf_8_decode
+from codecs import utf_8_encode
+
 from paste.request import get_cookies
 from paste.auth import auth_tkt
 
@@ -11,11 +14,13 @@ class AuthTktCookiePlugin(object):
 
     userid_type_decoders = {
         'int':int,
+        'unicode':lambda x: utf_8_decode(x)[0],
         }
 
     userid_type_encoders = {
         int: ('int', str),
         long: ('int', str),
+        unicode: ('unicode', lambda x: utf_8_encode(x)[0]),
         }
     
     def __init__(self, secret, cookie_name='auth_tkt',

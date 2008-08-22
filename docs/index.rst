@@ -541,6 +541,7 @@ nominated to act as authenticator plugins. ::
     [general]
     request_classifier = repoze.who.classifiers:default_request_classifier
     challenge_decider = repoze.who.classifiers:default_challenge_decider
+    remote_user_key = REMOTE_USER
 
     [identifiers]
     # plugin_name;classifier_name:.. or just plugin_name (good for any)

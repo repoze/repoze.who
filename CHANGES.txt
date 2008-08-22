@@ -1,7 +1,17 @@
 repoze.who changes
 ==================
 
-Next release
+1.0.4 (2008/08/22)
+
+ - Added a key to the '[general]' config section: ``remote_user_key``.
+   If you use this key in the config file, it tells who to 1)
+   not perform any authentication if it exists in the environment
+   during ingress and 2) to set the key in the environment for
+   the downstream app to use as the REMOTE_USER variable.  The
+   default is ``REMOTE_USER``.
+
+ - Using unicode user ids in combination with the auth_tkt plugin
+   would cause problems under mod_wsgi.
 
  - Allowed 'cookie_path' argument to InsecureCookiePlugin (and config
    constructor).  Thanks to Gustavo Narea.

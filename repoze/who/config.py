@@ -32,6 +32,7 @@ class WhoConfig:
         self.authenticators = []
         self.challengers = []
         self.mdproviders = []
+        self.remote_user_key = 'REMOTE_USER'
 
     def _makePlugin(self, name, iface, **kw):
         obj = _resolve(name)
@@ -93,6 +94,10 @@ class WhoConfig:
             if cd is not None:
                 cd = self._getPlugin(cd, IChallengeDecider)
             self.challenge_decider = cd
+
+            ru = general.get('remote_user_key')
+            if ru is not None:
+                self.remote_user_key = ru
 
         if 'identifiers' in cp.sections():
             identifiers = dict(cp.items('identifiers'))
@@ -156,4 +161,5 @@ def make_middleware_with_config(app, global_conf, config_file,
                 parser.challenge_decider,
                 log_stream,
                 log_level,
+                parser.remote_user_key,
            )
