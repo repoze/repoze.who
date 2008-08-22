@@ -1521,8 +1521,16 @@ class TestAuthTktCookiePlugin(Base):
         new_val = self._makeTicket(userid='other', userdata='userdata')
         result = plugin.remember(environ, {'repoze.who.userid':'other',
                                            'userdata':'userdata'})
-        expected = 'auth_tkt=%s; Path=/;' % new_val
-        self.assertEqual(result, [('Set-Cookie', expected)])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt=%s; Path=/' % new_val))
+        self.assertEqual(result[1],
+                         ('Set-Cookie',
+                           'auth_tkt=%s; Path=/; Domain=localhost' % new_val))
+        self.assertEqual(result[2],
+                         ('Set-Cookie',
+                           'auth_tkt=%s; Path=/; Domain=.localhost' % new_val))
 
     def test_remember_creds_different_int_userid(self):
         plugin = self._makeOne('secret')
@@ -1532,8 +1540,10 @@ class TestAuthTktCookiePlugin(Base):
         result = plugin.remember(environ, {'repoze.who.userid':1,
                                            'userdata':''})
         
-        expected = 'auth_tkt=%s; Path=/;' % new_val
-        self.assertEqual(result, [('Set-Cookie', expected)])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt=%s; Path=/' % new_val))
 
     def test_remember_creds_different_long_userid(self):
         plugin = self._makeOne('secret')
@@ -1542,9 +1552,10 @@ class TestAuthTktCookiePlugin(Base):
         new_val = self._makeTicket(userid='1', userdata='userid_type:int')
         result = plugin.remember(environ, {'repoze.who.userid':long(1),
                                            'userdata':''})
-        
-        expected = 'auth_tkt=%s; Path=/;' % new_val
-        self.assertEqual(result, [('Set-Cookie', expected)])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt=%s; Path=/' % new_val))
 
     def test_remember_creds_different_unicode_userid(self):
         plugin = self._makeOne('secret')
@@ -1555,9 +1566,11 @@ class TestAuthTktCookiePlugin(Base):
                                    userdata='userid_type:unicode')
         result = plugin.remember(environ, {'repoze.who.userid':userid,
                                            'userdata':''})
-        expected = 'auth_tkt=%s; Path=/;' % new_val
         self.assertEqual(type(result[0][1]), str)
-        self.assertEqual(result, [('Set-Cookie', expected)])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt=%s; Path=/' % new_val))
 
     def test_forget(self):
         plugin = self._makeOne('secret')

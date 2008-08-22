@@ -29,7 +29,6 @@ class AuthTktCookiePlugin(object):
         self.cookie_name = cookie_name
         self.include_ip = include_ip
         self.secure = secure
-        self.include_ip = include_ip
 
     # IIdentifier
     def identify(self, environ):
@@ -72,19 +71,23 @@ class AuthTktCookiePlugin(object):
         identity['userdata'] = user_data
         return identity
 
-    # IIdentifier
-    def forget(self, environ, identity):
-        # return a expires Set-Cookie header
+    def _get_cookies(self, environ, value):
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
         wild_domain = '.' + cur_domain
         cookies = [
-            ('Set-Cookie', '%s=""; Path=/' % self.cookie_name),
-            ('Set-Cookie', '%s=""; Path=/; Domain=%s' %
-             (self.cookie_name, cur_domain)),
-            ('Set-Cookie', '%s=""; Path=/; Domain=%s' %
-             (self.cookie_name, wild_domain)),
+            ('Set-Cookie', '%s=%s; Path=/' % (
+            self.cookie_name, value)),
+            ('Set-Cookie', '%s=%s; Path=/; Domain=%s' % (
+            self.cookie_name, value, cur_domain)),
+            ('Set-Cookie', '%s=%s; Path=/; Domain=%s' % (
+            self.cookie_name, value, wild_domain))
             ]
         return cookies
+
+    # IIdentifier
+    def forget(self, environ, identity):
+        # return a set of expires Set-Cookie headers
+        return self._get_cookies(environ, '""')
     
     # IIdentifier
     def remember(self, environ, identity):
@@ -134,11 +137,12 @@ class AuthTktCookiePlugin(object):
                 cookie_name=self.cookie_name,
                 secure=self.secure)
             new_cookie_value = ticket.cookie_value()
+            
+            cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
+            wild_domain = '.' + cur_domain
             if old_cookie_value != new_cookie_value:
-                # return a Set-Cookie header
-                set_cookie = '%s=%s; Path=/;' % (self.cookie_name,
-                                                 new_cookie_value)
-                return [('Set-Cookie', set_cookie)]
+                # return a set of Set-Cookie headers
+                return self._get_cookies(environ, new_cookie_value)
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, id(self))

@@ -1,6 +1,11 @@
 repoze.who changes
 ==================
 
+Next release
+
+ - Fix auth_tkt plugin to set the same cookies in its ``remember`` method that 
+   it does in its ``forget`` method.
+
 1.0.4 (2008/08/22)
 
  - Added a key to the '[general]' config section: ``remote_user_key``.
