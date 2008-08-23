@@ -1,10 +1,12 @@
 repoze.who changes
 ==================
 
-Next release
+1.0.5 (2008/08/23)
 
- - Fix auth_tkt plugin to set the same cookies in its ``remember`` method that 
-   it does in its ``forget`` method.
+ - Fix auth_tkt plugin to set the same cookies in its ``remember`` 
+   method that it does in its ``forget`` method.  Previously,
+   logging out and relogging back in to a site that used auth_tkt 
+   identifier plugin was slightly dicey and would only work sometimes.
 
  - The FormPlugin plugin has grown a redirect-on-unauthorized feature.
    Any response from a downstream application that causes a challenge
