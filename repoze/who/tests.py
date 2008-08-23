@@ -1159,6 +1159,23 @@ class TestFormPlugin(Base):
         self.assertEqual(sr.headers[1], ('Content-Type', 'text/html'))
         self.assertEqual(sr.status, '200 OK')
 
+    def test_challenge_with_location(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        app = plugin.challenge(environ, '401 Unauthorized',
+                               [('Location', 'http://foo/bar')],
+                               [('Set-Cookie', 'a=123')])
+        sr = DummyStartResponse()
+        app(environ, sr)
+        headers = sorted(sr.headers)
+        self.assertEqual(len(headers), 3)
+        self.assertEqual(headers[0], ('Location', 'http://foo/bar'))
+        self.assertEqual(headers[1],
+                         ('Set-Cookie', 'a=123'))
+        self.assertEqual(headers[2],
+                         ('content-type', 'text/plain; charset=utf8'))
+        self.assertEqual(sr.status, '302 Found')
+
     def test_factory_withform(self):
         from repoze.who.plugins.form import make_plugin
         here = os.path.dirname(__file__)

@@ -4,6 +4,7 @@ import cgi
 
 from paste.httpheaders import CONTENT_LENGTH
 from paste.httpheaders import CONTENT_TYPE
+from paste.httpheaders import LOCATION
 from paste.httpexceptions import HTTPFound
 from paste.httpexceptions import HTTPUnauthorized
 
@@ -107,6 +108,12 @@ class FormPlugin(FormPluginBase):
 
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
+        if app_headers:
+            location = LOCATION(app_headers)
+            if location:
+                headers = list(app_headers) + list(forget_headers)
+                return HTTPFound(headers = headers)
+                
         form = self.formbody or _DEFAULT_FORM
         if self.formcallable is not None:
             form = self.formcallable(environ)

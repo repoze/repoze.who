@@ -6,6 +6,11 @@ Next release
  - Fix auth_tkt plugin to set the same cookies in its ``remember`` method that 
    it does in its ``forget`` method.
 
+ - The FormPlugin plugin has grown a redirect-on-unauthorized feature.
+   Any response from a downstream application that causes a challenge
+   and includes a Location header will cause a redirect to the value
+   of the Location header.
+
 1.0.4 (2008/08/22)
 
  - Added a key to the '[general]' config section: ``remote_user_key``.
