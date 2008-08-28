@@ -1,7 +1,14 @@
 repoze.who changes
 ==================
 
+1.0.6 (2008/08/28)
+
+ - Make repoze.who and repoze.who.plugins into namespace packages
+   mainly so we can allow plugin authors to distribute packages in
+   the repoze.who.plugins namespace.
+
 1.0.5 (2008/08/23)
+
 
  - Fix auth_tkt plugin to set the same cookies in its ``remember`` 
    method that it does in its ``forget`` method.  Previously,
