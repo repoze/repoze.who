@@ -77,7 +77,7 @@ plugin can be configured arbitrarily.
 intercepts a WSGI request, and gives some subset of them a chance to
 influence what :mod:`repoze.who` does for the current request.
 
-.. note: As of :mod:`repoze.who` 1.0.7, the ``repoze.who.plugins``
+.. note:: As of :mod:`repoze.who` 1.0.7, the ``repoze.who.plugins``
    package is a namespace package, intended to make it possible for
    people to ship eggs which are who plugins as,
    e.g. ``repoze.who.plugins.mycoolplugin``.
