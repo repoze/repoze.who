@@ -390,6 +390,7 @@ Middleware Configuration via Python Code
 
 An example configuration which uses the default plugins follows::
 
+    from repoze.who.middleware import PluggableAuthenticationMiddleware
     from repoze.who.interfaces import IIdentifier
     from repoze.who.interfaces import IChallenger
     from repoze.who.plugins.basicauth import BasicAuthPlugin
