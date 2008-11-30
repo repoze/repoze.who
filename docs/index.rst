@@ -20,7 +20,7 @@
    perform the operation implied by the request).  This is considered
    to be the domain of the WSGI application.
  
-   It attemtps to reuse implementations from ``paste.auth`` for some
+   It attempts to reuse implementations from ``paste.auth`` for some
    of its functionality.
 
 Middleware Responsibilities
