@@ -1,6 +1,16 @@
 repoze.who changes
 ==================
 
+Next release
+
+ - The ``PluggableAuthenticationMiddleware`` constructor accepts
+   a ``log_stream`` argument, which is typically a file.  After this
+   release, it can also be a PEP 333 ``Logger`` instance; if it is a PEP 333 
+   ``Logger`` instance, this logger will be used as the repoze.who logger
+   (instead of one being constructed by the middleware, as was previously
+   always the case).  When the ``log_stream`` argument is a PEP 333 Logger
+   object, the ``log_level`` argument is ignored.
+
 1.0.7 (2008/08/28)
 
  - ``repoze.who`` and ``repoze.who.plugins`` were not added to the
