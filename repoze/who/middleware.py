@@ -31,7 +31,9 @@ class PluggableAuthenticationMiddleware(object):
         self.challenge_decider = challenge_decider
         self.remote_user_key = remote_user_key
         self.logger = None
-        if log_stream:
+        if isinstance(log_stream, logging.Logger):
+            self.logger = log_stream
+        elif log_stream:
             handler = logging.StreamHandler(log_stream)
             fmt = '%(asctime)s %(message)s'
             formatter = logging.Formatter(fmt)

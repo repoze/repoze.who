@@ -53,6 +53,13 @@ class TestMiddleware(Base):
                                     log_stream,
                                     log_level=logging.DEBUG)
         return mw
+    
+    def test_accepts_logger(self):
+        import logging
+        logger = logging.Logger('something')
+        logger.setLevel(logging.INFO)
+        mw = self._makeOne(log_stream=logger)
+        self.assertEqual(logger, mw.logger)
 
     def test_identify_success(self):
         environ = self._makeEnviron()
