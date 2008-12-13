@@ -1,7 +1,7 @@
 repoze.who changes
 ==================
 
-Next release
+1.0.8 (2008/12/13)
 
  - The ``PluggableAuthenticationMiddleware`` constructor accepts
    a ``log_stream`` argument, which is typically a file.  After this
