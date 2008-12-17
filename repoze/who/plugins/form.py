@@ -12,6 +12,8 @@ from paste.request import parse_dict_querystring
 from paste.request import parse_formvars
 from paste.request import construct_url
 
+from paste.response import header_value
+
 from zope.interface import implements
 
 from repoze.who.interfaces import IChallenger
@@ -176,11 +178,14 @@ class RedirectingFormPlugin(FormPluginBase):
 
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
+        reason = header_value(app_headers, 'X-Authorization-Failure-Reason')
         url_parts = list(urlparse.urlparse(self.login_form_url))
         query = url_parts[4]
         query_elements = cgi.parse_qs(query)
         came_from = environ.get('came_from', construct_url(environ))
         query_elements['came_from'] = came_from
+        if reason:
+            query_elements['reason'] = reason
         url_parts[4] = urllib.urlencode(query_elements, doseq=True)
         login_form_url = urlparse.urlunparse(url_parts)
         headers = [ ('Location', login_form_url) ]

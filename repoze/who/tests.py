@@ -1427,6 +1427,37 @@ class TestRedirectingFormPlugin(Base):
         self.assertEqual(came_from_key, 'came_from')
         self.assertEqual(came_from_value, 'http://example.com/came_from')
 
+    def test_challenge_with_reason_header(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        environ['came_from'] = 'http://example.com/came_from'
+        app = plugin.challenge(
+            environ, '401 Unauthorized',
+            [('X-Authorization-Failure-Reason', 'you are ugly')],
+            [('forget', '1')])
+        sr = DummyStartResponse()
+        result = ''.join(app(environ, sr))
+        self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(len(sr.headers), 3)
+        self.assertEqual(sr.headers[0][0], 'Location')
+        url = sr.headers[0][1]
+        import urlparse
+        import cgi
+        parts = urlparse.urlparse(url)
+        parts_qsl = cgi.parse_qsl(parts[4])
+        self.assertEqual(len(parts_qsl), 2)
+        parts_qsl.sort()
+        came_from_key, came_from_value = parts_qsl[0]
+        reason_key, reason_value = parts_qsl[1]
+        self.assertEqual(parts[0], 'http')
+        self.assertEqual(parts[1], 'example.com')
+        self.assertEqual(parts[2], '/login.html')
+        self.assertEqual(parts[3], '')
+        self.assertEqual(came_from_key, 'came_from')
+        self.assertEqual(came_from_value, 'http://example.com/came_from')
+        self.assertEqual(reason_key, 'reason')
+        self.assertEqual(reason_value, 'you are ugly')
+
 class TestAuthTktCookiePlugin(Base):
     def _getTargetClass(self):
         from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
