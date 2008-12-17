@@ -1209,10 +1209,11 @@ class TestRedirectingFormPlugin(Base):
     def _makeOne(self, login_form_url='http://example.com/login.html',
                  login_handler_path = '/login_handler',
                  logout_handler_path = '/logout_handler',
-                 rememberer_name='cookie'):
+                 rememberer_name='cookie',
+                 reason_param='reason'):
         plugin = self._getTargetClass()(login_form_url, login_handler_path,
                                         logout_handler_path,
-                                        rememberer_name)
+                                        rememberer_name, reason_param)
         return plugin
 
     def _makeFormEnviron(self, login=None, password=None, came_from=None,
@@ -1456,6 +1457,37 @@ class TestRedirectingFormPlugin(Base):
         self.assertEqual(came_from_key, 'came_from')
         self.assertEqual(came_from_value, 'http://example.com/came_from')
         self.assertEqual(reason_key, 'reason')
+        self.assertEqual(reason_value, 'you are ugly')
+
+    def test_challenge_with_reason_and_custom_reason_param(self):
+        plugin = self._makeOne(reason_param='auth_failure')
+        environ = self._makeFormEnviron()
+        environ['came_from'] = 'http://example.com/came_from'
+        app = plugin.challenge(
+            environ, '401 Unauthorized',
+            [('X-Authorization-Failure-Reason', 'you are ugly')],
+            [('forget', '1')])
+        sr = DummyStartResponse()
+        result = ''.join(app(environ, sr))
+        self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(len(sr.headers), 3)
+        self.assertEqual(sr.headers[0][0], 'Location')
+        url = sr.headers[0][1]
+        import urlparse
+        import cgi
+        parts = urlparse.urlparse(url)
+        parts_qsl = cgi.parse_qsl(parts[4])
+        self.assertEqual(len(parts_qsl), 2)
+        parts_qsl.sort()
+        reason_key, reason_value = parts_qsl[0]
+        came_from_key, came_from_value = parts_qsl[1]
+        self.assertEqual(parts[0], 'http')
+        self.assertEqual(parts[1], 'example.com')
+        self.assertEqual(parts[2], '/login.html')
+        self.assertEqual(parts[3], '')
+        self.assertEqual(came_from_key, 'came_from')
+        self.assertEqual(came_from_value, 'http://example.com/came_from')
+        self.assertEqual(reason_key, 'auth_failure')
         self.assertEqual(reason_value, 'you are ugly')
 
 class TestAuthTktCookiePlugin(Base):

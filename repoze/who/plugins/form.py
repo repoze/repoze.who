@@ -133,7 +133,7 @@ class RedirectingFormPlugin(FormPluginBase):
     implements(IChallenger, IIdentifier)
     
     def __init__(self, login_form_url, login_handler_path, logout_handler_path,
-                 rememberer_name):
+                 rememberer_name, reason_param='reason'):
         self.login_form_url = login_form_url
         self.login_handler_path = login_handler_path
         self.logout_handler_path = logout_handler_path
@@ -141,6 +141,7 @@ class RedirectingFormPlugin(FormPluginBase):
         # implements IIdentifier, to handle remember and forget duties
         # (ala a cookie plugin or a session plugin)
         self.rememberer_name = rememberer_name
+        self.reason_param = reason_param
 
     # IIdentifier
     def identify(self, environ):
@@ -185,7 +186,7 @@ class RedirectingFormPlugin(FormPluginBase):
         came_from = environ.get('came_from', construct_url(environ))
         query_elements['came_from'] = came_from
         if reason:
-            query_elements['reason'] = reason
+            query_elements[self.reason_param] = reason
         url_parts[4] = urllib.urlencode(query_elements, doseq=True)
         login_form_url = urlparse.urlunparse(url_parts)
         headers = [ ('Location', login_form_url) ]
