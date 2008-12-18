@@ -1,17 +1,17 @@
 repoze.who changes
 ==================
 
-Next release
+1.0.9 (2008/12/18)
 
  - The RedirectingFormPlugin now attempts to find a header named
    ``X-Authentication-Failure-Reason`` among the response headers set
    by the application when a challenge is issued.  If a value for this
    header exists (and is non-blank), the value is attached to the
-   redirect URL's query string as the ``reason`` parameter.  This
-   makes it possible for downstream applications to issue a response
-   that initiates a challenge with this header and subsequently
-   display the reason in the login form rendered as a result of the
-   challenge.
+   redirect URL's query string as the ``reason`` parameter (or a
+   user-settable key).  This makes it possible for downstream
+   applications to issue a response that initiates a challenge with
+   this header and subsequently display the reason in the login form
+   rendered as a result of the challenge.
 
 1.0.8 (2008/12/13)
 
