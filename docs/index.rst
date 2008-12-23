@@ -436,8 +436,6 @@ An example configuration which uses the default plugins follows::
         log_level = logging.DEBUG
         )
 
-    return middleware
-
 The above example configures the repoze.who middleware with:
 
 - Three ``IIdentifier`` plugins (form auth, auth_tkt cookie, and a
@@ -464,6 +462,9 @@ The above example configures the repoze.who middleware with:
 The rest of the middleware configuration is for values like logging
 and the classifier and decider implementations.  These use the "stock"
 implementations.
+
+.. note:: The ``app`` referred to in the example is the "downstream"
+   WSGI application that who is wrapping.
 
 Middleware Configuration via Config File
 ========================================
