@@ -1490,6 +1490,22 @@ class TestRedirectingFormPlugin(Base):
         self.assertEqual(reason_key, 'auth_failure')
         self.assertEqual(reason_value, 'you are ugly')
 
+    def test_challenge_with_setcookie_from_app(self):
+        plugin = self._makeOne()
+        environ = self._makeFormEnviron()
+        app = plugin.challenge(
+            environ,
+            '401 Unauthorized',
+            [('app', '1'), ('set-cookie','a'), ('set-cookie','b')],
+            [])
+        sr = DummyStartResponse()
+        result = ''.join(app(environ, sr))
+        self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(sr.headers[1][0], 'set-cookie')
+        self.assertEqual(sr.headers[1][1], 'a')
+        self.assertEqual(sr.headers[2][0], 'set-cookie')
+        self.assertEqual(sr.headers[2][1], 'b')
+
 class TestAuthTktCookiePlugin(Base):
     def _getTargetClass(self):
         from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin

@@ -190,7 +190,8 @@ class RedirectingFormPlugin(FormPluginBase):
         url_parts[4] = urllib.urlencode(query_elements, doseq=True)
         login_form_url = urlparse.urlunparse(url_parts)
         headers = [ ('Location', login_form_url) ]
-        headers = headers + forget_headers
+        cookies = [(h,v) for (h,v) in app_headers if h.lower() == 'set-cookie']
+        headers = headers + forget_headers + cookies
         return HTTPFound(headers=headers)
 
 def make_plugin(login_form_qs='__do_login', rememberer_name=None,
