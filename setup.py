@@ -19,14 +19,14 @@ use_setuptools()
 
 from setuptools import setup, find_packages
 
+__version__ = '1.0.10'
+
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
-VERSION_TXT = os.path.join(here, 'repoze', 'who', 'version.txt')
-version = open(VERSION_TXT).readline().rstrip()
 
 setup(name='repoze.who',
-      version=version,
+      version=__version__,
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
       long_description='\n\n'.join([README, CHANGES]),
