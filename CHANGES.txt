@@ -2,8 +2,8 @@
 repoze.who changes
 ==================
 
-After 1.0.9
-===========
+1.0.10 (20091/23)
+=================
 
 - The RedirectingFormPlugin now passes along SetCookie headers set
   into the response by the application within the NotFound response
