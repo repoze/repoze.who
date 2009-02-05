@@ -2,6 +2,12 @@
 repoze.who changes
 ==================
 
+Next Release
+============
+
+- Fix corner case issue of an exception raised when attempting to log
+  when there are no identifiers or authenticators.
+
 1.0.10 (2009/1/23)
 ==================
 

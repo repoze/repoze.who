@@ -143,7 +143,7 @@ class PluggableAuthenticationMiddleware(object):
         logger = self.logger
         candidates = self.registry.get(IIdentifier, ())
         logger and self.logger.info('identifier plugins registered %s' %
-                                    candidates)
+                                    (candidates,))
         plugins = match_classification(IIdentifier, candidates, classification)
         logger and self.logger.info(
             'identifier plugins matched for '
@@ -160,7 +160,7 @@ class PluggableAuthenticationMiddleware(object):
                 logger and logger.debug(
                     'no identity returned from %s (%s)' % (plugin, identity))
 
-        logger and logger.debug('identities found: %s' % results)
+        logger and logger.debug('identities found: %s' % (results,))
         return results
 
     def add_metadata(self, environ, classification, identity):
@@ -208,7 +208,7 @@ class PluggableAuthenticationMiddleware(object):
                 identifier_rank += 1
             auth_rank += 1
 
-        logger and logger.debug('identities authenticated: %s' % results)
+        logger and logger.debug('identities authenticated: %s' % (results,))
         return results
 
     def _filter_preauthenticated(self, identities):
