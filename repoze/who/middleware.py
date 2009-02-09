@@ -172,7 +172,7 @@ class PluggableAuthenticationMiddleware(object):
 
     def authenticate(self, environ, classification, identities):
         logger = self.logger
-        candidates = self.registry.get(IAuthenticator, ())
+        candidates = self.registry.get(IAuthenticator, [])
         logger and self.logger.info('authenticator plugins registered %s' %
                                     candidates)
         plugins = match_classification(IAuthenticator, candidates,
