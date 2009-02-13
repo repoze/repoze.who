@@ -270,7 +270,7 @@ authentication, identification, challenge and metadata provision.
   at egress if challenge is required (as opposed to the
   :class:`FormPlugin`, it does not handle its own form generation).
   *login_form_url* is a URL that should be redirected to when a
-  challnge is required.  *login_handler_path* is the path that the
+  challenge is required.  *login_handler_path* is the path that the
   form will POST to, signifying that the plugin should gather
   credentials.  *logout_handler_path* is a path that can be called to
   log the current user out when visited. *rememberer_name* is the
