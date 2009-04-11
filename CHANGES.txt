@@ -7,7 +7,7 @@ repoze.who changes
 
 - Fix auth_tkt plugin; cookie values are now quoted, making it possible
   to put spaces and other whitespace, etc in usernames. (thanks to Michael
-  Pederson).
+  Pedersen).
 
 - Fix corner case issue of an exception raised when attempting to log
   when there are no identifiers or authenticators.
