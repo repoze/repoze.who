@@ -2,8 +2,8 @@
 repoze.who changes
 ==================
 
-Next Release
-============
+1.0.11 (2009/4/10)
+==================
 
 - Fix auth_tkt plugin; cookie values are now quoted, making it possible
   to put spaces and other whitespace, etc in usernames. (thanks to Michael
