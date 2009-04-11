@@ -1627,13 +1627,13 @@ class TestAuthTktCookiePlugin(Base):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt=%s; Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt=%s; Path=/; Domain=localhost' % new_val))
+                           'auth_tkt="%s"; Path=/; Domain=localhost' % new_val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt=%s; Path=/; Domain=.localhost' % new_val))
+                           'auth_tkt="%s"; Path=/; Domain=.localhost' % new_val))
 
     def test_remember_creds_different_int_userid(self):
         plugin = self._makeOne('secret')
@@ -1646,7 +1646,7 @@ class TestAuthTktCookiePlugin(Base):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt=%s; Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
 
     def test_remember_creds_different_long_userid(self):
         plugin = self._makeOne('secret')
@@ -1658,7 +1658,7 @@ class TestAuthTktCookiePlugin(Base):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt=%s; Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
 
     def test_remember_creds_different_unicode_userid(self):
         plugin = self._makeOne('secret')
@@ -1673,7 +1673,7 @@ class TestAuthTktCookiePlugin(Base):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt=%s; Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
 
     def test_forget(self):
         plugin = self._makeOne('secret')
@@ -1683,15 +1683,15 @@ class TestAuthTktCookiePlugin(Base):
         header = headers[0]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
-        self.assertEqual(value, 'auth_tkt=""; Path=/')
+        self.assertEqual(value, 'auth_tkt=""""; Path=/')
         header = headers[1]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
-        self.assertEqual(value, 'auth_tkt=""; Path=/; Domain=localhost')
+        self.assertEqual(value, 'auth_tkt=""""; Path=/; Domain=localhost')
         header = headers[2]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
-        self.assertEqual(value, 'auth_tkt=""; Path=/; Domain=.localhost')
+        self.assertEqual(value, 'auth_tkt=""""; Path=/; Domain=.localhost')
 
     def test_factory(self):
         from repoze.who.plugins.auth_tkt import make_plugin

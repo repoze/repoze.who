@@ -75,11 +75,11 @@ class AuthTktCookiePlugin(object):
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
         wild_domain = '.' + cur_domain
         cookies = [
-            ('Set-Cookie', '%s=%s; Path=/' % (
+            ('Set-Cookie', '%s="%s"; Path=/' % (
             self.cookie_name, value)),
-            ('Set-Cookie', '%s=%s; Path=/; Domain=%s' % (
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s' % (
             self.cookie_name, value, cur_domain)),
-            ('Set-Cookie', '%s=%s; Path=/; Domain=%s' % (
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s' % (
             self.cookie_name, value, wild_domain))
             ]
         return cookies
