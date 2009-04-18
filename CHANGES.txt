@@ -2,6 +2,12 @@
 repoze.who changes
 ==================
 
+After 1.0.11
+============
+
+- Extended auth_tkt plugin factory to allow passing secret in a separate
+  file from the main config file.  See http://bugs.repoze.org/issue40 .
+
 1.0.11 (2009/4/10)
 ==================
 

@@ -954,13 +954,34 @@ class TestAuthTktCookiePlugin(Base):
         self.assertEqual(name, 'Set-Cookie')
         self.assertEqual(value, 'auth_tkt=""""; Path=/; Domain=.localhost')
 
-    def test_factory(self):
+    def test_factory_wo_secret_wo_secretfile_raises_ValueError(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        self.assertRaises(ValueError, make_plugin)
+
+    def test_factory_w_secret_w_secretfile_raises_ValueError(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        self.assertRaises(ValueError, make_plugin, 'secret', 'secretfile')
+
+    def test_factory_w_bad_secretfile_raises_ValueError(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        self.assertRaises(ValueError, make_plugin, secretfile='nonesuch.txt')
+
+    def test_factory_w_secret(self):
         from repoze.who.plugins.auth_tkt import make_plugin
         plugin = make_plugin('secret')
         self.assertEqual(plugin.cookie_name, 'auth_tkt')
         self.assertEqual(plugin.secret, 'secret')
         self.assertEqual(plugin.include_ip, False)
         self.assertEqual(plugin.secure, False)
+
+    def test_factory_w_secretfile(self):
+        from tempfile import NamedTemporaryFile
+        from repoze.who.plugins.auth_tkt import make_plugin
+        ntf = NamedTemporaryFile()
+        ntf.write('s33kr1t\n')
+        ntf.flush()
+        plugin = make_plugin(secretfile=ntf.name)
+        self.assertEqual(plugin.secret, 's33kr1t')
 
 class TestSQLAuthenticatorPlugin(unittest.TestCase):
 

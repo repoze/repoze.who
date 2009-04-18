@@ -1,5 +1,6 @@
 from codecs import utf_8_decode
 from codecs import utf_8_encode
+import os
 
 from paste.request import get_cookies
 from paste.auth import auth_tkt
@@ -153,10 +154,20 @@ def _bool(value):
     return value
 
 def make_plugin(secret=None,
+                secretfile=None,
                 cookie_name='auth_tkt',
-                secure=False, include_ip=False):
-    if secret is None:
-        raise ValueError('secret must not be None')
+                secure=False,
+                include_ip=False,
+               ):
+    if (secret is None and secretfile is None):
+        raise ValueError("One of 'secret' or 'secretfile' must not be None.")
+    if (secret is not None and secretfile is not None):
+        raise ValueError("Specify only one of 'secret' or 'secretfile'.")
+    if secretfile:
+        secretfile = os.path.abspath(os.path.expanduser(secretfile))
+        if not os.path.exists(secretfile):
+            raise ValueError("No such 'secretfile': %s" % secretfile)
+        secret = open(secretfile).read().strip()
     plugin = AuthTktCookiePlugin(secret, cookie_name,
                                  _bool(secure), _bool(include_ip))
     return plugin
