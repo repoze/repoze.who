@@ -1,2 +1,6 @@
-- Config file parser.
+repoze.who TODOs
+================
 
+- [X} Config file parser.
+
+- [_] Allow the ZODB plugin to connect read-only.

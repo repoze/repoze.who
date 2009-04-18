@@ -49,7 +49,7 @@ setup(name='repoze.who',
       zip_safe=False,
       tests_require = ['Paste', 'zope.interface'],
       install_requires=['Paste', 'zope.interface', 'setuptools'],
-      test_suite="repoze.who.tests",
+      test_suite="repoze.who",
       entry_points = """\
       [paste.filter_app_factory]
       test = repoze.who.middleware:make_test_middleware
