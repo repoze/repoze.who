@@ -2,8 +2,12 @@
 repoze.who changes
 ==================
 
-After 1.0.11
-============
+1.0.12 (2009/4/19)
+==================
+
+- auth_tkt plugin tried to append REMOTE_USER_TOKENS data to
+  existing tokens data returned by auth_tkt.parse_tkt; this was
+  incorrect; just overwrite.
 
 - Extended auth_tkt plugin factory to allow passing secret in a separate
   file from the main config file.  See http://bugs.repoze.org/issue40 .

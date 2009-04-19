@@ -59,12 +59,10 @@ class AuthTktCookiePlugin(object):
                 if decoder:
                     userid = decoder(userid)
             
-        if environ.get('REMOTE_USER_TOKENS'):
-            # We want to add tokens/roles to what's there:
-            tokens = environ['REMOTE_USER_TOKENS'] + ',' + tokens
         environ['REMOTE_USER_TOKENS'] = tokens
         environ['REMOTE_USER_DATA'] = user_data
         environ['AUTH_TYPE'] = 'cookie'
+
         identity = {}
         identity['timestamp'] = timestamp
         identity['repoze.who.userid'] = userid

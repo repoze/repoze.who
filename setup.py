@@ -19,7 +19,7 @@ use_setuptools()
 
 from setuptools import setup, find_packages
 
-__version__ = '1.0.11+'
+__version__ = '1.0.12'
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
