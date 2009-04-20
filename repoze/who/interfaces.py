@@ -141,6 +141,10 @@ class IAuthenticator(IPlugin):
         dictionary, it should check for the existence of these keys
         before attempting to do anything; if they don't exist, it
         should return None).
+
+        An authenticator is permitted to add extra keys to the 'identity'
+        dictionary (e.g., to save metadata from a database query, rather
+        than requiring a separate query from an IMetadataProvider plugin).
         """
 
 class IChallenger(IPlugin):
