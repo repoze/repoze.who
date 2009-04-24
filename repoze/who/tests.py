@@ -680,6 +680,30 @@ class TestMiddleware(Base):
         self.assertEqual(start_response.exc_info, None)
         self.failIf(environ.has_key('repoze.who.application'))
 
+    def test_call_app_doesnt_call_start_response(self):
+        environ = self._makeEnviron()
+        headers = [('a', '1')]
+        app = DummyGeneratorApp('200 OK', headers)
+        from paste.httpexceptions import HTTPUnauthorized
+        challenge_app = HTTPUnauthorized()
+        challenge = DummyChallenger(challenge_app)
+        challengers = [ ('challenge', challenge) ]
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identifiers = [ ('identifier', identifier) ]
+        authenticator = DummyAuthenticator()
+        authenticators = [ ('authenticator', authenticator) ]
+        mdprovider = DummyMDProvider({'foo':'bar'})
+        mdproviders = [ ('mdprovider', mdprovider) ]
+        mw = self._makeOne(app=app, challengers=challengers,
+                           identifiers=identifiers,
+                           authenticators=authenticators,
+                           mdproviders=mdproviders)
+        start_response = DummyStartResponse()
+        result = mw(environ, start_response)
+        # metadata
+        self.assertEqual(environ['repoze.who.identity']['foo'], 'bar')
+
     # XXX need more call tests:
     #  - auth_id sorting
 
@@ -1394,6 +1418,23 @@ class MakePredicateRestrictionTests(unittest.TestCase):
         self.assertEqual(filter.predicate.foo, 'Foo')
         self.failUnless(filter.enabled)
 
+class WrapGeneratorTests(unittest.TestCase):
+
+    def _getFUT(self):
+        from repoze.who.middleware import wrap_generator
+        return wrap_generator
+
+    def test_it(self):
+        L = []
+        def gen(L=L):
+            L.append('yo!')
+            yield 'a'
+            yield 'b'
+        wrap_generator = self._getFUT()
+        newgen = wrap_generator(gen())
+        self.assertEqual(L, ['yo!'])
+        self.assertEqual(list(newgen), ['a', 'b'])
+
 # XXX need make_middleware tests
 
 class DummyPredicate:
@@ -1418,6 +1459,18 @@ class DummyWorkingApp:
         self.environ = environ
         start_response(self.status, self.headers)
         return ['body']
+
+class DummyGeneratorApp:
+    def __init__(self, status, headers):
+        self.status = status
+        self.headers = headers
+
+    def __call__(self, environ, start_response):
+        def gen(self=self, start_response=start_response):
+            self.environ = environ
+            start_response(self.status, self.headers)
+            yield 'body'
+        return gen()
 
 class DummyIdentityResetApp:
     def __init__(self, status, headers, new_identity):

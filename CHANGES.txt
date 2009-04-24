@@ -9,6 +9,11 @@ After 1.0.12
   are allowed to add keys to the ``identity`` dictionary (e.g., to save a
   second database query ini an ``IMetadataProvider`` plugin).
 
+- Patch supplied for issue #71 (http://bugs.repoze.org/issue71)
+  whereby a downstream app can return a generator, relying on an
+  upstream component to call start_response.  We do this because the
+  challenge decider needs the status and headers to decide what to do.
+
 1.0.12 (2009/4/19)
 ==================
 

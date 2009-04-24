@@ -106,6 +106,14 @@ class PluggableAuthenticationMiddleware(object):
         wrapper = StartResponseWrapper(start_response)
         app_iter = app(environ, wrapper.wrap_start_response)
 
+        # The challenge decider almost(?) always needs information from the
+        # response.  The WSGI spec (PEP 333) states that a WSGI application
+        # must call start_response by the iterable's first iteration.  If
+        # start_response hasn't been called, we'll wrap it in a way that
+        # triggers that call.
+        if not wrapper.called:
+            app_iter = wrap_generator(app_iter)
+
         if self.challenge_decider(environ, wrapper.status, wrapper.headers):
             logger and logger.info('challenge required')
 
@@ -271,6 +279,28 @@ class PluggableAuthenticationMiddleware(object):
         logger and logger.info('no challenge app returned')
         return None
 
+def wrap_generator(result):
+    """\
+    This function returns a generator that behaves exactly the same as the
+    original.  It's only difference is it pulls the first iteration off and
+    caches it to trigger any immediate side effects (in a WSGI world, this
+    ensures start_response is called).
+    """
+    # Neat trick to pull the first iteration only. We need to do this outside
+    # of the generator function to ensure it is called.
+    for iter in result:
+        first = iter
+        break
+
+    # Wrapper yields the first iteration, then passes result's iterations
+    # directly up.
+    def wrapper():
+        yield first
+        for iter in result:
+            # We'll let result's StopIteration bubble up directly.
+            yield iter
+    return wrapper()
+
 def match_classification(iface, plugins, classification):
     result = []
     for plugin in plugins:
@@ -292,11 +322,17 @@ class StartResponseWrapper(object):
         self.headers = []
         self.exc_info = None
         self.buffer = StringIO()
+        # A WSGI app may delay calling start_response until the first iteration
+        # of its generator.  We track this so we know whether or not we need to
+        # trigger an iteration before examining the response.
+        self.called = False
 
     def wrap_start_response(self, status, headers, exc_info=None):
         self.headers = headers
         self.status = status
         self.exc_info = exc_info
+        # The response has been initiated, so we have a valid code.
+        self.called = True
         return self.buffer.write
 
     def finish_response(self, extra_headers):
