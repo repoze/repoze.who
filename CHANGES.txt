@@ -2,8 +2,8 @@
 repoze.who changes
 ==================
 
-After 1.0.12
-============
+1.0.13 (2009/4/24)
+==================
 
 - Added a paragraph to ``IAuthenticator`` docstring, documenting that plugins
   are allowed to add keys to the ``identity`` dictionary (e.g., to save a
