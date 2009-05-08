@@ -288,17 +288,6 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 0)
 
-    def test_challenge_noidentifier_noapp(self):
-        environ = self._makeEnviron()
-        challenger = DummyChallenger()
-        plugins = [ ('challenge', challenger) ]
-        mw = self._makeOne(challengers = plugins)
-        identity = {'login':'chris', 'password':'password'}
-        app = mw.challenge(environ, 'match', '401 Unauthorized',
-                           [], None, identity)
-        self.assertEqual(app, None)
-        self.assertEqual(environ['challenged'], app)
-
     def test_authenticate_success_multiresult_one_preauthenticated(self):
         environ = self._makeEnviron()
         mw = self._makeOne()
@@ -335,6 +324,17 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(creds['login'], 'chris')
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris_id2')
+
+    def test_challenge_noidentifier_noapp(self):
+        environ = self._makeEnviron()
+        challenger = DummyChallenger()
+        plugins = [ ('challenge', challenger) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        app = mw.challenge(environ, 'match', '401 Unauthorized',
+                           [], None, identity)
+        self.assertEqual(app, None)
+        self.assertEqual(environ['challenged'], app)
 
     def test_challenge_noidentifier_withapp(self):
         environ = self._makeEnviron()
@@ -376,6 +376,20 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(result, app)
         self.assertEqual(environ['challenged'], app)
         self.assertEqual(identifier.forgotten, identity)
+
+    def test_challenge_identifier_forget_headers(self):
+        FORGET_HEADERS = [('X-testing-forget', 'Oubliez!')]
+        environ = self._makeEnviron()
+        app = DummyApp()
+        challenger = DummyChallenger(app)
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials,
+                                     forget_headers=FORGET_HEADERS)
+        plugins = [ ('challenge', challenger) ]
+        mw = self._makeOne(challengers = plugins)
+        identity = {'login':'chris', 'password':'password'}
+        result = mw.challenge(environ, 'match', '401 Unauthorized',
+                               [], identifier, identity)
 
     def test_multi_challenge_firstwins(self):
         environ = self._makeEnviron()
@@ -855,6 +869,47 @@ class WrapGeneratorTests(unittest.TestCase):
         newgen = wrap_generator(gen())
         self.assertEqual(L, ['yo!'])
         self.assertEqual(list(newgen), ['a', 'b'])
+
+class TestMakeTestMiddleware(unittest.TestCase):
+
+    def setUp(self):
+        import os
+        self._old_WHO_LOG = os.environ.get('WHO_LOG')
+
+    def tearDown(self):
+        import os
+        if self._old_WHO_LOG is not None:
+            os.environ['WHO_LOG'] = self._old_WHO_LOG
+        else:
+            if 'WHO_LOG' in os.environ:
+                del os.environ['WHO_LOG']
+
+    def _getFactory(self):
+        from repoze.who.middleware import make_test_middleware
+        return make_test_middleware
+
+    def test_it_no_WHO_LOG_in_environ(self):
+        from repoze.who.interfaces import IIdentifier
+        from repoze.who.interfaces import IAuthenticator
+        from repoze.who.interfaces import IChallenger
+        app = DummyApp()
+        factory = self._getFactory()
+        global_conf = {'here': '/'}
+        middleware = factory(app, global_conf)
+        self.assertEqual(len(middleware.registry[IIdentifier]), 3)
+        self.assertEqual(len(middleware.registry[IAuthenticator]), 1)
+        self.assertEqual(len(middleware.registry[IChallenger]), 2)
+        self.assertEqual(middleware.logger, None)
+
+    def test_it_w_WHO_LOG_in_environ(self):
+        import logging
+        import os
+        os.environ['WHO_LOG'] = '1'
+        app = DummyApp()
+        factory = self._getFactory()
+        global_conf = {'here': '/'}
+        middleware = factory(app, global_conf)
+        self.assertEqual(middleware.logger.getEffectiveLevel(), logging.DEBUG)
 
 class DummyApp:
     environ = None
