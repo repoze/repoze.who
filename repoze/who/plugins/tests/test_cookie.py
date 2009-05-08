@@ -34,6 +34,13 @@ class TestInsecureCookiePlugin(unittest.TestCase):
         environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=a'})
         result = plugin.identify(environ)
         self.assertEqual(result, None)
+        
+    def test_identify_badcookies_binascci_but_not_splittable(self):
+        plugin = self._makeOne('oatmeal')
+        auth = 'bogus'.encode('base64').rstrip()
+        environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=%s' % auth})
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
 
     def test_identify_success(self):
         plugin = self._makeOne('oatmeal')

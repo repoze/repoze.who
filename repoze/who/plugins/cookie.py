@@ -54,7 +54,8 @@ class InsecureCookiePlugin(object):
             return [('Set-Cookie', set_cookie)]
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, id(self))
+        return '<%s %s>' % (self.__class__.__name__,
+                            id(self)) #pragma NO COVERAGE
 
 def make_plugin(cookie_name='repoze.who.plugins.cookie', cookie_path='/'):
     plugin = InsecureCookiePlugin(cookie_name, cookie_path)
