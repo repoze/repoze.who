@@ -1,15 +1,6 @@
 import unittest
 
-class Base(unittest.TestCase):
-    def _makeEnviron(self, kw=None):
-        environ = {}
-        environ['wsgi.version'] = (1,0)
-        if kw is not None:
-            environ.update(kw)
-        return environ
-
-
-class TestMiddleware(Base):
+class TestMiddleware(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.middleware import PluggableAuthenticationMiddleware
@@ -53,6 +44,13 @@ class TestMiddleware(Base):
                                     log_stream,
                                     log_level=logging.DEBUG)
         return mw
+
+    def _makeEnviron(self, kw=None):
+        environ = {}
+        environ['wsgi.version'] = (1,0)
+        if kw is not None:
+            environ.update(kw)
+        return environ
 
     def test_accepts_logger(self):
         import logging
