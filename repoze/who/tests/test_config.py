@@ -363,6 +363,16 @@ class TestConfigMiddleware(unittest.TestCase):
         import logging
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.DEBUG)
 
+    def test_sample_config_no_log_level(self):
+        app = DummyApp()
+        factory = self._getFactory()
+        tempfile = self._getTempfile(SAMPLE_CONFIG)
+        global_cohf = {'here': '/'}
+        middleware = factory(app, global_cohf, config_file=tempfile.name,
+                             log_file='STDOUT')
+        import logging
+        self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
+
 SAMPLE_CONFIG = """\
 [plugin:form]
 use = repoze.who.plugins.form:make_plugin
