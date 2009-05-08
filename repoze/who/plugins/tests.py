@@ -1056,18 +1056,21 @@ class TestDefaultPasswordCompare(unittest.TestCase):
         from repoze.who.plugins.sql import default_password_compare
         return default_password_compare
 
+    def _get_sha_hex_digest(self, clear='password'):
+        try:
+            from hashlib import sha1
+        except ImportError:
+            from sha import new as sha1
+        return sha1(clear).hexdigest()
+
     def test_shaprefix_success(self):
-        import sha
-        stored = sha.new('password').hexdigest()
-        stored = '{SHA}' + stored
+        stored = '{SHA}' +  self._get_sha_hex_digest()
         compare = self._getFUT()
         result = compare('password', stored)
         self.assertEqual(result, True)
 
     def test_shaprefix_fail(self):
-        import sha
-        stored = sha.new('password').hexdigest()
-        stored = '{SHA}' + stored
+        stored = '{SHA}' + self._get_sha_hex_digest()
         compare = self._getFUT()
         result = compare('notpassword', stored)
         self.assertEqual(result, False)
