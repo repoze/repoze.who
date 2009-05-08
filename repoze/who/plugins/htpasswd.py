@@ -42,7 +42,8 @@ class HTPasswdPlugin(object):
         return None
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, id(self))
+        return '<%s %s>' % (self.__class__.__name__,
+                            id(self)) #pragma NO COVERAGE
 
 def crypt_check(password, hashed):
     from crypt import crypt

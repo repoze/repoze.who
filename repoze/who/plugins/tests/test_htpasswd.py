@@ -117,6 +117,19 @@ class TestHTPasswdPlugin(unittest.TestCase):
         self.assertEqual(crypt_check('password', hashed), True)
         self.assertEqual(crypt_check('notpassword', hashed), False)
 
+    def test_plain_check(self):
+        from repoze.who.plugins.htpasswd import plain_check
+        self.failUnless(plain_check('password', 'password'))
+        self.failIf(plain_check('notpassword', 'password'))
+
+    def test_factory_no_filename_raises(self):
+        from repoze.who.plugins.htpasswd import make_plugin
+        self.assertRaises(ValueError, make_plugin)
+
+    def test_factory_no_check_fn_raises(self):
+        from repoze.who.plugins.htpasswd import make_plugin
+        self.assertRaises(ValueError, make_plugin, 'foo')
+
     def test_factory(self):
         from repoze.who.plugins.htpasswd import make_plugin
         from repoze.who.plugins.htpasswd import crypt_check
