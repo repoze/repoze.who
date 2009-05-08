@@ -144,7 +144,8 @@ class AuthTktCookiePlugin(object):
                 return self._get_cookies(environ, new_cookie_value)
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, id(self))
+        return '<%s %s>' % (self.__class__.__name__,
+                            id(self)) #pragma NO COVERAGE
 
 def _bool(value):
     if isinstance(value, basestring):
