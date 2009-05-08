@@ -185,6 +185,10 @@ class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
         f = self._getFUT()
         self.assertRaises(ValueError, f, 'name', None, None)
 
+    def test_no_connfactory(self):
+        f = self._getFUT()
+        self.assertRaises(ValueError, f, 'name', 'statement', None)
+
     def test_bad_connfactory(self):
         f = self._getFUT()
         self.assertRaises(ValueError, f, 'name', 'statement',

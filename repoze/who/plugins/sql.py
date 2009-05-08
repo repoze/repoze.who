@@ -6,8 +6,8 @@ from repoze.who.interfaces import IMetadataProvider
 def default_password_compare(cleartext_password, stored_password_hash):
     try:
         from hashlib import sha1
-    except ImportError: # Python < 2.5
-        from sha import new as sha1
+    except ImportError: # Python < 2.5 #pragma NO COVERAGE
+        from sha import new as sha1    #pragma NO COVERAGE
 
     # the stored password is stored as '{SHA}<SHA hexdigest>'.
     # or as a cleartext password (no {SHA} prefix)
@@ -25,10 +25,10 @@ def default_password_compare(cleartext_password, stored_password_hash):
 
 def make_psycopg_conn_factory(**kw):
     # convenience (I always seem to use Postgres)
-    def conn_factory():
-        import psycopg2
-        return psycopg2.connect(kw['repoze.who.dsn'])
-    return conn_factory
+    def conn_factory(): #pragma NO COVERAGE
+        import psycopg2 #pragma NO COVERAGE
+        return psycopg2.connect(kw['repoze.who.dsn']) #pragma NO COVERAGE
+    return conn_factory #pragma NO COVERAGE
 
 class SQLAuthenticatorPlugin:
     implements(IAuthenticator)
