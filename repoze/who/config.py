@@ -19,9 +19,6 @@ def _resolve(name):
     if name:
         return EntryPoint.parse('x=%s' % name).load(False)
 
-def _isClassOrType(obj):
-    return type(obj) in (type(WhoConfig), type)
-
 class WhoConfig:
     def __init__(self, here):
         self.here = here
@@ -37,7 +34,6 @@ class WhoConfig:
     def _makePlugin(self, name, iface, **kw):
         obj = _resolve(name)
         if not iface.providedBy(obj):
-        #if _isClassOrType(obj) and iface.implementedBy(obj):
             obj = obj(**kw)
         return obj
 
