@@ -29,15 +29,16 @@ class MakeAuthenticatedRestrictionTests(unittest.TestCase):
 
     def test_enabled(self):
         from repoze.who.restrict import authenticated_predicate
-        return authenticated_predicate()
         fut = self._getFUT()
         app = DummyApp()
 
         filter = fut(app, {}, enabled=True)
 
         self.failUnless(filter.app is app)
-        self.assertEqual(filter.predicate, authenticated_predicate())
         self.failUnless(filter.enabled)
+        predicate = filter.predicate
+        self.failUnless(predicate({'REMOTE_USER': 'fred'}))
+        self.failUnless(predicate({'repoze.who.identity': {'login': 'fred'}}))
 
 class PredicateRestrictionTests(unittest.TestCase):
 
