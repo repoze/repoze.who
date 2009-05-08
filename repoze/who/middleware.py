@@ -348,11 +348,6 @@ class StartResponseWrapper(object):
             if hasattr(write, 'close'):
                 write.close()
 
-def make_middleware(app, global_conf, config_file=None):
-    if config_file is None:
-        raise ValueError('config_file must be specified')
-    return PluggableAuthenticationMiddleware(app)
-
 def make_test_middleware(app, global_conf):
     """ Functionally equivalent to
 

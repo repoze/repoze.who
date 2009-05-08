@@ -418,9 +418,6 @@ plugins =
 
 """
 
-# XXX need make_middleware tests
-
-
 class DummyApp:
     environ = None
     def __call__(self, environ, start_response):
