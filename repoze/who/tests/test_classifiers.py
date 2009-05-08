@@ -39,3 +39,24 @@ class TestDefaultRequestClassifier(unittest.TestCase):
         result = classifier(environ)
         self.assertEqual(result, 'browser')
 
+
+class TestDefaultChallengeDecider(unittest.TestCase):
+
+    def _getFUT(self):
+        from repoze.who.classifiers import default_challenge_decider
+        return default_challenge_decider
+
+    def _makeEnviron(self, kw=None):
+        environ = {}
+        environ['wsgi.version'] = (1,0)
+        if kw is not None:
+            environ.update(kw)
+        return environ
+
+    def test_challenges_on_401(self):
+        decider = self._getFUT()
+        self.failUnless(decider({}, '401 Unauthorized', []))
+
+    def test_doesnt_challenges_on_non_401(self):
+        decider = self._getFUT()
+        self.failIf(decider({}, '200 Ok', []))

@@ -49,7 +49,5 @@ def default_request_classifier(environ):
 zope.interface.directlyProvides(default_request_classifier, IRequestClassifier)
 
 def default_challenge_decider(environ, status, headers):
-    if status.startswith('401 '):
-        return True
-    return False
+    return status.startswith('401 ')
 zope.interface.directlyProvides(default_challenge_decider, IChallengeDecider)
