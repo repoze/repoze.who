@@ -67,7 +67,8 @@ class FormPluginBase(object):
         return rememberer.forget(environ, identity)
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, id(self))
+        return '<%s %s>' % (self.__class__.__name__,
+                            id(self)) #pragma NO COVERAGE
 
 class FormPlugin(FormPluginBase):
 
@@ -194,8 +195,7 @@ class RedirectingFormPlugin(FormPluginBase):
         headers = headers + forget_headers + cookies
         return HTTPFound(headers=headers)
 
-def make_plugin(login_form_qs='__do_login', rememberer_name=None,
-                form=None):
+def make_plugin(login_form_qs='__do_login', rememberer_name=None, form=None):
     if rememberer_name is None:
         raise ValueError(
             'must include rememberer key (name of another IIdentifier plugin)')

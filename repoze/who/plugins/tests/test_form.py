@@ -475,6 +475,38 @@ class TestRedirectingFormPlugin(unittest.TestCase):
         self.assertEqual(sr.headers[2][0], 'set-cookie')
         self.assertEqual(sr.headers[2][1], 'b')
 
+    def test_factory_no_login_form_url_raises(self):
+        from repoze.who.plugins.form import make_redirecting_plugin
+        self.assertRaises(ValueError, make_redirecting_plugin, None)
+
+    def test_factory_no_login_handler_path_raises(self):
+        from repoze.who.plugins.form import make_redirecting_plugin
+        self.assertRaises(ValueError,
+                          make_redirecting_plugin, '/go_there', None)
+
+    def test_factory_no_logout_handler_path_raises(self):
+        from repoze.who.plugins.form import make_redirecting_plugin
+        self.assertRaises(ValueError,
+                          make_redirecting_plugin,
+                          '/go_there', '/logged_in', None)
+
+    def test_factory_no_rememberer_name_raises(self):
+        from repoze.who.plugins.form import make_redirecting_plugin
+        self.assertRaises(ValueError,
+                          make_redirecting_plugin,
+                          '/go_there', '/logged_in', None)
+
+    def test_factory_ok(self):
+        from repoze.who.plugins.form import make_redirecting_plugin
+        plugin = make_redirecting_plugin('/go_there',
+                                         '/logged_in',
+                                         '/logged_out',
+                                         'rememberer')
+        self.assertEqual(plugin.login_form_url, '/go_there')
+        self.assertEqual(plugin.login_handler_path, '/logged_in')
+        self.assertEqual(plugin.logout_handler_path, '/logged_out')
+        self.assertEqual(plugin.rememberer_name, 'rememberer')
+
 class DummyIdentifier:
     forgotten = False
     remembered = False
