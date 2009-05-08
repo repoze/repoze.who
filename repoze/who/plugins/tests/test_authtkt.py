@@ -127,10 +127,12 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                           'auth_tkt="%s"; Path=/' % new_val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost' % new_val))
+                           'auth_tkt="%s"; Path=/; Domain=localhost'
+                            % new_val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost' % new_val))
+                           'auth_tkt="%s"; Path=/; Domain=.localhost'
+                            % new_val))
 
     def test_remember_creds_different_int_userid(self):
         plugin = self._makeOne('secret')
