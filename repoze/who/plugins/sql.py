@@ -4,14 +4,17 @@ from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IMetadataProvider
 
 def default_password_compare(cleartext_password, stored_password_hash):
-    import sha
+    try:
+        from hashlib import sha1
+    except ImportError: # Python < 2.5
+        from sha import new as sha1
 
     # the stored password is stored as '{SHA}<SHA hexdigest>'.
     # or as a cleartext password (no {SHA} prefix)
 
     if stored_password_hash.startswith('{SHA}'):
         stored_password_hash = stored_password_hash[5:]
-        digest = sha.new(cleartext_password).hexdigest()
+        digest = sha1(cleartext_password).hexdigest()
     else:
         digest = cleartext_password
         
