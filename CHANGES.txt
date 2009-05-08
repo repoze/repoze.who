@@ -7,7 +7,7 @@ repoze.who changes
 
 - Added a paragraph to ``IAuthenticator`` docstring, documenting that plugins
   are allowed to add keys to the ``identity`` dictionary (e.g., to save a
-  second database query ini an ``IMetadataProvider`` plugin).
+  second database query in an ``IMetadataProvider`` plugin).
 
 - Patch supplied for issue #71 (http://bugs.repoze.org/issue71)
   whereby a downstream app can return a generator, relying on an
