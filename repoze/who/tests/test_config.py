@@ -350,8 +350,8 @@ class TestConfigMiddleware(unittest.TestCase):
         app = DummyApp()
         factory = self._getFactory()
         tempfile = self._getTempfile(SAMPLE_CONFIG)
-        global_cohf = {'here': '/'}
-        middleware = factory(app, global_cohf, config_file=tempfile.name,
+        global_conf = {'here': '/'}
+        middleware = factory(app, global_conf, config_file=tempfile.name,
                              log_file='STDOUT', log_level='debug')
         from repoze.who.interfaces import IIdentifier
         from repoze.who.interfaces import IAuthenticator
@@ -367,8 +367,8 @@ class TestConfigMiddleware(unittest.TestCase):
         app = DummyApp()
         factory = self._getFactory()
         tempfile = self._getTempfile(SAMPLE_CONFIG)
-        global_cohf = {'here': '/'}
-        middleware = factory(app, global_cohf, config_file=tempfile.name,
+        global_conf = {'here': '/'}
+        middleware = factory(app, global_conf, config_file=tempfile.name,
                              log_file='STDOUT')
         import logging
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
