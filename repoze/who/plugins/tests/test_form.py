@@ -6,10 +6,14 @@ class TestFormPlugin(unittest.TestCase):
         from repoze.who.plugins.form import FormPlugin
         return FormPlugin
 
-    def _makeOne(self, login_form_qs='__do_login', rememberer_name='cookie',
-                 formbody=None):
+    def _makeOne(self,
+                 login_form_qs='__do_login',
+                 rememberer_name='cookie',
+                 formbody=None,
+                 formcallable=None,
+                ):
         plugin = self._getTargetClass()(login_form_qs, rememberer_name,
-                                        formbody)
+                                        formbody, formcallable)
         return plugin
 
     def _makeEnviron(self, login=None, password=None, do_login=False):
@@ -133,6 +137,16 @@ class TestFormPlugin(unittest.TestCase):
         self.assertEqual(sr.headers[1], ('Content-Type', 'text/html'))
         self.assertEqual(sr.status, '200 OK')
 
+    def test_challenge_formcallable(self):
+        def _formcallable(environ):
+            return 'formcallable'
+        plugin = self._makeOne(formcallable=_formcallable)
+        environ = self._makeEnviron()
+        app = plugin.challenge(environ, '401 Unauthorized', [], [])
+        sr = DummyStartResponse()
+        result = app(environ, sr)
+        self.assertEqual(result, ['formcallable'])
+
     def test_challenge_with_location(self):
         plugin = self._makeOne()
         environ = self._makeEnviron()
@@ -149,6 +163,10 @@ class TestFormPlugin(unittest.TestCase):
         self.assertEqual(headers[2],
                          ('content-type', 'text/plain; charset=utf8'))
         self.assertEqual(sr.status, '302 Found')
+
+    def test_factory_no_rememberer_name_raises(self):
+        from repoze.who.plugins.form import make_plugin
+        self.assertRaises(ValueError, make_plugin)
 
     def test_factory_withform(self):
         import os
@@ -494,7 +512,7 @@ class TestRedirectingFormPlugin(unittest.TestCase):
         from repoze.who.plugins.form import make_redirecting_plugin
         self.assertRaises(ValueError,
                           make_redirecting_plugin,
-                          '/go_there', '/logged_in', None)
+                          '/go_there', '/logged_in', '/logged_out', None)
 
     def test_factory_ok(self):
         from repoze.who.plugins.form import make_redirecting_plugin
