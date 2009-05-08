@@ -21,6 +21,24 @@ class AuthenticatedPredicateTests(unittest.TestCase):
         environ = {'repoze.who.identity': {'login': 'fred'}}
         self.failUnless(predicate(environ))
 
+class MakeAuthenticatedRestrictionTests(unittest.TestCase):
+
+    def _getFUT(self):
+        from repoze.who.restrict import make_authenticated_restriction
+        return make_authenticated_restriction
+
+    def test_enabled(self):
+        from repoze.who.restrict import authenticated_predicate
+        return authenticated_predicate()
+        fut = self._getFUT()
+        app = DummyApp()
+
+        filter = fut(app, {}, enabled=True)
+
+        self.failUnless(filter.app is app)
+        self.assertEqual(filter.predicate, authenticated_predicate())
+        self.failUnless(filter.enabled)
+
 class PredicateRestrictionTests(unittest.TestCase):
 
     def _getTargetClass(self):
