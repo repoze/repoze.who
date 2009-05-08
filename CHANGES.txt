@@ -5,6 +5,9 @@ repoze.who changes
 After 1.0.13
 ============
 
+- Added 'passthrough_challenge_decider', which avoids re-challenging 401
+  responses which have been "pre-challenged" by the application.
+
 - One-hundred percent unit test coverage.
 
 1.0.13 (2009/4/24)

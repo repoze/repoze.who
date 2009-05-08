@@ -60,3 +60,32 @@ class TestDefaultChallengeDecider(unittest.TestCase):
     def test_doesnt_challenges_on_non_401(self):
         decider = self._getFUT()
         self.failIf(decider({}, '200 Ok', []))
+
+class TestPassthroughChallengeDecider(unittest.TestCase):
+
+    def _getFUT(self):
+        from repoze.who.classifiers import passthrough_challenge_decider
+        return passthrough_challenge_decider
+
+    def _makeEnviron(self, kw=None):
+        environ = {}
+        environ['wsgi.version'] = (1,0)
+        if kw is not None:
+            environ.update(kw)
+        return environ
+
+    def test_challenges_on_bare_401(self):
+        decider = self._getFUT()
+        self.failUnless(decider({}, '401 Unauthorized', []))
+
+    def test_doesnt_challenges_on_non_401(self):
+        decider = self._getFUT()
+        self.failIf(decider({}, '200 Ok', []))
+
+    def test_doesnt_challenges_on_401_with_WWW_Authenticate(self):
+        decider = self._getFUT()
+        self.failIf(decider({}, '401 Ok', [('WWW-Authenticate', 'xxx')]))
+
+    def test_doesnt_challenges_on_401_with_text_html(self):
+        decider = self._getFUT()
+        self.failIf(decider({}, '401 Ok', [('Content-Type', 'text/html')]))

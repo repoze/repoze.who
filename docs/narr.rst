@@ -27,9 +27,10 @@ authentication, and challenge steps.  Plugins are free to advertise
 themselves as willing to participate in identification and
 authorization for a request based on this classification.  The request
 classification system is pluggable.  :mod:`repoze.who` provides a
-default classifier that you may use.  You may extend the
-classification system by making :mod:`repoze.who` aware of a different
-request classifier implementation.
+default classifier that you may use.
+
+You may extend the classification system by making :mod:`repoze.who` aware
+of a different request classifier implementation.
 
 Challenge Deciders
 ------------------
@@ -38,6 +39,12 @@ Challenge Deciders
 response returned from a downstream application requires a challenge
 plugin to fire.  When using the default challenge decider, only the
 status is used (if it starts with ``401``, a challenge is required).
+
+:mod:`repoze.who` also provides an alternate challenge decider,
+``repoze.who.classifiers.passthrough_challenge_decider``, which avoids
+challenging ``401`` responses which have been "pre-challenged" by the
+application.
+
 You may supply a different challenge decider as necessary.
 
 Plugins
