@@ -59,7 +59,8 @@ class BasicAuthPlugin(object):
         return HTTPUnauthorized(headers=head)
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, id(self))
+        return '<%s %s>' % (self.__class__.__name__,
+                            id(self)) #pragma NO COVERAGE
 
 def make_plugin(realm='basic'):
     plugin = BasicAuthPlugin(realm)
