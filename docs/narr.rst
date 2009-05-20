@@ -372,10 +372,11 @@ Middleware Configuration via Python Code
   of these can be specified as the empty sequence.  *classifier* is a
   request classifier callable, *challenge_decider* is a challenge
   decision callable.  *log_stream* is a stream object (an object with
-  a ``write`` method), *log_level* is a numeric value that maps to the
-  ``logging`` module's notion of log levels, *remote_user_key* is the
-  key in which the ``REMOTE_USER`` (userid) value should be placed in
-  the WSGI environment for consumption by downstream applications.
+  a ``write`` method) *or* a ``logging.Logger`` object, *log_level* is
+  a numeric value that maps to the ``logging`` module's notion of log
+  levels, *remote_user_key* is the key in which the ``REMOTE_USER``
+  (userid) value should be placed in the WSGI environment for
+  consumption by downstream applications.
 
 An example configuration which uses the default plugins follows::
 
