@@ -5,6 +5,9 @@ repoze.who changes
 After 1.0.13
 ============
 
+- Documented issue with using ``include_ip`` setting in the ``auth_tkt``
+  plugin.  See http://bugs.repoze.org/issue81 .
+
 - Added 'passthrough_challenge_decider', which avoids re-challenging 401
   responses which have been "pre-challenged" by the application.
 

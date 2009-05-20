@@ -226,6 +226,13 @@ authentication, identification, challenge and metadata provision.
   *include_ip* is True, the ``REMOTE_ADDR`` of the WSGI environment
   will be placed in the cookie.
 
+.. note::
+   Using the *include_ip* setting for public-facing applications may
+   cause problems for some users.  `One study
+   <http://westpoint.ltd.uk/advisories/Paul_Johnston_GSEC.pdf>`_ reports
+   that as many as 3% of users change their IP addresses legitimately
+   during a session.
+
 .. module:: repoze.who.plugins.basicauth
 
 .. class:: BasicAuthPlugin(realm)
