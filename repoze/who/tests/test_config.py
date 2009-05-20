@@ -326,63 +326,70 @@ use = repoze.who.tests.test_config:DummyPlugin
 """
 
 class TestConfigMiddleware(unittest.TestCase):
-    tempfile = None
+    tempdir = None
 
     def setUp(self):
         pass
 
     def tearDown(self):
-        if self.tempfile is not None:
-            self.tempfile.close()
+        if self.tempdir is not None:
+            import shutil
+            shutil.rmtree(self.tempdir)
 
     def _getFactory(self):
         from repoze.who.config import make_middleware_with_config
         return make_middleware_with_config
 
     def _getTempfile(self, text):
+        import os
         import tempfile
-        tf = self.tempfile = tempfile.NamedTemporaryFile()
-        tf.write(text)
-        tf.flush()
-        return tf
+        tempdir = self.tempdir = tempfile.mkdtemp()
+        path = os.path.join(tempdir, 'who.ini')
+        config = open(path, 'w')
+        config.write(text)
+        config.flush()
+        config.close()
+        return path
 
     def test_sample_config(self):
-        app = DummyApp()
-        factory = self._getFactory()
-        tempfile = self._getTempfile(SAMPLE_CONFIG)
-        global_conf = {'here': '/'}
-        middleware = factory(app, global_conf, config_file=tempfile.name,
-                             log_file='STDOUT', log_level='debug')
+        import logging
         from repoze.who.interfaces import IIdentifier
         from repoze.who.interfaces import IAuthenticator
         from repoze.who.interfaces import IChallenger
+        app = DummyApp()
+        factory = self._getFactory()
+        path = self._getTempfile(SAMPLE_CONFIG)
+        global_conf = {'here': '/'}
+        middleware = factory(app, global_conf, config_file=path,
+                             log_file='STDOUT', log_level='debug')
         self.assertEqual(len(middleware.registry[IIdentifier]), 3)
         self.assertEqual(len(middleware.registry[IAuthenticator]), 1)
         self.assertEqual(len(middleware.registry[IChallenger]), 2)
         self.failUnless(middleware.logger, middleware.logger)
-        import logging
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.DEBUG)
 
     def test_sample_config_no_log_level(self):
+        import logging
         app = DummyApp()
         factory = self._getFactory()
-        tempfile = self._getTempfile(SAMPLE_CONFIG)
+        path = self._getTempfile(SAMPLE_CONFIG)
         global_conf = {'here': '/'}
-        middleware = factory(app, global_conf, config_file=tempfile.name,
+        middleware = factory(app, global_conf, config_file=path,
                              log_file='STDOUT')
-        import logging
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
 
     def test_sample_config_w_log_file(self):
+        import logging
+        import os
         app = DummyApp()
         factory = self._getFactory()
-        tempfile = self._getTempfile(SAMPLE_CONFIG)
-        logfile = self._getTempfile('')
+        path = self._getTempfile(SAMPLE_CONFIG)
+        logfile = os.path.join(self.tempdir, 'who.log')
         global_conf = {'here': '/'}
-        middleware = factory(app, global_conf, config_file=tempfile.name,
-                             log_file=logfile.name)
-        import logging
+        middleware = factory(app, global_conf, config_file=path,
+                             log_file=logfile)
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
+        logging.shutdown()
 
 SAMPLE_CONFIG = """\
 [plugin:form]

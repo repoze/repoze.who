@@ -1,6 +1,15 @@
 import unittest
 
 class TestAuthTktCookiePlugin(unittest.TestCase):
+    tempdir = None
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        if self.tempdir is not None:
+            import shutil
+            shutil.rmtree(self.tempdir)
 
     def _getTargetClass(self):
         from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
@@ -280,11 +289,15 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(plugin.secure, False)
 
     def test_factory_w_secretfile(self):
-        from tempfile import NamedTemporaryFile
+        import os
+        from tempfile import mkdtemp
         from repoze.who.plugins.auth_tkt import make_plugin
-        ntf = NamedTemporaryFile()
-        ntf.write('s33kr1t\n')
-        ntf.flush()
-        plugin = make_plugin(secretfile=ntf.name)
+        tempdir = self.tempdir = mkdtemp()
+        path = os.path.join(tempdir, 'who.secret')
+        secret = open(path, 'w')
+        secret.write('s33kr1t\n')
+        secret.flush()
+        secret.close()
+        plugin = make_plugin(secretfile=path)
         self.assertEqual(plugin.secret, 's33kr1t')
 
