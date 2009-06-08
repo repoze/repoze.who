@@ -29,7 +29,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
 
     def _makeTicket(self, userid='userid', remote_addr='0.0.0.0',
                     tokens = [], userdata='userdata',
-                    cookie_name='auth_tkt', secure=False):
+                    cookie_name='auth_tkt', secure=False,
+                    time=None):
         from paste.auth import auth_tkt
         ticket = auth_tkt.AuthTicket(
             'secret',
@@ -37,6 +38,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
             remote_addr,
             tokens=tokens,
             user_data=userdata,
+            time=time,
             cookie_name=cookie_name,
             secure=secure)
         return ticket.cookie_value()
@@ -115,6 +117,14 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         result = plugin.identify(environ)
         self.assertEqual(result, None)
     
+    def test_identify_bad_cookie_expired(self):
+        import time
+        plugin = self._makeOne('secret', timeout=2, reissue_time=1)
+        val = self._makeTicket(userid='userid', time=time.time()-3)
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+
     def test_remember_creds_same(self):
         plugin = self._makeOne('secret')
         val = self._makeTicket(userid='userid')
@@ -250,6 +260,20 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                          ('Set-Cookie',
                           'auth_tkt="%s"; Path=/' % new_val))
 
+    def test_remember_creds_reissue(self):
+        import time
+        plugin = self._makeOne('secret', reissue_time=1)
+        old_val = self._makeTicket(userid='userid', userdata='', time=time.time()-2)
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
+        new_val = self._makeTicket(userid='userid', userdata='')
+        result = plugin.remember(environ, {'repoze.who.userid':'userid',
+                                           'userdata':''})
+        self.assertEqual(type(result[0][1]), str)
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt="%s"; Path=/' % new_val))
+
     def test_forget(self):
         plugin = self._makeOne('secret')
         environ = self._makeEnviron()
@@ -301,3 +325,15 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         plugin = make_plugin(secretfile=path)
         self.assertEqual(plugin.secret, 's33kr1t')
 
+    def test_factory_with_timeout_and_reissue_time(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        plugin = make_plugin('secret', timeout=5, reissue_time=1)
+        self.assertEqual(plugin.timeout, 5)
+        self.assertEqual(plugin.reissue_time, 1)
+
+    def test_timeout_no_reissue(self):
+        self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1)
+
+    def test_timeout_lower_than_reissue(self):
+        self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1,
+                          reissue_time=2)

@@ -212,7 +212,7 @@ authentication, identification, challenge and metadata provision.
 
 .. module:: repoze.who.plugins.auth_tkt
 
-.. class:: AuthTktCookiePlugin(secret [, cookie_name='auth_tkt' [, secure=False [, include_ip=False]]])
+.. class:: AuthTktCookiePlugin(secret [, cookie_name='auth_tkt' [, secure=False [, include_ip=False [, timeout=None [, reissue_time=None]]]]])
 
   An :class:`AuthTktCookiePlugin` is an ``IIdentifier`` plugin which
   remembers its identity state in a client-side cookie.  This plugin
@@ -224,7 +224,12 @@ authentication, identification, challenge and metadata provision.
   will be sent across any HTTP or HTTPS connection; if it is True, the
   cookie will be sent only across an HTTPS connection.  If
   *include_ip* is True, the ``REMOTE_ADDR`` of the WSGI environment
-  will be placed in the cookie.
+  will be placed in the cookie. If *timeout* is specfied, it is the
+  maximum age in seconds allowed for a cookie. If *reissue_time* is
+  specified, when we encounter a cookie that is older than the reissue
+  time (in seconds), but younger that the timeout, a new cookie will
+  be issued. If *timeout* is specified, you must also set
+  *reissue_time* to a lower value.
 
 .. note::
    Using the *include_ip* setting for public-facing applications may

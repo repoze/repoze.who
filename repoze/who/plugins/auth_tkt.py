@@ -1,6 +1,7 @@
 from codecs import utf_8_decode
 from codecs import utf_8_encode
 import os
+import time
 
 from paste.request import get_cookies
 from paste.auth import auth_tkt
@@ -25,11 +26,17 @@ class AuthTktCookiePlugin(object):
         }
     
     def __init__(self, secret, cookie_name='auth_tkt',
-                 secure=False, include_ip=False):
+                 secure=False, include_ip=False,
+                 timeout=None, reissue_time=None):
         self.secret = secret
         self.cookie_name = cookie_name
         self.include_ip = include_ip
         self.secure = secure
+        if timeout and ( (not reissue_time) or (reissue_time > timeout) ):
+            raise ValueError('When timeout is specified, reissue_time must '
+                             'be set to a lower value')
+        self.timeout = timeout
+        self.reissue_time = reissue_time
 
     # IIdentifier
     def identify(self, environ):
@@ -48,6 +55,9 @@ class AuthTktCookiePlugin(object):
             timestamp, userid, tokens, user_data = auth_tkt.parse_ticket(
                 self.secret, cookie.value, remote_addr)
         except auth_tkt.BadTicket:
+            return None
+
+        if self.timeout and ( (timestamp + self.timeout) < time.time() ):
             return None
 
         userid_typename = 'userid_type:'
@@ -126,7 +136,8 @@ class AuthTktCookiePlugin(object):
         old_data = (userid, tokens, userdata)
         new_data = (who_userid, who_tokens, who_userdata)
 
-        if old_data != new_data:
+        if old_data != new_data or (self.reissue_time and
+                ( (timestamp + self.reissue_time) < time.time() )):
             ticket = auth_tkt.AuthTicket(
                 self.secret,
                 who_userid,
@@ -157,6 +168,8 @@ def make_plugin(secret=None,
                 cookie_name='auth_tkt',
                 secure=False,
                 include_ip=False,
+                timeout=None,
+                reissue_time=None,
                ):
     if (secret is None and secretfile is None):
         raise ValueError("One of 'secret' or 'secretfile' must not be None.")
@@ -167,7 +180,16 @@ def make_plugin(secret=None,
         if not os.path.exists(secretfile):
             raise ValueError("No such 'secretfile': %s" % secretfile)
         secret = open(secretfile).read().strip()
-    plugin = AuthTktCookiePlugin(secret, cookie_name,
-                                 _bool(secure), _bool(include_ip))
+    if timeout:
+        timeout = int(timeout)
+    if reissue_time:
+        reissue_time = int(reissue_time)
+    plugin = AuthTktCookiePlugin(secret,
+                                 cookie_name,
+                                 _bool(secure),
+                                 _bool(include_ip),
+                                 timeout,
+                                 reissue_time,
+                                 )
     return plugin
 
