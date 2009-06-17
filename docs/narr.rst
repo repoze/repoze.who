@@ -212,7 +212,7 @@ authentication, identification, challenge and metadata provision.
 
 .. module:: repoze.who.plugins.auth_tkt
 
-.. class:: AuthTktCookiePlugin(secret [, cookie_name='auth_tkt' [, secure=False [, include_ip=False [, timeout=None [, reissue_time=None]]]]])
+.. class:: AuthTktCookiePlugin(secret [, secretfile=None, [, cookie_name='auth_tkt' [, secure=False [, include_ip=False [, timeout=None [, reissue_time=None [, userid_checker=None]]]]]]])
 
   An :class:`AuthTktCookiePlugin` is an ``IIdentifier`` plugin which
   remembers its identity state in a client-side cookie.  This plugin
@@ -230,6 +230,28 @@ authentication, identification, challenge and metadata provision.
   time (in seconds), but younger that the timeout, a new cookie will
   be issued. If *timeout* is specified, you must also set
   *reissue_time* to a lower value.
+
+  If ``userid_checker`` is provided, it must be a dotted Python name
+  that resolves to a function which accepts a userid and returns a
+  boolean True or False, indicating whether that user exists in a
+  database.  This is a workaround.  Due to a design bug in repoze.who,
+  the only way who can check for user existence is to use one or more
+  IAuthenticator plugin ``authenticate`` methods.  If an
+  IAuthenticator's ``authenticate`` method returns true, it means that
+  the user exists.  However most IAuthenticator plugins expect *both*
+  a username and a password, and will return False unconditionally if
+  both aren't supplied.  This means that an authenticator can't be
+  used to check if the user "only" exists.  The identity provided by
+  an auth_tkt does not contain a password to check against.  The
+  actual design bug in repoze.who is this: when a user presents
+  credentials from an auth_tkt, he is considered "preauthenticated".
+  IAuthenticator.authenticate is just never called for a
+  "preauthenticated" identity, which works fine, but it means that the
+  user will be considered authenticated even if you deleted the user's
+  record from whatever database you happen to be using.  However, if
+  you use a userid_checker, you can ensure that a user exists for the
+  auth_tkt supplied userid.  If the userid_checker returns False, the
+  auth_tkt credentials are considered "no good".
 
 .. note::
    Using the *include_ip* setting for public-facing applications may

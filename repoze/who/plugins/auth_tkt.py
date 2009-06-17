@@ -27,7 +27,7 @@ class AuthTktCookiePlugin(object):
     
     def __init__(self, secret, cookie_name='auth_tkt',
                  secure=False, include_ip=False,
-                 timeout=None, reissue_time=None):
+                 timeout=None, reissue_time=None, userid_checker=None):
         self.secret = secret
         self.cookie_name = cookie_name
         self.include_ip = include_ip
@@ -37,6 +37,7 @@ class AuthTktCookiePlugin(object):
                              'be set to a lower value')
         self.timeout = timeout
         self.reissue_time = reissue_time
+        self.userid_checker = userid_checker
 
     # IIdentifier
     def identify(self, environ):
@@ -55,6 +56,9 @@ class AuthTktCookiePlugin(object):
             timestamp, userid, tokens, user_data = auth_tkt.parse_ticket(
                 self.secret, cookie.value, remote_addr)
         except auth_tkt.BadTicket:
+            return None
+
+        if self.userid_checker and not self.userid_checker(userid):
             return None
 
         if self.timeout and ( (timestamp + self.timeout) < time.time() ):
@@ -170,7 +174,9 @@ def make_plugin(secret=None,
                 include_ip=False,
                 timeout=None,
                 reissue_time=None,
+                userid_checker=None,
                ):
+    from repoze.who.utils import resolveDotted
     if (secret is None and secretfile is None):
         raise ValueError("One of 'secret' or 'secretfile' must not be None.")
     if (secret is not None and secretfile is not None):
@@ -184,12 +190,15 @@ def make_plugin(secret=None,
         timeout = int(timeout)
     if reissue_time:
         reissue_time = int(reissue_time)
+    if userid_checker is not None:
+        userid_checker = resolveDotted(userid_checker)
     plugin = AuthTktCookiePlugin(secret,
                                  cookie_name,
                                  _bool(secure),
                                  _bool(include_ip),
                                  timeout,
                                  reissue_time,
+                                 userid_checker,
                                  )
     return plugin
 

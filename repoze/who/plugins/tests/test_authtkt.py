@@ -331,9 +331,45 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(plugin.timeout, 5)
         self.assertEqual(plugin.reissue_time, 1)
 
+    def test_factory_with_userid_checker(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        plugin = make_plugin(
+            'secret',
+            userid_checker='repoze.who.plugins.auth_tkt:make_plugin')
+        self.assertEqual(plugin.userid_checker, make_plugin)
+
     def test_timeout_no_reissue(self):
         self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1)
 
     def test_timeout_lower_than_reissue(self):
         self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1,
                           reissue_time=2)
+
+    def test_identify_with_checker_and_existing_account(self):
+        plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
+        val = self._makeTicket(userid='existing')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        result = plugin.identify(environ)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result['tokens'], [''])
+        self.assertEqual(result['repoze.who.userid'], 'existing')
+        self.assertEqual(result['userdata'], 'userdata')
+        self.failUnless('timestamp' in result)
+        self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
+        self.assertEqual(environ['REMOTE_USER_DATA'],'userdata')
+        self.assertEqual(environ['AUTH_TYPE'],'cookie')
+    
+    def test_identify_with_checker_and_non_existing_account(self):
+        plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
+        val = self._makeTicket(userid='nonexisting')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        original_environ = environ.copy()
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+        # The environ must not have been modified, excuding the paste.cookies
+        # variable:
+        del environ['paste.cookies']
+        self.assertEqual(environ, original_environ)
+    
+def dummy_userid_checker(userid):
+    return userid == 'existing'
