@@ -2,8 +2,8 @@
 repoze.who changes
 ==================
 
-After 1.0.13
-============
+1.0.14 (2009/06/17)
+===================
 
 - Fix test breakage on Windows.  See http://bugs.repoze.org/issue79 .
 
