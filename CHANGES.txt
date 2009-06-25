@@ -2,8 +2,8 @@
 repoze.who changes
 ==================
 
-Next release
-============
+1.0.15 (2009/06/25)
+===================
 
 - If the form post value ``max_age`` exists while in the ``identify``
   method is handling the ``login_handler_path``, pass the max_age
