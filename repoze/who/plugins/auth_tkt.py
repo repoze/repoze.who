@@ -1,3 +1,4 @@
+import datetime
 from codecs import utf_8_decode
 from codecs import utf_8_encode
 import os
@@ -84,16 +85,27 @@ class AuthTktCookiePlugin(object):
         identity['userdata'] = user_data
         return identity
 
-    def _get_cookies(self, environ, value):
+    def _get_cookies(self, environ, value, max_age=None):
+        if max_age is not None:
+            later = datetime.datetime.now() + datetime.timedelta(
+                seconds=int(max_age))
+            # Wdy, DD-Mon-YY HH:MM:SS GMT
+            expires = later.strftime('%a, %d %b %Y %H:%M:%S')
+            # the Expires header is *required* at least for IE7 (IE7 does
+            # not respect Max-Age)
+            max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
+        else:
+            max_age = ''
+
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
         wild_domain = '.' + cur_domain
         cookies = [
-            ('Set-Cookie', '%s="%s"; Path=/' % (
-            self.cookie_name, value)),
-            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s' % (
-            self.cookie_name, value, cur_domain)),
-            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s' % (
-            self.cookie_name, value, wild_domain))
+            ('Set-Cookie', '%s="%s"; Path=/%s' % (
+            self.cookie_name, value, max_age)),
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s' % (
+            self.cookie_name, value, cur_domain, max_age)),
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s' % (
+            self.cookie_name, value, wild_domain, max_age))
             ]
         return cookies
 
@@ -113,6 +125,7 @@ class AuthTktCookiePlugin(object):
         old_cookie = cookies.get(self.cookie_name)
         existing = cookies.get(self.cookie_name)
         old_cookie_value = getattr(existing, 'value', None)
+        max_age = identity.get('max_age', None)
 
         timestamp, userid, tokens, userdata = None, '', '', ''
 
@@ -156,7 +169,7 @@ class AuthTktCookiePlugin(object):
             wild_domain = '.' + cur_domain
             if old_cookie_value != new_cookie_value:
                 # return a set of Set-Cookie headers
-                return self._get_cookies(environ, new_cookie_value)
+                return self._get_cookies(environ, new_cookie_value, max_age)
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__,

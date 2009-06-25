@@ -370,6 +370,38 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         # variable:
         del environ['paste.cookies']
         self.assertEqual(environ, original_environ)
-    
+
+    def test_remember_max_age(self):
+        plugin = self._makeOne('secret')
+        environ = {'HTTP_HOST':'example.com'}
+        
+        tkt = self._makeTicket(userid='chris', userdata='')
+        result = plugin.remember(environ, {'repoze.who.userid':'chris',
+                                           'max_age':'500'})
+        
+        name,value = result.pop(0)
+        self.assertEqual('Set-Cookie', name)
+        self.failUnless(
+            value.startswith('auth_tkt="%s"; Path=/; Max-Age=500' % tkt),
+            value)
+        self.failUnless('; Expires=' in value)
+        
+        name,value = result.pop(0)
+        self.assertEqual('Set-Cookie', name)
+        self.failUnless(
+            value.startswith(
+            'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
+            % tkt), value)
+        self.failUnless('; Expires=' in value)
+
+        name,value = result.pop(0)
+        self.assertEqual('Set-Cookie', name)
+        self.failUnless(
+            value.startswith(
+            'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
+            value)
+        self.failUnless('; Expires=' in value)
+
+
 def dummy_userid_checker(userid):
     return userid == 'existing'

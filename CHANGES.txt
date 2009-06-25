@@ -2,6 +2,15 @@
 repoze.who changes
 ==================
 
+Next release
+============
+
+- If the ``identity`` dict passed to the ``auth_tkt`` ``remember``
+  method contains a ``max_age`` key with a string (or integer) value,
+  treat it as a cue to set the ``Max-Age`` and ``Expires`` headers in
+  the returned cookies.  The cookie ``Max-Age`` is set to the value
+  and the ``Expires`` is computed from the current time.
+
 1.0.14 (2009/06/17)
 ===================
 
