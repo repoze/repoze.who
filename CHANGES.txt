@@ -5,6 +5,11 @@ repoze.who changes
 Next release
 ============
 
+- If the form post value ``max_age`` exists while in the ``identify``
+  method is handling the ``login_handler_path``, pass the max_age
+  value in the returned identity dictionary as ``max_age``.  See the
+  below bullet point for why.
+
 - If the ``identity`` dict passed to the ``auth_tkt`` ``remember``
   method contains a ``max_age`` key with a string (or integer) value,
   treat it as a cue to set the ``Max-Age`` and ``Expires`` headers in

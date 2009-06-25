@@ -105,7 +105,11 @@ class FormPlugin(FormPluginBase):
             environ['QUERY_STRING'] = urllib.urlencode(query)
             environ['repoze.who.application'] = HTTPFound(
                                                     construct_url(environ))
-            return {'login':login, 'password':password}
+            credentials = {'login':login, 'password':password}
+            max_age = form.get('max_age', None)
+            if max_age is not None:
+                credentials['max_age'] = max_age
+            return credentials
 
         return None
 
@@ -167,12 +171,19 @@ class RedirectingFormPlugin(FormPluginBase):
             try:
                 login = form['login']
                 password = form['password']
+                max_age = form.get('max_age', None)
                 credentials = {
                     'login':form['login'],
-                    'password':form['password']
+                    'password':form['password'],
                     }
             except KeyError:
                 credentials = None
+
+            if credentials is not None:
+                max_age = form.get('max_age', None)
+                if max_age is not None:
+                    credentials['max_age'] = max_age
+            
             referer = environ.get('HTTP_REFERER', '/')
             came_from = form.get('came_from', referer)
             environ['repoze.who.application'] = HTTPFound(came_from)

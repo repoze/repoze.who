@@ -16,13 +16,16 @@ class TestFormPlugin(unittest.TestCase):
                                         formbody, formcallable)
         return plugin
 
-    def _makeEnviron(self, login=None, password=None, do_login=False):
+    def _makeEnviron(self, login=None, password=None, do_login=False,
+                     max_age=None):
         from StringIO import StringIO
         fields = []
         if login:
             fields.append(('login', login))
         if password:
             fields.append(('password', password))
+        if max_age:
+            fields.append(('max_age', max_age))
         content_type, body = encode_multipart_formdata(fields)
         credentials = {'login':'chris', 'password':'password'}
         identifier = DummyIdentifier(credentials)
@@ -82,6 +85,18 @@ class TestFormPlugin(unittest.TestCase):
                                         password='password')
         result = plugin.identify(environ)
         self.assertEqual(result, {'login':'chris', 'password':'password'})
+        app = environ['repoze.who.application']
+        self.failUnless(isinstance(app, HTTPFound))
+        self.assertEqual(app.location(), 'http://localhost:8080/protected')
+
+    def test_identify_success_with_max_age(self):
+        from paste.httpexceptions import HTTPFound
+        plugin = self._makeOne()
+        environ = self._makeEnviron(do_login=True, login='chris',
+                                        password='password', max_age='500')
+        result = plugin.identify(environ)
+        self.assertEqual(result, {'login':'chris', 'password':'password',
+                                  'max_age':'500'})
         app = environ['repoze.who.application']
         self.failUnless(isinstance(app, HTTPFound))
         self.assertEqual(app.location(), 'http://localhost:8080/protected')
@@ -204,7 +219,7 @@ class TestRedirectingFormPlugin(unittest.TestCase):
         return plugin
 
     def _makeEnviron(self, login=None, password=None, came_from=None,
-                         path_info='/', identifier=None):
+                         path_info='/', identifier=None, max_age=None):
         from StringIO import StringIO
         fields = []
         if login:
@@ -213,6 +228,8 @@ class TestRedirectingFormPlugin(unittest.TestCase):
             fields.append(('password', password))
         if came_from:
             fields.append(('came_from', came_from))
+        if max_age:
+            fields.append(('max_age', max_age))
         if identifier is None:
             credentials = {'login':'chris', 'password':'password'}
             identifier = DummyIdentifier(credentials)
@@ -254,6 +271,23 @@ class TestRedirectingFormPlugin(unittest.TestCase):
                                         came_from='http://example.com')
         result = plugin.identify(environ)
         self.assertEqual(result, {'login':'chris', 'password':'password'})
+        app = environ['repoze.who.application']
+        self.assertEqual(len(app.headers), 1)
+        name, value = app.headers[0]
+        self.assertEqual(name, 'location')
+        self.assertEqual(value, 'http://example.com')
+        self.assertEqual(app.code, 302)
+
+    def test_identify_via_login_handler_max_age(self):
+        plugin = self._makeOne()
+        environ = self._makeEnviron(path_info='/login_handler',
+                                    login='chris',
+                                    password='password',
+                                    came_from='http://example.com',
+                                    max_age='500')
+        result = plugin.identify(environ)
+        self.assertEqual(result, {'login':'chris', 'password':'password',
+                                  'max_age':'500'})
         app = environ['repoze.who.application']
         self.assertEqual(len(app.headers), 1)
         name, value = app.headers[0]
