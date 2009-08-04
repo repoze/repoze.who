@@ -213,6 +213,16 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(second[0], 'bar')
         self.failUnless(isinstance(second[1], PLUGIN_CLASS))
 
+    def test_parse_make_plugin_names(self):
+        # see http://bugs.repoze.org/issue92
+        config = self._makeOne()
+        config.parse(MAKE_PLUGIN_ARG_NAMES)
+        self.assertEqual(len(config.plugins), 1)
+        foo = config.plugins['foo']
+        self.failUnless(isinstance(foo, DummyPlugin))
+        self.assertEqual(foo.iface, 'iface')
+        self.assertEqual(foo.name, 'name')
+
 class DummyPlugin:
     def __init__(self, **kw):
         self.__dict__.update(kw)
@@ -323,6 +333,13 @@ use = repoze.who.tests.test_config:DummyPlugin
 
 [plugin:bar]
 use = repoze.who.tests.test_config:DummyPlugin
+"""
+
+MAKE_PLUGIN_ARG_NAMES = """\
+[plugin:foo]
+use = repoze.who.tests.test_config:DummyPlugin
+name = name
+iface = iface
 """
 
 class TestConfigMiddleware(unittest.TestCase):
