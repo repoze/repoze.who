@@ -1,8 +1,8 @@
 repoze.who Changelog
 ====================
 
-Next release
-------------
+1.0.15 (2009-11-04)
+-------------------
 
 - Exposed ``formcallable`` argument for ``repoze.who.plugins.form.FormPlugin``
   to the callers of the ``repoze.who.plugins.form.make_plugin`` factory.
