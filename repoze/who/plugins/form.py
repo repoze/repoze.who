@@ -206,13 +206,17 @@ class RedirectingFormPlugin(FormPluginBase):
         headers = headers + forget_headers + cookies
         return HTTPFound(headers=headers)
 
-def make_plugin(login_form_qs='__do_login', rememberer_name=None, form=None):
+def make_plugin(login_form_qs='__do_login',
+                rememberer_name=None,
+                form=None,
+                formcallable=None,
+               ):
     if rememberer_name is None:
         raise ValueError(
             'must include rememberer key (name of another IIdentifier plugin)')
     if form is not None:
         form = open(form).read()
-    plugin = FormPlugin(login_form_qs, rememberer_name, form)
+    plugin = FormPlugin(login_form_qs, rememberer_name, form, formcallable)
     return plugin
 
 def make_redirecting_plugin(login_form_url=None,

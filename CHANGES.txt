@@ -4,10 +4,14 @@ repoze.who Changelog
 Next release
 ------------
 
-- Fixed an issue that caused the following symptom when using the
-  ini configuration parser:
+- Exposed ``formcallable`` argument for ``repoze.who.plugins.form.FormPlugin``
+  to the callers of the ``repoze.who.plugins.form.make_plugin`` factory.
+  Thanks to Roland Hedburg for the report.
 
-  TypeError: _makePlugin() got multiple values for keyword argument 'name'
+- Fixed an issue that caused the following symptom when using the
+  ini configuration parser::
+
+   TypeError: _makePlugin() got multiple values for keyword argument 'name'
 
   See http://bugs.repoze.org/issue92 for more details.  Thanks to vaab
   for the bug report and initial fix.

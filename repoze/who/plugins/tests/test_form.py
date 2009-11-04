@@ -198,12 +198,21 @@ class Test_make_plugin(unittest.TestCase):
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
         self.assertEqual(plugin.formbody, formbody)
+        self.assertEqual(plugin.formcallable, None)
 
     def test_default_form(self):
         plugin = self._callFUT('__login', 'cookie')
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
         self.assertEqual(plugin.formbody, None)
+        self.assertEqual(plugin.formcallable, None)
+
+    def test_with_formcallable(self):
+        def _callable(environ):
+            return {'foo': 'bar'}
+        plugin = self._callFUT('__login', 'cookie', formcallable=_callable)
+        self.assertEqual(plugin.formcallable, _callable)
+
 
 class TestRedirectingFormPlugin(unittest.TestCase):
 
