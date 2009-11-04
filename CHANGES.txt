@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-1.0.15 (2009-11-04)
+1.0.16 (2009-11-04)
 -------------------
 
 - Exposed ``formcallable`` argument for ``repoze.who.plugins.form.FormPlugin``
