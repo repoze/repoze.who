@@ -179,25 +179,28 @@ class TestFormPlugin(unittest.TestCase):
                          ('content-type', 'text/plain; charset=utf8'))
         self.assertEqual(sr.status, '302 Found')
 
-    def test_factory_no_rememberer_name_raises(self):
-        from repoze.who.plugins.form import make_plugin
-        self.assertRaises(ValueError, make_plugin)
+class Test_make_plugin(unittest.TestCase):
 
-    def test_factory_withform(self):
-        import os
+    def _callFUT(self, *args, **kw):
         from repoze.who.plugins.form import make_plugin
+        return make_plugin(*args, **kw)
+
+    def test_no_rememberer_name_raises(self):
+        self.assertRaises(ValueError, self._callFUT)
+
+    def test_with_form(self):
+        import os
         here = os.path.dirname(__file__)
         fixtures = os.path.join(here, 'fixtures')
         form = os.path.join(fixtures, 'form.html')
         formbody = open(form).read()
-        plugin = make_plugin('__login', 'cookie', form)
+        plugin = self._callFUT('__login', 'cookie', form)
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
         self.assertEqual(plugin.formbody, formbody)
 
-    def test_factory_defaultform(self):
-        from repoze.who.plugins.form import make_plugin
-        plugin = make_plugin('__login', 'cookie')
+    def test_default_form(self):
+        plugin = self._callFUT('__login', 'cookie')
         self.assertEqual(plugin.login_form_qs, '__login')
         self.assertEqual(plugin.rememberer_name, 'cookie')
         self.assertEqual(plugin.formbody, None)
@@ -527,33 +530,31 @@ class TestRedirectingFormPlugin(unittest.TestCase):
         self.assertEqual(sr.headers[2][0], 'set-cookie')
         self.assertEqual(sr.headers[2][1], 'b')
 
-    def test_factory_no_login_form_url_raises(self):
+class Test_make_redirecting_plugin(unittest.TestCase):
+
+    def _callFUT(self, *args, **kw):
         from repoze.who.plugins.form import make_redirecting_plugin
-        self.assertRaises(ValueError, make_redirecting_plugin, None)
+        return make_redirecting_plugin(*args, **kw)
+
+    def test_factory_no_login_form_url_raises(self):
+        self.assertRaises(ValueError, self._callFUT, None)
 
     def test_factory_no_login_handler_path_raises(self):
-        from repoze.who.plugins.form import make_redirecting_plugin
-        self.assertRaises(ValueError,
-                          make_redirecting_plugin, '/go_there', None)
+        self.assertRaises(ValueError, self._callFUT, '/go_there', None)
 
     def test_factory_no_logout_handler_path_raises(self):
-        from repoze.who.plugins.form import make_redirecting_plugin
-        self.assertRaises(ValueError,
-                          make_redirecting_plugin,
+        self.assertRaises(ValueError, self._callFUT,
                           '/go_there', '/logged_in', None)
 
     def test_factory_no_rememberer_name_raises(self):
-        from repoze.who.plugins.form import make_redirecting_plugin
-        self.assertRaises(ValueError,
-                          make_redirecting_plugin,
+        self.assertRaises(ValueError, self._callFUT,
                           '/go_there', '/logged_in', '/logged_out', None)
 
     def test_factory_ok(self):
-        from repoze.who.plugins.form import make_redirecting_plugin
-        plugin = make_redirecting_plugin('/go_there',
-                                         '/logged_in',
-                                         '/logged_out',
-                                         'rememberer')
+        plugin = self._callFUT('/go_there',
+                               '/logged_in',
+                               '/logged_out',
+                               'rememberer')
         self.assertEqual(plugin.login_form_url, '/go_there')
         self.assertEqual(plugin.login_handler_path, '/logged_in')
         self.assertEqual(plugin.logout_handler_path, '/logged_out')
