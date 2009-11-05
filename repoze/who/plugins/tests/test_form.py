@@ -208,10 +208,14 @@ class Test_make_plugin(unittest.TestCase):
         self.assertEqual(plugin.formcallable, None)
 
     def test_with_formcallable(self):
-        def _callable(environ):
-            return {'foo': 'bar'}
-        plugin = self._callFUT('__login', 'cookie', formcallable=_callable)
-        self.assertEqual(plugin.formcallable, _callable)
+        dotted='repoze.who.plugins.tests.test_form:sample_formcallable'
+        plugin = self._callFUT('__login', 'cookie', 
+                               formcallable=dotted
+                               )
+        self.assertEqual(plugin.formcallable, sample_formcallable)
+
+def sample_formcallable(environ):
+    return {'foo': 'bar'}
 
 
 class TestRedirectingFormPlugin(unittest.TestCase):

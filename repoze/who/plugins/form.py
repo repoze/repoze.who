@@ -16,6 +16,7 @@ from paste.response import header_value
 
 from zope.interface import implements
 
+from repoze.who.config import _resolve
 from repoze.who.interfaces import IChallenger
 from repoze.who.interfaces import IIdentifier
 
@@ -216,6 +217,8 @@ def make_plugin(login_form_qs='__do_login',
             'must include rememberer key (name of another IIdentifier plugin)')
     if form is not None:
         form = open(form).read()
+    if isinstance(formcallable, str):
+        formcallable = _resolve(formcallable)
     plugin = FormPlugin(login_form_qs, rememberer_name, form, formcallable)
     return plugin
 
