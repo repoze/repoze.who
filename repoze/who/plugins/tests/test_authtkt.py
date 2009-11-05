@@ -2,6 +2,7 @@ import unittest
 
 class TestAuthTktCookiePlugin(unittest.TestCase):
     tempdir = None
+    _now_testing = None
 
     def setUp(self):
         pass
@@ -10,6 +11,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         if self.tempdir is not None:
             import shutil
             shutil.rmtree(self.tempdir)
+        if self._now_testing is not None:
+            self._setNowTesting(self._now_testing)
 
     def _getTargetClass(self):
         from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
@@ -42,6 +45,10 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
             cookie_name=cookie_name,
             secure=secure)
         return ticket.cookie_value()
+
+    def _setNowTesting(self, value):
+        from repoze.who.plugins import auth_tkt
+        auth_tkt._NOW_TESTING, self._now_testing = value, auth_tkt._NOW_TESTING
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
@@ -263,7 +270,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
     def test_remember_creds_reissue(self):
         import time
         plugin = self._makeOne('secret', reissue_time=1)
-        old_val = self._makeTicket(userid='userid', userdata='', time=time.time()-2)
+        old_val = self._makeTicket(userid='userid', userdata='',
+                                   time=time.time()-2)
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
         new_val = self._makeTicket(userid='userid', userdata='')
         result = plugin.remember(environ, {'repoze.who.userid':'userid',
@@ -275,6 +283,9 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                           'auth_tkt="%s"; Path=/' % new_val))
 
     def test_forget(self):
+        from datetime import datetime
+        now = datetime(2009, 11, 5, 16, 15, 22)
+        self._setNowTesting(now)
         plugin = self._makeOne('secret')
         environ = self._makeEnviron()
         headers = plugin.forget(environ, None)
@@ -282,15 +293,24 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         header = headers[0]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
-        self.assertEqual(value, 'auth_tkt=""""; Path=/')
+        self.assertEqual(value,
+                         'auth_tkt="INVALID"; Path=/; '
+                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22'
+                         )
         header = headers[1]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
-        self.assertEqual(value, 'auth_tkt=""""; Path=/; Domain=localhost')
+        self.assertEqual(value,
+                         'auth_tkt="INVALID"; Path=/; Domain=localhost; '
+                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22'
+                         )
         header = headers[2]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
-        self.assertEqual(value, 'auth_tkt=""""; Path=/; Domain=.localhost')
+        self.assertEqual(value,
+                         'auth_tkt="INVALID"; Path=/; Domain=.localhost; '
+                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22'
+                        )
 
     def test_factory_wo_secret_wo_secretfile_raises_ValueError(self):
         from repoze.who.plugins.auth_tkt import make_plugin

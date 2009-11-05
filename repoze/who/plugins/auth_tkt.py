@@ -11,6 +11,12 @@ from zope.interface import implements
 
 from repoze.who.interfaces import IIdentifier
 
+_NOW_TESTING = None  # unit tests can replace
+def _now():  #pragma NO COVERAGE
+    if _NOW_TESTING is not None:
+        return _NOW_TESTING
+    return datetime.datetime.now()
+
 class AuthTktCookiePlugin(object):
 
     implements(IIdentifier)
@@ -87,8 +93,7 @@ class AuthTktCookiePlugin(object):
 
     def _get_cookies(self, environ, value, max_age=None):
         if max_age is not None:
-            later = datetime.datetime.now() + datetime.timedelta(
-                seconds=int(max_age))
+            later = _now() + datetime.timedelta(seconds=int(max_age))
             # Wdy, DD-Mon-YY HH:MM:SS GMT
             expires = later.strftime('%a, %d %b %Y %H:%M:%S')
             # the Expires header is *required* at least for IE7 (IE7 does
@@ -112,7 +117,7 @@ class AuthTktCookiePlugin(object):
     # IIdentifier
     def forget(self, environ, identity):
         # return a set of expires Set-Cookie headers
-        return self._get_cookies(environ, '""')
+        return self._get_cookies(environ, 'INVALID', 0)
     
     # IIdentifier
     def remember(self, environ, identity):
