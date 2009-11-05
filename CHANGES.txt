@@ -1,8 +1,8 @@
 repoze.who Changelog
 ====================
 
-After 1.0.17
-------------
+1.0.18 (2009-11-05)
+-------------------
 
 - Issue #104:  AuthTkt plugin was passing an invalid cookie value in
   headers from ``forget``, and was not setting the ``Max-Age`` and 
