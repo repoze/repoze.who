@@ -1,6 +1,6 @@
 ##############################################################################
 #
-# Copyright (c) 2007 Agendaless Consulting and Contributors.
+# Copyright (c) 2007-2009 Agendaless Consulting and Contributors.
 # All Rights Reserved.
 #
 # This software is subject to the provisions of the BSD-like license at
@@ -19,7 +19,7 @@ use_setuptools()
 
 from setuptools import setup, find_packages
 
-__version__ = '1.0.16'
+__version__ = '1.0.17'
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()

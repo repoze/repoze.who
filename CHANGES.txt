@@ -1,8 +1,8 @@
 repoze.who Changelog
 ====================
 
-After 1.0.16
-------------
+1.0.17 (2009-11-05)
+-------------------
 
 - Fixed the ``repoze.who.plugins.form.make_plugin`` factory's ``formcallable``
   argument handling, to allow passing in a dotted name (e.g., from a config
