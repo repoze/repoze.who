@@ -2,6 +2,7 @@ import logging
 from StringIO import StringIO
 import sys
 
+from repoze.who.api import APIFactory
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IChallenger
@@ -11,36 +12,40 @@ _STARTED = '-- repoze.who request started (%s) --'
 _ENDED = '-- repoze.who request ended (%s) --'
 
 class PluggableAuthenticationMiddleware(object):
-    def __init__(self, app,
+    def __init__(self,
+                 app,
                  identifiers,
                  authenticators,
                  challengers,
                  mdproviders,
-                 classifier,
+                 request_classifier,
                  challenge_decider,
                  log_stream = None,
                  log_level = logging.INFO,
                  remote_user_key = 'REMOTE_USER',
                  ):
-        iregistry, nregistry = make_registries(identifiers, authenticators,
-                                               challengers, mdproviders)
-        self.registry = iregistry
-        self.name_registry = nregistry
         self.app = app
-        self.classifier = classifier
-        self.challenge_decider = challenge_decider
-        self.remote_user_key = remote_user_key
-        self.logger = None
+        logger = self.logger = None
         if isinstance(log_stream, logging.Logger):
-            self.logger = log_stream
+            logger = self.logger = log_stream
         elif log_stream:
             handler = logging.StreamHandler(log_stream)
             fmt = '%(asctime)s %(message)s'
             formatter = logging.Formatter(fmt)
             handler.setFormatter(formatter)
-            self.logger = logging.Logger('repoze.who')
-            self.logger.addHandler(handler)
-            self.logger.setLevel(log_level)
+            logger = self.logger = logging.Logger('repoze.who')
+            logger.addHandler(handler)
+            logger.setLevel(log_level)
+        self.remote_user_key = remote_user_key
+
+        self.api_factory = APIFactory(identifiers,
+                                      authenticators,
+                                      challengers, 
+                                      mdproviders,
+                                      request_classifier,
+                                      challenge_decider,
+                                      logger)
+
 
     def __call__(self, environ, start_response):
         if self.remote_user_key in environ:
@@ -48,25 +53,26 @@ class PluggableAuthenticationMiddleware(object):
             # already set
             return self.app(environ, start_response)
 
-        path_info = environ.get('PATH_INFO', None)
+        api = self.api_factory(environ)
 
-        environ['repoze.who.plugins'] = self.name_registry
+        environ['repoze.who.plugins'] = api.name_registry # BBB?
         environ['repoze.who.logger'] = self.logger
         environ['repoze.who.application'] = self.app
 
         logger = self.logger
+        path_info = environ.get('PATH_INFO', None)
         logger and logger.info(_STARTED % path_info)
-        classification = self.classifier(environ)
+        classification = api.request_classifier(environ)
         logger and logger.info('request classification: %s' % classification)
         userid = None
         identity = None
         identifier = None
 
-        ids = self.identify(environ, classification)
+        ids = api.identify(environ, classification)
             
         # ids will be list of tuples: [ (IIdentifier, identity) ]
         if ids:
-            auth_ids = self.authenticate(environ, classification, ids)
+            auth_ids = api.authenticate(environ, classification, ids)
 
             # auth_ids will be a list of five-tuples in the form
             #  ( (auth_rank, id_rank), authenticator, identifier, identity,
@@ -82,7 +88,7 @@ class PluggableAuthenticationMiddleware(object):
                 identity = Identity(identity) # dont show contents at print
 
                 # allow IMetadataProvider plugins to scribble on the identity
-                self.add_metadata(environ, classification, identity)
+                api.add_metadata(environ, classification, identity)
 
                 # add the identity to the environment; a downstream
                 # application can mutate it to do an 'identity reset'
@@ -114,10 +120,10 @@ class PluggableAuthenticationMiddleware(object):
         if not wrapper.called:
             app_iter = wrap_generator(app_iter)
 
-        if self.challenge_decider(environ, wrapper.status, wrapper.headers):
+        if api.challenge_decider(environ, wrapper.status, wrapper.headers):
             logger and logger.info('challenge required')
 
-            challenge_app = self.challenge(
+            challenge_app = api.challenge(
                 environ,
                 classification,
                 wrapper.status,
@@ -146,138 +152,6 @@ class PluggableAuthenticationMiddleware(object):
 
         logger and logger.info(_ENDED % path_info)
         return app_iter
-
-    def identify(self, environ, classification):
-        logger = self.logger
-        candidates = self.registry.get(IIdentifier, ())
-        logger and self.logger.info('identifier plugins registered %s' %
-                                    (candidates,))
-        plugins = match_classification(IIdentifier, candidates, classification)
-        logger and self.logger.info(
-            'identifier plugins matched for '
-            'classification "%s": %s' % (classification, plugins))
-
-        results = []
-        for plugin in plugins:
-            identity = plugin.identify(environ)
-            if identity is not None:
-                logger and logger.debug(
-                    'identity returned from %s: %s' % (plugin, identity))
-                results.append((plugin, identity))
-            else:
-                logger and logger.debug(
-                    'no identity returned from %s (%s)' % (plugin, identity))
-
-        logger and logger.debug('identities found: %s' % (results,))
-        return results
-
-    def add_metadata(self, environ, classification, identity):
-        candidates = self.registry.get(IMetadataProvider, ())
-        plugins = match_classification(IMetadataProvider, candidates,
-                                       classification)        
-        for plugin in plugins:
-            plugin.add_metadata(environ, identity)
-
-    def authenticate(self, environ, classification, identities):
-        logger = self.logger
-        candidates = self.registry.get(IAuthenticator, [])
-        logger and self.logger.info('authenticator plugins registered %s' %
-                                    candidates)
-        plugins = match_classification(IAuthenticator, candidates,
-                                       classification)
-        logger and self.logger.info(
-            'authenticator plugins matched for '
-            'classification "%s": %s' % (classification, plugins))
-
-        # 'preauthenticated' identities are considered best-ranking
-        identities, results, id_rank_start =self._filter_preauthenticated(
-            identities)
-
-        auth_rank = 0
-
-        for plugin in plugins:
-            identifier_rank = id_rank_start
-            for identifier, identity in identities:
-                userid = plugin.authenticate(environ, identity)
-                if userid is not None:
-                    logger and logger.debug(
-                        'userid returned from %s: "%s"' % (plugin, userid))
-
-                    # stamp the identity with the userid
-                    identity['repoze.who.userid'] = userid
-                    rank = (auth_rank, identifier_rank)
-                    results.append(
-                        (rank, plugin, identifier, identity, userid)
-                        )
-                else:
-                    logger and logger.debug(
-                        'no userid returned from %s: (%s)' % (
-                        plugin, userid))
-                identifier_rank += 1
-            auth_rank += 1
-
-        logger and logger.debug('identities authenticated: %s' % (results,))
-        return results
-
-    def _filter_preauthenticated(self, identities):
-        logger = self.logger
-        results = []
-        new_identities = identities[:]
-
-        identifier_rank = 0
-        for thing in identities:
-            identifier, identity = thing
-            userid = identity.get('repoze.who.userid')
-            if userid is not None:
-                # the identifier plugin has already authenticated this
-                # user (domain auth, auth ticket, etc)
-                logger and logger.info(
-                  'userid preauthenticated by %s: "%s" '
-                  '(repoze.who.userid set)' % (identifier, userid)
-                  )
-                rank = (0, identifier_rank)
-                results.append(
-                    (rank, None, identifier, identity, userid)
-                    )
-                identifier_rank += 1
-                new_identities.remove(thing)
-        return new_identities, results, identifier_rank
-
-    def challenge(self, environ, classification, status, app_headers,
-                  identifier, identity):
-        # happens on egress
-        logger = self.logger
-
-        forget_headers = []
-
-        if identifier:
-            forget_headers = identifier.forget(environ, identity)
-            if forget_headers is None:
-                forget_headers = []
-            else:
-                logger and logger.info('forgetting via headers from %s: %s'
-                                       % (identifier, forget_headers))
-
-        candidates = self.registry.get(IChallenger, ())
-        logger and logger.info('challengers registered: %s' % candidates)
-        plugins = match_classification(IChallenger,
-                                       candidates, classification)
-        logger and logger.info('challengers matched for '
-                               'classification "%s": %s' % (classification,
-                                                            plugins))
-        for plugin in plugins:
-            app = plugin.challenge(environ, status, app_headers,
-                                   forget_headers)
-            if app is not None:
-                # new WSGI application
-                logger and logger.info(
-                    'challenger plugin %s "challenge" returned an app' % (
-                    plugin))
-                return app
-
-        # signifies no challenge
-        logger and logger.info('no challenge app returned')
-        return None
 
 def wrap_generator(result):
     """\

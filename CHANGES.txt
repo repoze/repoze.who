@@ -1,6 +1,25 @@
 repoze.who Changelog
 ====================
 
+1.1a1 (unreleased)
+------------------
+
+- Factored out the API of the middleware object to make it useful from
+  within the application.  Applications using ``repoze.who``` now fall into
+  one of three catgeories:
+
+  - "middleware-only" applications are configured with middleware, and
+    use either ``REMOTE_USER`` or ``repoze.who.identity`` from the environment
+    to determing the authenticated user.
+
+  - "bare metal" applications use no ``repoze.who`` middleware at all:
+    instead, they configure and an ``APIFactory`` object at startup, and
+    use it to create an ``API`` object when needed on a per-request basis.
+
+  - "hybrid" applications are configured with ``repoze.who`` middleware,
+    but use a new library function to fetch the ``API`` object from the
+    environ.
+
 1.0.18 (2009-11-05)
 -------------------
 

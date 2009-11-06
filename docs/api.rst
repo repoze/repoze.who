@@ -44,12 +44,12 @@ Interfaces
 
 .. code-block:: python
 
-  class IRepozeWhoAPIFactory(Interface):
+  class IAPIFactory(Interface):
       def __call__(environ):
           """ environ -> IRepozeWhoAPI
           """
 
-  class IRepozeWhoAPI(Interface):
+  class IAPI(Interface):
       """ Facade for stateful invocation of underlying plugins.
       """
       def authenticate():

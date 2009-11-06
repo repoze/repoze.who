@@ -379,9 +379,11 @@ class TestConfigMiddleware(unittest.TestCase):
         global_conf = {'here': '/'}
         middleware = factory(app, global_conf, config_file=path,
                              log_file='STDOUT', log_level='debug')
-        self.assertEqual(len(middleware.registry[IIdentifier]), 3)
-        self.assertEqual(len(middleware.registry[IAuthenticator]), 1)
-        self.assertEqual(len(middleware.registry[IChallenger]), 2)
+        api_factory = middleware.api_factory
+        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.authenticators), 1)
+        self.assertEqual(len(api_factory.challengers), 2)
+        self.assertEqual(len(api_factory.mdproviders), 0)
         self.failUnless(middleware.logger, middleware.logger)
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.DEBUG)
 

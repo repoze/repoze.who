@@ -1,7 +1,52 @@
 from zope.interface import Interface
 
+
+class IAPIFactory(Interface):
+    def __call__(environ):
+        """ environ -> IRepozeWhoAPI
+        """
+
+
+class IAPI(Interface):
+    """ Facade for stateful invocation of underlying plugins.
+    """
+    def authenticate():
+        """ ->  {identity}
+
+        o Return an authenticated identity mapping, extracted from the
+        request environment.
+
+        o If no identity can be authenticated, return None.
+
+        o Identity will include at least a 'repoze.who.userid' key,
+        as well as any keys added by metadata plugins.
+        """
+
+    def challenge():
+        """ -> wsgi application
+        
+        o Return a WSGI application which represents a "challenge"
+        (request for credentials) in response to the current request.  
+        """
+
+    def remember(identity):
+        """ -> [headers]
+        
+        O Return a sequence of response headers which suffice to remember
+        the given identity.
+        """
+
+    def forget():
+        """ -> [headers]
+        
+        O Return a sequence of response headers which suffice to destroy
+        any credentials used to establish an identity.
+        """
+
+
 class IPlugin(Interface):
     pass
+
 
 class IRequestClassifier(IPlugin):
     """ On ingress: classify a request.
@@ -14,6 +59,7 @@ class IRequestClassifier(IPlugin):
 
         o 'environ' is the WSGI environment.
         """
+
 
 class IChallengeDecider(IPlugin):
     """ On egress: decide whether a challenge needs to be presented
@@ -33,6 +79,7 @@ class IChallengeDecider(IPlugin):
         This interface is responsible for returning True if
         a challenge needs to be presented to the user, False otherwise.
         """
+
 
 class IIdentifier(IPlugin):
 
@@ -112,6 +159,7 @@ class IIdentifier(IPlugin):
         included in the response provided by the challenge app.
         """
 
+
 class IAuthenticator(IPlugin):
 
     """ On ingress: validate the identity and return a user id or None.
@@ -146,6 +194,7 @@ class IAuthenticator(IPlugin):
         dictionary (e.g., to save metadata from a database query, rather
         than requiring a separate query from an IMetadataProvider plugin).
         """
+
 
 class IChallenger(IPlugin):
 
