@@ -32,6 +32,10 @@ Sections
    :maxdepth: 2
 
    narr
+   middleware
+   api
+   configuration
+   plugins
 
 Change History
 ==============
