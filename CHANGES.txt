@@ -4,6 +4,9 @@ repoze.who Changelog
 1.1a1 (unreleased)
 ------------------
 
+- Remove ``ez_setup.py`` and dependency on it in setup.py (support
+  distribute).
+
 - Factored out the API of the middleware object to make it useful from
   within the application.  Applications using ``repoze.who``` now fall into
   one of three catgeories:

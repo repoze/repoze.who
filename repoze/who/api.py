@@ -1,5 +1,3 @@
-import logging
-
 from zope.interface import implements
 
 from repoze.who.interfaces import IAPIFactory
