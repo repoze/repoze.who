@@ -4,6 +4,9 @@ repoze.who Changelog
 1.1a1 (unreleased)
 ------------------
 
+- Fix http://bugs.repoze.org/issue102: when no challengers existed,
+  logging would cause an exception.
+
 - Remove ``ez_setup.py`` and dependency on it in setup.py (support
   distribute).
 

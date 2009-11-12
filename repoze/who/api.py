@@ -223,7 +223,7 @@ class API(object):
                                        % (identifier, forget_headers))
 
         candidates = self.interface_registry.get(IChallenger, ())
-        logger and logger.info('challengers registered: %s' % candidates)
+        logger and logger.info('challengers registered: %s' % repr(candidates))
         plugins = match_classification(IChallenger,
                                        candidates, classification)
         logger and logger.info('challengers matched for '
