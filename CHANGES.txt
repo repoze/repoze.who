@@ -4,11 +4,8 @@ repoze.who Changelog
 1.1a1 (unreleased)
 ------------------
 
-- Fix http://bugs.repoze.org/issue102: when no challengers existed,
-  logging would cause an exception.
-
-- Remove ``ez_setup.py`` and dependency on it in setup.py (support
-  distribute).
+Features
+~~~~~~~~
 
 - Factored out the API of the middleware object to make it useful from
   within the application.  Applications using ``repoze.who``` now fall into
@@ -26,6 +23,35 @@ repoze.who Changelog
     but use a new library function to fetch the ``API`` object from the
     environ.
 
+Bugs Fixed
+~~~~~~~~~~
+
+- Fix http://bugs.repoze.org/issue102: when no challengers existed,
+  logging would cause an exception.
+
+- Remove ``ez_setup.py`` and dependency on it in setup.py (support
+  distribute).
+
+Backward Incompatibilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The ``repoze.who.middleware:PluggableAuthenticationMiddleware`` class
+  no longer has the following (non-API) methods (now made API methods
+  of the ``repoze.who.api:API`` class):
+
+  - ``add_metadata``
+  - ``authenticate``
+  - ``challenge``
+  - ``identify``
+
+- The following (non-API) functions moved from ``repoze.who.middleware`` to
+  ``repoze.who.api``:
+  
+  - ``make_registries``
+  - ``match_classification``
+  - ``verify``
+
+
 1.0.18 (2009-11-05)
 -------------------
 
@@ -33,12 +59,14 @@ repoze.who Changelog
   headers from ``forget``, and was not setting the ``Max-Age`` and 
   ``Expires`` attributes of those cookies.
 
+
 1.0.17 (2009-11-05)
 -------------------
 
 - Fixed the ``repoze.who.plugins.form.make_plugin`` factory's ``formcallable``
   argument handling, to allow passing in a dotted name (e.g., from a config
   file).
+
 
 1.0.16 (2009-11-04)
 -------------------
