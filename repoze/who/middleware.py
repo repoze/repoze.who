@@ -175,20 +175,6 @@ def wrap_generator(result):
             yield iter
     return wrapper()
 
-def match_classification(iface, plugins, classification):
-    result = []
-    for plugin in plugins:
-        
-        plugin_classifications = getattr(plugin, 'classifications', {})
-        iface_classifications = plugin_classifications.get(iface)
-        if not iface_classifications: # good for any
-            result.append(plugin)
-            continue
-        if classification in iface_classifications:
-            result.append(plugin)
-
-    return result
-
 class StartResponseWrapper(object):
     def __init__(self, start_response):
         self.start_response = start_response
@@ -298,32 +284,6 @@ def make_test_middleware(app, global_conf):
         log_level = logging.DEBUG
         )
     return middleware
-
-def verify(plugin, iface):
-    from zope.interface.verify import verifyObject
-    verifyObject(iface, plugin, tentative=True)
-    
-def make_registries(identifiers, authenticators, challengers, mdproviders):
-    from zope.interface.verify import BrokenImplementation
-    interface_registry = {}
-    name_registry = {}
-
-    for supplied, iface in [ (identifiers, IIdentifier),
-                             (authenticators, IAuthenticator),
-                             (challengers, IChallenger),
-                             (mdproviders, IMetadataProvider)]:
-
-        for name, value in supplied:
-            try:
-                verify(value, iface)
-            except BrokenImplementation, why:
-                why = str(why)
-                raise ValueError(str(name) + ': ' + why)
-            L = interface_registry.setdefault(iface, [])
-            L.append(value)
-            name_registry[name] = value
-
-    return interface_registry, name_registry
 
 class Identity(dict):
     """ dict subclass that prevents its members from being rendered
