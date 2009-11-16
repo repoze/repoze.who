@@ -19,3 +19,7 @@ div.related {
 div.related a {
     color: #dad3bd !important;
 }
+
+ul.simple li {
+    color: Black !important;
+}
