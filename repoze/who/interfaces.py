@@ -22,7 +22,7 @@ class IAPI(Interface):
         as well as any keys added by metadata plugins.
         """
 
-    def challenge():
+    def challenge(status='403 Forbidden', app_headers=()):
         """ -> wsgi application
         
         o Return a WSGI application which represents a "challenge"

@@ -44,7 +44,9 @@ class PluggableAuthenticationMiddleware(object):
                                       mdproviders,
                                       request_classifier,
                                       challenge_decider,
-                                      logger)
+                                      remote_user_key,
+                                      logger
+                                     )
 
 
     def __call__(self, environ, start_response):
@@ -62,44 +64,13 @@ class PluggableAuthenticationMiddleware(object):
         logger = self.logger
         path_info = environ.get('PATH_INFO', None)
         logger and logger.info(_STARTED % path_info)
-        classification = api.request_classifier(environ)
-        logger and logger.info('request classification: %s' % classification)
         userid = None
         identity = None
         identifier = None
 
-        ids = api.identify(environ, classification)
-            
-        # ids will be list of tuples: [ (IIdentifier, identity) ]
-        if ids:
-            auth_ids = api.authenticate(environ, classification, ids)
-
-            # auth_ids will be a list of five-tuples in the form
-            #  ( (auth_rank, id_rank), authenticator, identifier, identity,
-            #    userid )
-            #
-            # When sorted, its first element will represent the "best"
-            # identity for this request.
-
-            if auth_ids:
-                auth_ids.sort()
-                best = auth_ids[0]
-                rank, authenticator, identifier, identity, userid = best
-                identity = Identity(identity) # dont show contents at print
-
-                # allow IMetadataProvider plugins to scribble on the identity
-                api.add_metadata(environ, classification, identity)
-
-                # add the identity to the environment; a downstream
-                # application can mutate it to do an 'identity reset'
-                # as necessary, e.g. identity['login'] = 'foo',
-                # identity['password'] = 'bar'
-                environ['repoze.who.identity'] = identity
-                # set the REMOTE_USER
-                environ[self.remote_user_key] = userid
-
-        else:
-            logger and logger.info('no identities found, not authenticating')
+        identity = api.authenticate()
+        if identity:
+            identifier = identity.get('identifier')
 
         # allow identifier plugins to replace the downstream
         # application (to do redirection and unauthorized themselves
@@ -123,14 +94,7 @@ class PluggableAuthenticationMiddleware(object):
         if api.challenge_decider(environ, wrapper.status, wrapper.headers):
             logger and logger.info('challenge required')
 
-            challenge_app = api.challenge(
-                environ,
-                classification,
-                wrapper.status,
-                wrapper.headers,
-                identifier,
-                identity
-                )
+            challenge_app = api.challenge(wrapper.status, wrapper.headers)
             if challenge_app is not None:
                 logger and logger.info('executing challenge app')
                 if app_iter:
@@ -142,12 +106,7 @@ class PluggableAuthenticationMiddleware(object):
                 raise RuntimeError('no challengers found')
         else:
             logger and logger.info('no challenge required')
-            remember_headers = []
-            if identifier:
-                remember_headers = identifier.remember(environ, identity)
-                if remember_headers:
-                    logger and logger.info('remembering via headers from %s: %s'
-                                           % (identifier, remember_headers))
+            remember_headers = api.remember(identity)
             wrapper.finish_response(remember_headers)
 
         logger and logger.info(_ENDED % path_info)
@@ -284,12 +243,5 @@ def make_test_middleware(app, global_conf):
         log_level = logging.DEBUG
         )
     return middleware
-
-class Identity(dict):
-    """ dict subclass that prevents its members from being rendered
-    during print """
-    def __repr__(self):
-        return '<repoze.who identity (hidden, dict-like) at %s>' % id(self)
-    __str__ = __repr__
 
 

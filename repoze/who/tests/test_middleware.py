@@ -16,6 +16,7 @@ class TestMiddleware(unittest.TestCase):
                  challenge_decider=None,
                  log_stream=None,
                  log_level=None,
+                 remote_user_key='REMOTE_USER',
                  ):
         if app is None:
             app = DummyApp()
@@ -42,7 +43,9 @@ class TestMiddleware(unittest.TestCase):
                                     classifier,
                                     challenge_decider,
                                     log_stream,
-                                    log_level=logging.DEBUG)
+                                    log_level=logging.DEBUG,
+                                    remote_user_key=remote_user_key,
+                                   )
         return mw
 
     def _makeEnviron(self, kw=None):
@@ -102,10 +105,10 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(start_response.headers, headers)
 
     def test_call_401_no_identifiers(self):
+        from paste.httpexceptions import HTTPUnauthorized
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyWorkingApp('401 Unauthorized', headers)
-        from paste.httpexceptions import HTTPUnauthorized
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
@@ -116,10 +119,10 @@ class TestMiddleware(unittest.TestCase):
         self.failUnless(result[0].startswith('401 Unauthorized\r\n'))
 
     def test_call_401_challenger_and_identifier_no_authenticator(self):
+        from paste.httpexceptions import HTTPUnauthorized
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyWorkingApp('401 Unauthorized', headers)
-        from paste.httpexceptions import HTTPUnauthorized
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
@@ -137,10 +140,10 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(environ.get('REMOTE_USER'), None)
 
     def test_call_401_challenger_and_identifier_and_authenticator(self):
+        from paste.httpexceptions import HTTPUnauthorized
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyWorkingApp('401 Unauthorized', headers)
-        from paste.httpexceptions import HTTPUnauthorized
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
@@ -162,10 +165,10 @@ class TestMiddleware(unittest.TestCase):
 ##         self.assertEqual(environ['repoze.who.identity'], identifier.credentials)
 
     def test_call_200_challenger_and_identifier_and_authenticator(self):
+        from paste.httpexceptions import HTTPUnauthorized
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyWorkingApp('200 OK', headers)
-        from paste.httpexceptions import HTTPUnauthorized
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
@@ -189,11 +192,11 @@ class TestMiddleware(unittest.TestCase):
 
 
     def test_call_200_identity_reset(self):
+        from paste.httpexceptions import HTTPUnauthorized
         environ = self._makeEnviron()
         headers = [('a', '1')]
         new_identity = {'user_id':'foo', 'password':'bar'}
         app = DummyIdentityResetApp('200 OK', headers, new_identity)
-        from paste.httpexceptions import HTTPUnauthorized
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
@@ -218,10 +221,10 @@ class TestMiddleware(unittest.TestCase):
 ##         self.assertEqual(environ['repoze.who.identity'], new_credentials)
 
     def test_call_200_with_metadata(self):
+        from paste.httpexceptions import HTTPUnauthorized
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyWorkingApp('200 OK', headers)
-        from paste.httpexceptions import HTTPUnauthorized
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
@@ -242,12 +245,12 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(environ['repoze.who.identity']['foo'], 'bar')
 
     def test_call_ingress_plugin_replaces_application(self):
+        from paste.httpexceptions import HTTPFound
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyWorkingApp('200 OK', headers)
         challengers = []
         credentials = {'login':'chris', 'password':'password'}
-        from paste.httpexceptions import HTTPFound
         identifier = DummyIdentifier(
             credentials,
             remember_headers=[('a', '1')],
@@ -267,7 +270,7 @@ class TestMiddleware(unittest.TestCase):
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(start_response.status, '302 Found')
         headers = start_response.headers
-        self.assertEqual(len(headers), 3)
+        self.assertEqual(len(headers), 3, headers)
         self.assertEqual(headers[0],
                          ('location', 'http://example.com/redirect'))
         self.assertEqual(headers[1],
@@ -278,10 +281,10 @@ class TestMiddleware(unittest.TestCase):
         self.failIf(environ.has_key('repoze.who.application'))
 
     def test_call_app_doesnt_call_start_response(self):
+        from paste.httpexceptions import HTTPUnauthorized
         environ = self._makeEnviron()
         headers = [('a', '1')]
         app = DummyGeneratorApp('200 OK', headers)
-        from paste.httpexceptions import HTTPUnauthorized
         challenge_app = HTTPUnauthorized()
         challenge = DummyChallenger(challenge_app)
         challengers = [ ('challenge', challenge) ]
@@ -321,11 +324,11 @@ class TestStartResponseWrapper(unittest.TestCase):
         self.failUnless(wrapper.buffer)
 
     def test_finish_response(self):
+        from StringIO import StringIO
         statuses = []
         headerses = []
         datases = []
         closededs = []
-        from StringIO import StringIO
         def write(data):
             datases.append(data)
         def close():
@@ -348,26 +351,6 @@ class TestStartResponseWrapper(unittest.TestCase):
         self.assertEqual(statuses[0], wrapper.status)
         self.assertEqual(datases[0], 'written')
         self.assertEqual(closededs[0], True)
-
-class TestIdentityDict(unittest.TestCase):
-
-    def _getTargetClass(self):
-        from repoze.who.middleware import Identity
-        return Identity
-
-    def _makeOne(self, **kw):
-        klass = self._getTargetClass()
-        return klass(**kw)
-
-    def test_str(self):
-        identity = self._makeOne(foo=1)
-        self.failUnless(str(identity).startswith('<repoze.who identity'))
-        self.assertEqual(identity['foo'], 1)
-
-    def test_repr(self):
-        identity = self._makeOne(foo=1)
-        self.failUnless(str(identity).startswith('<repoze.who identity'))
-        self.assertEqual(identity['foo'], 1)
 
 class WrapGeneratorTests(unittest.TestCase):
 
