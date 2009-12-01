@@ -64,7 +64,7 @@ Configuring :mod:`repoze.who` via Python Code
 
 .. module:: repoze.who.middleware
 
-.. class:: PluggableAuthenticationMiddleware(app, identifiers, challengers, autheticators, mdproviders, classifier, challenge_decider [, log_stream=None [, log_level=logging.INFO[, remote_user_key='REMOTE_USER']]])
+.. class:: PluggableAuthenticationMiddleware(app, identifiers, challengers, authenticators, mdproviders, classifier, challenge_decider [, log_stream=None [, log_level=logging.INFO[, remote_user_key='REMOTE_USER']]])
 
   The primary method of configuring the :mod:`repoze.who` middleware is
   to use straight Python code, meant to be consumed by frameworks
