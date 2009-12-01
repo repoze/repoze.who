@@ -1,0 +1,63 @@
+API-Only
+========
+
+
+Simple:   Wiki w/ its own login and logout views.
+---------------------------------------------------
+
+- Each view:
+
+  - Calls ``api.authenticate`` to get authenticated user.
+
+  - Shows ``login`` link for non-authenticated requests.
+
+  - Shows ``logout`` link for authenticated requests.
+
+  - Don't show "protected" links for non-authenticated requests.
+
+- Protected views:
+
+  - Calls ``api.authenticate`` to get authenticated user.
+
+  - Redirect to the ``login`` view for unauthenticated users, with a
+    ``came_from`` value of the current URL.
+
+  - Check permissions for authenticated users, and raise a 403 if
+    not allowed, based on policy.
+
+- Login view:
+
+  - On POST, validated the login and password from the form.  If
+    successful, call ``api.remember``;  append the headers to your
+    response, which may also contain, e.g., a ``Location`` header for
+    a redirect to the ``came_from`` URL.  In this case, there will be
+    no authenticator plugin which knows about the login / password at all.
+
+- Logout view:
+
+  - Call ``api.forget``;  append the headers to your response, which may also
+    contain, e.g., a ``Location`` header for a redirect to the ``came_from``
+    URL.
+
+
+Complex:  multiple apps w/ SSO
+------------------------------
+
+- Login application
+
+  - The SSO login application works just like the login view described above:
+    the difference is that the configured identifier plugins must emit
+    headers from ``remember`` which can be recognized by their counterparts
+    in the other apps.
+
+- Non-login applications
+
+  - Challenge plugins here must be configured to implement the specific
+    SSO protocol, e.g. redirect to the login app with information in the
+    query string (other protocols might differ).
+
+  - Identifer plugins must be able to "crack" whatever tokens are returned
+    by the SSO login app.
+
+  - Authenticators will normally be no-ops (e.g., the ``auth_tkt`` plugin
+    used as an authenticator).
