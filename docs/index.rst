@@ -32,6 +32,7 @@ Sections
    :maxdepth: 2
 
    narr
+   use_cases
    middleware
    api
    configuration
