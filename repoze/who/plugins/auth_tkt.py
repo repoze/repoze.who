@@ -10,6 +10,7 @@ from paste.auth import auth_tkt
 from zope.interface import implements
 
 from repoze.who.interfaces import IIdentifier
+from repoze.who.interfaces import IAuthenticator
 
 _NOW_TESTING = None  # unit tests can replace
 def _now():  #pragma NO COVERAGE
@@ -19,7 +20,7 @@ def _now():  #pragma NO COVERAGE
 
 class AuthTktCookiePlugin(object):
 
-    implements(IIdentifier)
+    implements(IIdentifier, IAuthenticator)
 
     userid_type_decoders = {
         'int':int,
@@ -65,9 +66,6 @@ class AuthTktCookiePlugin(object):
         except auth_tkt.BadTicket:
             return None
 
-        if self.userid_checker and not self.userid_checker(userid):
-            return None
-
         if self.timeout and ( (timestamp + self.timeout) < time.time() ):
             return None
 
@@ -86,33 +84,10 @@ class AuthTktCookiePlugin(object):
 
         identity = {}
         identity['timestamp'] = timestamp
-        identity['repoze.who.userid'] = userid
+        identity['repoze.who.plugins.auth_tkt.userid'] = userid
         identity['tokens'] = tokens
         identity['userdata'] = user_data
         return identity
-
-    def _get_cookies(self, environ, value, max_age=None):
-        if max_age is not None:
-            later = _now() + datetime.timedelta(seconds=int(max_age))
-            # Wdy, DD-Mon-YY HH:MM:SS GMT
-            expires = later.strftime('%a, %d %b %Y %H:%M:%S')
-            # the Expires header is *required* at least for IE7 (IE7 does
-            # not respect Max-Age)
-            max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
-        else:
-            max_age = ''
-
-        cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
-        wild_domain = '.' + cur_domain
-        cookies = [
-            ('Set-Cookie', '%s="%s"; Path=/%s' % (
-            self.cookie_name, value, max_age)),
-            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s' % (
-            self.cookie_name, value, cur_domain, max_age)),
-            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s' % (
-            self.cookie_name, value, wild_domain, max_age))
-            ]
-        return cookies
 
     # IIdentifier
     def forget(self, environ, identity):
@@ -175,6 +150,39 @@ class AuthTktCookiePlugin(object):
             if old_cookie_value != new_cookie_value:
                 # return a set of Set-Cookie headers
                 return self._get_cookies(environ, new_cookie_value, max_age)
+
+    # IAuthenticator
+    def authenticate(self, environ, identity):
+        userid = identity.get('repoze.who.plugins.auth_tkt.userid')
+        if userid is None:
+            return None
+        if self.userid_checker and not self.userid_checker(userid):
+            return None
+        identity['repoze.who.userid'] = userid
+        return userid
+
+    def _get_cookies(self, environ, value, max_age=None):
+        if max_age is not None:
+            later = _now() + datetime.timedelta(seconds=int(max_age))
+            # Wdy, DD-Mon-YY HH:MM:SS GMT
+            expires = later.strftime('%a, %d %b %Y %H:%M:%S')
+            # the Expires header is *required* at least for IE7 (IE7 does
+            # not respect Max-Age)
+            max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
+        else:
+            max_age = ''
+
+        cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
+        wild_domain = '.' + cur_domain
+        cookies = [
+            ('Set-Cookie', '%s="%s"; Path=/%s' % (
+            self.cookie_name, value, max_age)),
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s' % (
+            self.cookie_name, value, cur_domain, max_age)),
+            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s' % (
+            self.cookie_name, value, wild_domain, max_age))
+            ]
+        return cookies
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__,

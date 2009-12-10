@@ -7,6 +7,10 @@ repoze.who Changelog
 Features
 ~~~~~~~~
 
+- The ``auth_tkt`` plugin now implements the ``IAuthenticator`` interface,
+  and should normally be used both as an ``IIdentifier`` and an
+  ``IAuthenticator``.
+
 - Factored out the API of the middleware object to make it useful from
   within the application.  Applications using ``repoze.who``` now fall into
   one of three catgeories:

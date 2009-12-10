@@ -26,8 +26,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         environ['SERVER_NAME'] = 'localhost'
         return environ
 
-    def _makeOne(self, *arg, **kw):
-        plugin = self._getTargetClass()(*arg, **kw)
+    def _makeOne(self, secret='s33kr3t', *arg, **kw):
+        plugin = self._getTargetClass()(secret, *arg, **kw)
         return plugin
 
     def _makeTicket(self, userid='userid', remote_addr='0.0.0.0',
@@ -50,11 +50,36 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         from repoze.who.plugins import auth_tkt
         auth_tkt._NOW_TESTING, self._now_testing = value, auth_tkt._NOW_TESTING
 
-    def test_implements(self):
+    def test_class_conforms_to_IIdentifier(self):
         from zope.interface.verify import verifyClass
         from repoze.who.interfaces import IIdentifier
         klass = self._getTargetClass()
         verifyClass(IIdentifier, klass)
+
+    def test_instance_conforms_to_IIdentifier(self):
+        from zope.interface.verify import verifyObject
+        from repoze.who.interfaces import IIdentifier
+        klass = self._getTargetClass()
+        verifyObject(IIdentifier, self._makeOne())
+
+    def test_class_conforms_to_IAuthenticator(self):
+        from zope.interface.verify import verifyClass
+        from repoze.who.interfaces import IAuthenticator
+        klass = self._getTargetClass()
+        verifyClass(IAuthenticator, klass)
+
+    def test_instance_conforms_to_IAuthenticator(self):
+        from zope.interface.verify import verifyObject
+        from repoze.who.interfaces import IAuthenticator
+        klass = self._getTargetClass()
+        verifyObject(IAuthenticator, self._makeOne())
+
+    def test_timeout_no_reissue(self):
+        self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1)
+
+    def test_timeout_lower_than_reissue(self):
+        self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1,
+                          reissue_time=2)
 
     def test_identify_nocookie(self):
         plugin = self._makeOne('secret')
@@ -69,7 +94,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         result = plugin.identify(environ)
         self.assertEqual(len(result), 4)
         self.assertEqual(result['tokens'], [''])
-        self.assertEqual(result['repoze.who.userid'], 'userid')
+        self.assertEqual(result['repoze.who.plugins.auth_tkt.userid'], 'userid')
         self.assertEqual(result['userdata'], 'userdata')
         self.failUnless('timestamp' in result)
         self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
@@ -83,7 +108,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         result = plugin.identify(environ)
         self.assertEqual(len(result), 4)
         self.assertEqual(result['tokens'], [''])
-        self.assertEqual(result['repoze.who.userid'], 'userid')
+        self.assertEqual(result['repoze.who.plugins.auth_tkt.userid'], 'userid')
         self.assertEqual(result['userdata'], 'userdata')
         self.failUnless('timestamp' in result)
         self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
@@ -97,7 +122,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         result = plugin.identify(environ)
         self.assertEqual(len(result), 4)
         self.assertEqual(result['tokens'], [''])
-        self.assertEqual(result['repoze.who.userid'], 1)
+        self.assertEqual(result['repoze.who.plugins.auth_tkt.userid'], 1)
         self.assertEqual(result['userdata'], 'userid_type:int')
         self.failUnless('timestamp' in result)
         self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
@@ -111,7 +136,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         result = plugin.identify(environ)
         self.assertEqual(len(result), 4)
         self.assertEqual(result['tokens'], [''])
-        self.assertEqual(result['repoze.who.userid'], 'userid')
+        self.assertEqual(result['repoze.who.plugins.auth_tkt.userid'], 'userid')
         self.assertEqual(result['userdata'], 'userid_type:unknown')
         self.failUnless('timestamp' in result)
         self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
@@ -131,6 +156,20 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
         result = plugin.identify(environ)
         self.assertEqual(result, None)
+
+    def test_identify_with_checker_and_existing_account(self):
+        plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
+        val = self._makeTicket(userid='existing')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        result = plugin.identify(environ)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result['tokens'], [''])
+        self.assertEqual(result['repoze.who.plugins.auth_tkt.userid'], 'existing')
+        self.assertEqual(result['userdata'], 'userdata')
+        self.failUnless('timestamp' in result)
+        self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
+        self.assertEqual(environ['REMOTE_USER_DATA'],'userdata')
+        self.assertEqual(environ['AUTH_TYPE'],'cookie')
 
     def test_remember_creds_same(self):
         plugin = self._makeOne('secret')
@@ -282,6 +321,37 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                          ('Set-Cookie',
                           'auth_tkt="%s"; Path=/' % new_val))
 
+    def test_remember_max_age(self):
+        plugin = self._makeOne('secret')
+        environ = {'HTTP_HOST':'example.com'}
+        
+        tkt = self._makeTicket(userid='chris', userdata='')
+        result = plugin.remember(environ, {'repoze.who.userid':'chris',
+                                           'max_age':'500'})
+        
+        name,value = result.pop(0)
+        self.assertEqual('Set-Cookie', name)
+        self.failUnless(
+            value.startswith('auth_tkt="%s"; Path=/; Max-Age=500' % tkt),
+            value)
+        self.failUnless('; Expires=' in value)
+        
+        name,value = result.pop(0)
+        self.assertEqual('Set-Cookie', name)
+        self.failUnless(
+            value.startswith(
+            'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
+            % tkt), value)
+        self.failUnless('; Expires=' in value)
+
+        name,value = result.pop(0)
+        self.assertEqual('Set-Cookie', name)
+        self.failUnless(
+            value.startswith(
+            'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
+            value)
+        self.failUnless('; Expires=' in value)
+
     def test_forget(self):
         from datetime import datetime
         now = datetime(2009, 11, 5, 16, 15, 22)
@@ -311,6 +381,25 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                          'auth_tkt="INVALID"; Path=/; Domain=.localhost; '
                          'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22'
                         )
+
+    def test_authenticate_non_auth_tkt_credentials(self):
+        plugin = self._makeOne()
+        self.assertEqual(plugin.authenticate(environ={}, identity={}), None)
+    
+    def test_authenticate_without_checker(self):
+        plugin = self._makeOne()
+        identity = {'repoze.who.plugins.auth_tkt.userid': 'phred'}
+        self.assertEqual(plugin.authenticate({}, identity), 'phred')
+    
+    def test_authenticate_with_checker_and_non_existing_account(self):
+        plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
+        identity = {'repoze.who.plugins.auth_tkt.userid': 'phred'}
+        self.assertEqual(plugin.authenticate({}, identity), None)
+    
+    def test_authenticate_with_checker_and_existing_account(self):
+        plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
+        identity = {'repoze.who.plugins.auth_tkt.userid': 'existing'}
+        self.assertEqual(plugin.authenticate({}, identity), 'existing')
 
     def test_factory_wo_secret_wo_secretfile_raises_ValueError(self):
         from repoze.who.plugins.auth_tkt import make_plugin
@@ -357,70 +446,6 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
             'secret',
             userid_checker='repoze.who.plugins.auth_tkt:make_plugin')
         self.assertEqual(plugin.userid_checker, make_plugin)
-
-    def test_timeout_no_reissue(self):
-        self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1)
-
-    def test_timeout_lower_than_reissue(self):
-        self.assertRaises(ValueError, self._makeOne, 'userid', timeout=1,
-                          reissue_time=2)
-
-    def test_identify_with_checker_and_existing_account(self):
-        plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
-        val = self._makeTicket(userid='existing')
-        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
-        result = plugin.identify(environ)
-        self.assertEqual(len(result), 4)
-        self.assertEqual(result['tokens'], [''])
-        self.assertEqual(result['repoze.who.userid'], 'existing')
-        self.assertEqual(result['userdata'], 'userdata')
-        self.failUnless('timestamp' in result)
-        self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
-        self.assertEqual(environ['REMOTE_USER_DATA'],'userdata')
-        self.assertEqual(environ['AUTH_TYPE'],'cookie')
-    
-    def test_identify_with_checker_and_non_existing_account(self):
-        plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
-        val = self._makeTicket(userid='nonexisting')
-        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
-        original_environ = environ.copy()
-        result = plugin.identify(environ)
-        self.assertEqual(result, None)
-        # The environ must not have been modified, excuding the paste.cookies
-        # variable:
-        del environ['paste.cookies']
-        self.assertEqual(environ, original_environ)
-
-    def test_remember_max_age(self):
-        plugin = self._makeOne('secret')
-        environ = {'HTTP_HOST':'example.com'}
-        
-        tkt = self._makeTicket(userid='chris', userdata='')
-        result = plugin.remember(environ, {'repoze.who.userid':'chris',
-                                           'max_age':'500'})
-        
-        name,value = result.pop(0)
-        self.assertEqual('Set-Cookie', name)
-        self.failUnless(
-            value.startswith('auth_tkt="%s"; Path=/; Max-Age=500' % tkt),
-            value)
-        self.failUnless('; Expires=' in value)
-        
-        name,value = result.pop(0)
-        self.assertEqual('Set-Cookie', name)
-        self.failUnless(
-            value.startswith(
-            'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
-            % tkt), value)
-        self.failUnless('; Expires=' in value)
-
-        name,value = result.pop(0)
-        self.assertEqual('Set-Cookie', name)
-        self.failUnless(
-            value.startswith(
-            'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
-            value)
-        self.failUnless('; Expires=' in value)
 
 
 def dummy_userid_checker(userid):
