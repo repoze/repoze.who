@@ -29,18 +29,22 @@ class IAPI(Interface):
         (request for credentials) in response to the current request.  
         """
 
-    def remember(identity):
+    def remember(identity=None):
         """ -> [headers]
         
         O Return a sequence of response headers which suffice to remember
         the given identity.
+
+        o If 'identity' is not passed, use the identity in the environment.
         """
 
-    def forget():
+    def forget(identity=None):
         """ -> [headers]
         
         O Return a sequence of response headers which suffice to destroy
         any credentials used to establish an identity.
+
+        o If 'identity' is not passed, use the identity in the environment.
         """
 
 
