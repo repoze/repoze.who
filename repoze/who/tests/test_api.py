@@ -7,7 +7,6 @@ class Test_get_api(unittest.TestCase):
         return get_api(environ)
 
     def test___call___empty_environ(self):
-        from repoze.who.api import API
         environ = {}
         api = self._callFUT(environ)
         self.failUnless(api is None)
@@ -449,42 +448,6 @@ class APITests(unittest.TestCase):
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 0)
 
-    def test__authenticate_success_multiresult_one_preauthenticated(self):
-        environ = self._makeEnviron()
-        preauth = DummyIdentifier({'repoze.who.userid':'preauthenticated'})
-        plugin1 = DummyAuthenticator('chris_id1')
-        plugin2 = DummyAuthenticator('chris_id2')
-        plugins = [ ('dummy1',plugin1), ('dummy2',plugin2) ]
-        api = self._makeOne(environ=environ, authenticators=plugins)
-        creds = {'login':'chris', 'password':'password'}
-        identities = [ (None, {'login':'chris', 'password':'password'}),
-                       (preauth, preauth.credentials) ]
-        results = api._authenticate(identities)
-        self.assertEqual(len(results), 3)
-        result = results[0]
-        rank, authenticator, identifier, creds, userid = result
-        self.assertEqual(rank, (0,0,))
-        self.assertEqual(authenticator, None)
-        self.assertEqual(identifier, preauth)
-        self.assertEqual(creds['repoze.who.userid'], 'preauthenticated')
-        self.assertEqual(userid, 'preauthenticated')
-        result = results[1]
-        rank, authenticator, identifier, creds, userid = result
-        self.assertEqual(rank, (0,1))
-        self.assertEqual(authenticator, plugin1)
-        self.assertEqual(identifier, None)
-        self.assertEqual(creds['login'], 'chris')
-        self.assertEqual(creds['password'], 'password')
-        self.assertEqual(userid, 'chris_id1')
-        result = results[2]
-        rank, authenticator, identifier, creds, userid = result
-        self.assertEqual(rank, (1,1))
-        self.assertEqual(authenticator, plugin2)
-        self.assertEqual(identifier, None)
-        self.assertEqual(creds['login'], 'chris')
-        self.assertEqual(creds['password'], 'password')
-        self.assertEqual(userid, 'chris_id2')
-
     def test_challenge_noidentifier_noapp(self):
         identity = {'login':'chris', 'password':'password'}
         environ = self._makeEnviron()
@@ -654,7 +617,67 @@ class APITests(unittest.TestCase):
         self.assertEqual(identity['foo'], 'bar')
         self.assertEqual(identity.get('fuz'), None)
 
-    # TODO:  test the 'remember' and 'forget' methods
+    def test_remember_no_identity_passed_or_in_environ(self):
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ)
+        self.assertEqual(len(api.remember()), 0)
+
+    def test_remember_no_identity_passed_but_in_environ(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        class _Identifier:
+            def remember(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = {'identifier': _Identifier()}
+        api = self._makeOne(environ=environ)
+        self.assertEqual(api.remember(), HEADERS)
+
+    def test_remember_w_identity_passed_no_identifier(self):
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ)
+        identity = {}
+        self.assertEqual(len(api.remember(identity)), 0)
+
+    def test_remember_w_identity_passed_w_identifier(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        class _Identifier:
+            def remember(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ)
+        identity = {'identifier': _Identifier()}
+        self.assertEqual(api.remember(identity), HEADERS)
+
+    def test_forget_no_identity_passed_or_in_environ(self):
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ)
+        self.assertEqual(len(api.forget()), 0)
+
+    def test_forget_no_identity_passed_but_in_environ(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        class _Identifier:
+            def forget(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = {'identifier': _Identifier()}
+        api = self._makeOne(environ=environ)
+        self.assertEqual(api.forget(), HEADERS)
+
+    def test_forget_w_identity_passed_no_identifier(self):
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ)
+        identity = {}
+        self.assertEqual(len(api.forget(identity)), 0)
+
+    def test_forget_w_identity_passed_w_identifier(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        class _Identifier:
+            def forget(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ)
+        identity = {'identifier': _Identifier()}
+        self.assertEqual(api.forget(identity), HEADERS)
 
 
 class TestIdentityDict(unittest.TestCase):

@@ -199,11 +199,12 @@ class API(object):
         logger and logger.info('no challenge app returned')
         return None
 
-    def remember(self, identity):
+    def remember(self, identity=None):
         """ See IAPI.
         """
         headers = ()
-        identity = self.environ.get('repoze.who.identity', {})
+        if identity is None:
+            identity = self.environ.get('repoze.who.identity', {})
         identifier = identity.get('identifier')
         if identifier:
             headers = identifier.remember(self.environ, identity)
@@ -213,11 +214,12 @@ class API(object):
                                         % (identifier, headers))
         return headers
 
-    def forget(self):
+    def forget(self, identity=None):
         """ See IAPI.
         """
         headers = ()
-        identity = self.environ.get('repoze.who.identity', {})
+        if identity is None:
+            identity = self.environ.get('repoze.who.identity', {})
         identifier = identity.get('identifier')
         if identifier:
             headers = identifier.forget(self.environ, identity)
@@ -267,14 +269,11 @@ class API(object):
             'authenticator plugins matched for '
             'classification "%s": %s' % (self.classification, plugins))
 
-        # 'preauthenticated' identities are considered best-ranking
-        identities, results, id_rank_start = self._filter_preauthenticated(
-            identities)
-
         auth_rank = 0
+        results = []
 
         for plugin in plugins:
-            identifier_rank = id_rank_start
+            identifier_rank = 0
             for identifier, identity in identities:
                 userid = plugin.authenticate(self.environ, identity)
                 if userid is not None:
@@ -296,30 +295,6 @@ class API(object):
 
         logger and logger.debug('identities authenticated: %s' % (results,))
         return results
-
-    def _filter_preauthenticated(self, identities):
-        logger = self.logger
-        results = []
-        new_identities = identities[:]
-
-        identifier_rank = 0
-        for thing in identities:
-            identifier, identity = thing
-            userid = identity.get('repoze.who.userid')
-            if userid is not None:
-                # the identifier plugin has already authenticated this
-                # user (domain auth, auth ticket, etc)
-                logger and logger.info(
-                  'userid preauthenticated by %s: "%s" '
-                  '(repoze.who.userid set)' % (identifier, userid)
-                  )
-                rank = (0, identifier_rank)
-                results.append(
-                    (rank, None, identifier, identity, userid)
-                    )
-                identifier_rank += 1
-                new_identities.remove(thing)
-        return new_identities, results, identifier_rank
 
     def _add_metadata(self, identity):
         """ See IAPI.

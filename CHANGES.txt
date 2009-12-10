@@ -39,6 +39,11 @@ Bugs Fixed
 Backward Incompatibilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- The middleware used to allow identifier plugins to "pre-authenticate"
+  an identity.  This feature is no longer supported: the ``auth_tkt`` 
+  plugin, which used to use the feature, is now configured to work as
+  an authenticator plugin.
+
 - The ``repoze.who.middleware:PluggableAuthenticationMiddleware`` class
   no longer has the following (non-API) methods (now made API methods
   of the ``repoze.who.api:API`` class):
