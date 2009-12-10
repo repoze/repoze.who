@@ -5,8 +5,6 @@ import datetime
 
 from paste.auth import auth_tkt
 from webob import Request
-from webob import Response
-from webob.exc import HTTPSeeOther
 
 LOGIN_FORM_TEMPLATE = """\
 <html>
@@ -67,25 +65,32 @@ def _get_cookies(environ, value):
 def login(environ, start_response):
     request = Request(environ)
     message = ''
-    if 'form.submitted' in request.post:
-        came_from = request.post['came_from']
-        login_name = request.post['login_name']
-        password = request.post['password']
+    if 'form.submitted' in request.POST:
+        came_from = request.POST['came_from']
+        login_name = request.POST['login_name']
+        password = request.POST['password']
         remote_addr = environ['REMOTE_ADDR']
         tokens = userdata = ''
-        if _validate(login, password):
+        if _validate(login_name, password):
             headers = [('Location', came_from)]
             ticket = auth_tkt.AuthTicket(SECRET, login_name, remote_addr,
                                          cookie_name=COOKIE_NAME, secure=True)
-            cookies = _get_cookies(environ, ticket.cookie_value())
-            return HTTPSeeOther(location=came_from, headers=cookies)
+            headers = _get_cookies(environ, ticket.cookie_value())
+            headers.append(('Location', came_from))
+            start_response('302 Found', headers)
+            return []
         message = 'Authentication failed'
     else:
-        came_from = request.get['came_from']
+        came_from = request.GET.get('came_from', '')
         login_name = ''
 
     body = LOGIN_FORM_TEMPLATE % {'message': message,
                                   'came_from': came_from,
                                   'login_name': login_name,
                                  }
-    return Response(body=body)
+    start_response('200 OK', [])
+    return [body]
+
+
+def main(global_config, **local_config):
+    return login

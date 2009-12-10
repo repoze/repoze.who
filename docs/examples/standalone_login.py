@@ -1,11 +1,7 @@
 # Login application for demo SSO: using the repoze.who API.
-import datetime
-
 from repoze.who.api import APIFactory
 from repoze.who.config import WhoConfig
 from webob import Request
-from webob import Response
-from webob.exc import HTTPSeeOther
 
 LOGIN_FORM_TEMPLATE = """\
 <html>
@@ -38,6 +34,8 @@ AUTH = {
     'bharney': 'b3dr0ck',
 }
 
+# This config would normally be in a separate file:  inlined here for
+# didactic purposes.
 WHO_CONFIG = """\
 [plugin:auth_tkt]
 # identification + authorization
@@ -72,7 +70,7 @@ api_factory = None
 def _configure_api_factory():
     global api_factory
     if api_factory is None:
-        config = WhoConfig()
+        config = WhoConfig(here='/tmp') # XXX config file location
         config.parse(WHO_CONFIG)
         api_factory = APIFactory(identifiers=config.identifiers,
                                  authenticators=config.authenticators,
@@ -88,26 +86,31 @@ def _validate(login_name, password):
     return AUTH.get(login_name) == password
 
 def login(environ, start_response):
-    api = _configure_api_factory()(environ)
     request = Request(environ)
     message = ''
-    if 'form.submitted' in request.post:
-        came_from = request.post['came_from']
-        login_name = request.post['login_name']
-        password = request.post['password']
+    if 'form.submitted' in request.POST:
+        came_from = request.POST['came_from']
+        login_name = request.POST['login_name']
+        password = request.POST['password']
         remote_addr = environ['REMOTE_ADDR']
         tokens = userdata = ''
-        if _validate(login, password):
+        if _validate(login_name, password):
+            api = _configure_api_factory()(environ)
             headers = [('Location', came_from)]
-            headers.extend(api.remember(login_name)
-            return HTTPSeeOther(location=came_from, headers=cookies)
+            headers.extend(api.remember(login_name))
+            start_response('302 Found', headers)
+            return []
         message = 'Authentication failed'
     else:
-        came_from = request.get['came_from']
+        came_from = request.GET.get('came_from')
         login_name = ''
 
     body = LOGIN_FORM_TEMPLATE % {'message': message,
                                   'came_from': came_from,
                                   'login_name': login_name,
                                  }
-    return Response(body=body)
+    start_response('200 OK', [])
+    return [body]
+
+def main(global_config, **local_config):
+    return login
