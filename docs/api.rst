@@ -148,12 +148,7 @@ Interfaces
             identity is based on a login and password, the environment
             is recommended to contain at least 'login' and 'password'
             keys as this provides compatibility between the plugin and
-            existing authenticator plugins.  If the identity can be
-            'preauthenticated' (e.g. if the userid is embedded in the
-            identity, such as when we're using ticket-based
-            authentication), the plugin should set the userid in the
-            special 'repoze.who.userid' key; no authenticators will be
-            asked to authenticate the identity thereafer.
+            existing authenticator plugins.
 
           o Return None to indicate that the plugin found no appropriate
             credentials.

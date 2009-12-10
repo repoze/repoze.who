@@ -12,9 +12,8 @@ Identifier Plugins
 You can register a plugin as willing to act as an "identifier".  An
 identifier examines the WSGI environment and attempts to extract
 credentials from the environment.  These credentials are used by
-authenticator plugins to perform authentication.  In some cases, an
-identification plugin can "preauthenticate" an identity (and can thus
-act as an authenticator plugin).
+authenticator plugins to perform authentication.
+
 
 Authenticator Plugins
 +++++++++++++++++++++
@@ -34,6 +33,7 @@ the identifier from whence the identity came) is passed along to
 downstream application in the ``repoze.who.identity`` environment
 variable.
 
+
 Metadata Provider Plugins
 +++++++++++++++++++++++++
 
@@ -42,6 +42,7 @@ You may register a plugin as willing to act as a "metadata provider"
 adding arbitrary information to the identity dictionary for
 consumption by downstream applications.  For instance, a metadata
 provider plugin may add "group" information to the the identity.
+
 
 Challenger Plugins
 ++++++++++++++++++
@@ -52,6 +53,7 @@ requesting user.  Challenger plugins are invoked by :mod:`repoze.who` when it
 decides a challenge is necessary. A challenge might consist of
 displaying a form or presenting the user with a basic or digest
 authentication dialog.
+
 
 Default Plugin Implementations
 ------------------------------
@@ -211,6 +213,7 @@ plugins.  Plugins are of one of four types: identifier plugins,
 authenticator plugins, metadata provider plugins, and challenge
 plugins.
 
+
 Writing An Identifier Plugin
 ++++++++++++++++++++++++++++
 
@@ -266,6 +269,7 @@ things ::
         def __repr__(self):
             return '<%s %s>' % (self.__class__.__name__, id(self))
 
+
 .identify
 ~~~~~~~~~
 
@@ -296,18 +300,6 @@ presence of the names "login" and "password" (e.g. the htpasswd and
 sql ``IAuthenticator`` plugins).  If an ``IIdentifier`` plugin finds
 no credentials, it is expected to return None.
 
-An ``IIdentifier`` plugin is also permitted to "preauthenticate" an
-identity.  If the identifier plugin knows that the identity is "good"
-(e.g. in the case of ticket-based authentication where the userid is
-embedded into the ticket), it can insert a special key into the
-identity dictionary: ``repoze.who.userid``.  If this key is present in
-the identity dictionary, no authenticators will be asked to
-authenticate the identity.  This effectively allows an ``IIdentifier``
-plugin to become an ``IAuthenticator`` plugin when breaking apart the
-responsibility into two separate plugins is "make-work".
-Preauthenticated identities will be selected first when deciding which
-identity to use for any given request.  Our cookie plugin doesn't use
-this feature.
 
 .remember
 ~~~~~~~~~
@@ -337,6 +329,7 @@ and compare the two against each other in order to determine if
 headers need to be returned.  In our example InsecureCookiePlugin, the
 "old state" is ``cookie_value`` and the "new state" is ``value``.
 
+
 .forget
 ~~~~~~~
 
@@ -354,6 +347,7 @@ Eventually the WSGI application we're serving will issue a "401
  method to one that expires in the past (on my birthday, in fact).
  This header will be tacked onto the response headers provided by the
  downstream application.
+
 
 Writing an Authenticator Plugin
 +++++++++++++++++++++++++++++++
@@ -408,6 +402,7 @@ return values expected from these methods are available in the
 ``interfaces.py`` file in :mod:`repoze.who` as the ``IAuthenticator``
 interface, but let's examine this method here less formally.
 
+
 .authenticate
 ~~~~~~~~~~~~~
 
@@ -427,6 +422,7 @@ it returns None.
    requires them to do "real work" it returns None if they are not
    present instead of raising an exception.  This is required by the
    ``IAuthenticator`` interface specification.
+
 
 Writing a Challenger Plugin
 +++++++++++++++++++++++++++
@@ -464,6 +460,7 @@ returned an "unauthorized" response (e.g. a 401).  Only one challenger
 will be consulted during "egress" as necessary (the first one to
 return a non-None response).
 
+
 .challenge
 ~~~~~~~~~~
 
@@ -480,6 +477,7 @@ headers if an identification plugin has already set a
 "WWW-Authenticate" header like ours, then it returns an instance of
 HTTPUnauthorized, passing in merged headers.  This will cause a basic
 authentication dialog to be presented to the user.
+
 
 Writing a Metadata Provider Plugin
 ++++++++++++++++++++++++++++++++++
@@ -507,6 +505,7 @@ information from a dictionary::
             info = _DATA.get(userid)
             if info is not None:
                 identity.update(info)
+
 
 .add_metadata
 ~~~~~~~~~~~~~
