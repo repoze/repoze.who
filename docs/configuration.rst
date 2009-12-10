@@ -108,9 +108,13 @@ An example configuration which uses the default plugins follows::
     form = FormPlugin('__do_login', rememberer_name='auth_tkt')
     form.classifications = { IIdentifier:['browser'],
                              IChallenger:['browser'] } # only for browser
-    identifiers = [('form', form),('auth_tkt',auth_tkt),('basicauth',basicauth)]
-    authenticators = [('htpasswd', htpasswd)]
-    challengers = [('form',form), ('basicauth',basicauth)]
+    identifiers = [('form', form),
+                   ('auth_tkt', auth_tkt),
+                   ('basicauth', basicauth)]
+    authenticators = [('auth_tkt', auth_tkt),
+                      ('htpasswd', htpasswd)]
+    challengers = [('form', form),
+                   ('basicauth', basicauth)]
     mdproviders = []
 
     from repoze.who.classifiers import default_request_classifier
@@ -145,10 +149,11 @@ The above example configures the repoze.who middleware with:
   request is a browser request), then the auth_tkt cookie plugin, then
   the basic auth plugin.
 
-- One ``IAuthenticator`` plugin: an htpasswd one.  This htpasswd
-  plugin is configured with two valid username/password combinations:
-  chris/chris, and admin/admin.  When an username and password is
-  found via any identifier, it will be checked against this
+- Two ``IAuthenticator`` plugins: the auth_tkt plugin and an htpasswd plugin.
+  The auth_tkt plugin performs both ``IIdentifier`` and ``IAuthenticator``
+  functions.  The htpasswd plugin is configured with two valid username /
+  assword combinations: chris/chris, and admin/admin.  When an username
+  and password is found via any identifier, it will be checked against this
   authenticator.
 
 - Two ``IChallenger`` plugins: the form plugin, then the basic auth
@@ -212,7 +217,7 @@ nominated to act as authenticator plugins. ::
     form = %(here)s/login_form.html
 
     [plugin:auth_tkt]
-    # identification
+    # identification and authentication
     use = repoze.who.plugins.auth_tkt:make_plugin
     secret = s33kr1t
     cookie_name = oatmeal
@@ -259,6 +264,7 @@ nominated to act as authenticator plugins. ::
     [authenticators]
     # plugin_name;classifier_name.. or just plugin_name (good for any)
     plugins =
+          auth_tkt
           htpasswd
           sqlusers
 
@@ -278,9 +284,9 @@ plugin that does identification and challenge (its implementation
 defers to the cookie plugin for identification "forget" and "remember"
 duties, thus the "identifier_impl_name" key; this is looked up at
 runtime).  The auth_tkt section configures a plugin that does
-identification for cookie auth credentials.  The htpasswd plugin
-obtains its user info from a file.  The sqlusers plugin obtains its
-user info from a Postgres database.
+identification for cookie auth credentials, as well as authenticating
+them.  The htpasswd plugin obtains its user info from a file.  The sqlusers
+plugin obtains its user info from a Postgres database.
 
 The identifiers section provides an ordered list of plugins that are
 willing to provide identification capability.  These will be consulted

@@ -65,10 +65,10 @@ authentication, identification, challenge and metadata provision.
 
 .. class:: AuthTktCookiePlugin(secret [, cookie_name='auth_tkt' [, secure=False [, include_ip=False]]])
 
-  An :class:`AuthTktCookiePlugin` is an ``IIdentifier`` plugin which
-  remembers its identity state in a client-side cookie.  This plugin
-  uses the ``paste.auth.auth_tkt``"auth ticket" protocol.  It should
-  be instantiated passing a *secret*, which is used to encrypt the
+  An :class:`AuthTktCookiePlugin` is an ``IIdentifier`` and ``IAuthenticator``
+  plugin which remembers its identity state in a client-side cookie.
+  This plugin uses the ``paste.auth.auth_tkt``"auth ticket" protocol.
+  It should be instantiated passing a *secret*, which is used to encrypt the
   cookie on the client side and decrypt the cookie on the server side.
   The cookie name used to store the cookie value can be specified
   using the *cookie_name* parameter.  If *secure* is False, the cookie
@@ -76,6 +76,9 @@ authentication, identification, challenge and metadata provision.
   cookie will be sent only across an HTTPS connection.  If
   *include_ip* is True, the ``REMOTE_ADDR`` of the WSGI environment
   will be placed in the cookie.
+
+  Normally, using the plugin as an identifier requires also using it as
+  an authenticator.
 
 .. note::
    Using the *include_ip* setting for public-facing applications may
