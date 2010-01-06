@@ -233,6 +233,7 @@ things ::
             self.cookie_name = cookie_name
 
         def identify(self, environ):
+            from paste.request import get_cookies
             cookies = get_cookies(environ)
             cookie = cookies.get(self.cookie_name)
 
