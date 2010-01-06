@@ -291,7 +291,7 @@ plugin obtains its user info from a Postgres database.
 The identifiers section provides an ordered list of plugins that are
 willing to provide identification capability.  These will be consulted
 in the defined order.  The tokens on each line of the ``plugins=`` key
-are in the form "plugin_name:requestclassifier_name:..."  (or just
+are in the form "plugin_name;requestclassifier_name:..."  (or just
 "plugin_name" if the plugin can be consulted regardless of the
 classification of the request).  The configuration above indicates
 that the system will look for credentials using the form plugin (if
