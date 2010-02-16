@@ -25,13 +25,18 @@ Lifecycle of a Request
 ----------------------
 
 :mod:`repoze.who` performs duties both on middleware "ingress" and on
-middleware "egress".
+middleware "egress". The following graphic outlines where it sits in the context
+of the request and its response:
+
+.. image:: .static/request-lifecycle.png
 
 
 .. _ingress_stages:
 
 Request (Ingress) Stages
 ++++++++++++++++++++++++
+
+.. image:: .static/ingress.png
 
 :mod:`repoze.who` performs the following operations in the following
 order during middleware ingress:
