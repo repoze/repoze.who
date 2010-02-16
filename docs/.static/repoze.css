@@ -20,6 +20,10 @@ div.related a {
     color: #dad3bd !important;
 }
 
+ol li {
+    color: Black !important;
+}
+
 ul.simple li {
     color: Black !important;
 }
