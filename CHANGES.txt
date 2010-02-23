@@ -7,6 +7,10 @@ repoze.who Changelog
 Features
 ~~~~~~~~
 
+- Restored the ability to create the middleware using the old 'classifier'
+  argument (now a deprecated-but-will-work-forever alias for
+  'request_classifier').
+
 - The ``auth_tkt`` plugin now implements the ``IAuthenticator`` interface,
   and should normally be used both as an ``IIdentifier`` and an
   ``IAuthenticator``.

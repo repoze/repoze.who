@@ -4,9 +4,7 @@ import sys
 
 from repoze.who.api import APIFactory
 from repoze.who.interfaces import IIdentifier
-from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IChallenger
-from repoze.who.interfaces import IMetadataProvider
 
 _STARTED = '-- repoze.who request started (%s) --'
 _ENDED = '-- repoze.who request ended (%s) --'
@@ -18,12 +16,23 @@ class PluggableAuthenticationMiddleware(object):
                  authenticators,
                  challengers,
                  mdproviders,
-                 request_classifier,
-                 challenge_decider,
+                 request_classifier = None,
+                 challenge_decider = None,
                  log_stream = None,
                  log_level = logging.INFO,
                  remote_user_key = 'REMOTE_USER',
+                 classifier = None
                  ):
+        if challenge_decider is None:
+            raise ValueError('challenge_decider is required')
+        if request_classifier is not None and classifier is not None:
+            raise ValueError(
+                    'Only one of request_classifier and classifier is allowed')
+        if request_classifier is None:
+            if classifier is None:
+                raise ValueError(
+                        'Either request_classifier and classifier is required')
+            request_classifier = classifier
         self.app = app
         logger = self.logger = None
         if isinstance(log_stream, logging.Logger):

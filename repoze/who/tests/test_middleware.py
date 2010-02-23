@@ -11,7 +11,7 @@ class TestMiddleware(unittest.TestCase):
                  identifiers=None,
                  authenticators=None,
                  challengers=None,
-                 classifier=None,
+                 request_classifier=None,
                  mdproviders=None,
                  challenge_decider=None,
                  log_stream=None,
@@ -26,8 +26,8 @@ class TestMiddleware(unittest.TestCase):
             authenticators = []
         if challengers is None:
             challengers = []
-        if classifier is None:
-            classifier = DummyRequestClassifier()
+        if request_classifier is None:
+            request_classifier = DummyRequestClassifier()
         if mdproviders is None:
             mdproviders = []
         if challenge_decider is None:
@@ -40,7 +40,7 @@ class TestMiddleware(unittest.TestCase):
                                     authenticators,
                                     challengers,
                                     mdproviders,
-                                    classifier,
+                                    request_classifier,
                                     challenge_decider,
                                     log_stream,
                                     log_level=logging.DEBUG,
@@ -55,7 +55,120 @@ class TestMiddleware(unittest.TestCase):
             environ.update(kw)
         return environ
 
-    def test_accepts_logger(self):
+    def test_ctor_positional_args(self):
+        klass = self._getTargetClass()
+        app = DummyApp()
+        identifiers = []
+        authenticators = []
+        challengers = []
+        request_classifier = DummyRequestClassifier()
+        mdproviders = []
+        challenge_decider = DummyChallengeDecider()
+        mw = klass(app,
+                   identifiers,
+                   authenticators,
+                   challengers,
+                   mdproviders,
+                   request_classifier,
+                   challenge_decider,
+                  )
+        self.assertEqual(mw.app, app)
+        af = mw.api_factory
+        self.assertEqual(af.identifiers, identifiers)
+        self.assertEqual(af.authenticators, authenticators)
+        self.assertEqual(af.challengers, challengers)
+        self.assertEqual(af.mdproviders, mdproviders)
+        self.assertEqual(af.request_classifier, request_classifier)
+        self.assertEqual(af.challenge_decider, challenge_decider)
+
+    def test_ctor_wo_request_classifier_or_classifier_raises(self):
+        # BBB for old argument name
+        klass = self._getTargetClass()
+        app = DummyApp()
+        identifiers = []
+        authenticators = []
+        challengers = []
+        mdproviders = []
+        challenge_decider = DummyChallengeDecider()
+        self.assertRaises(ValueError,
+                          klass,
+                          app,
+                          identifiers,
+                          authenticators,
+                          challengers,
+                          mdproviders,
+                          challenge_decider = challenge_decider,
+                          )
+
+    def test_ctor_w_request_classifier_and_classifier_raises(self):
+        # BBB for old argument name
+        klass = self._getTargetClass()
+        app = DummyApp()
+        identifiers = []
+        authenticators = []
+        challengers = []
+        request_classifier = DummyRequestClassifier()
+        mdproviders = []
+        challenge_decider = DummyChallengeDecider()
+        self.assertRaises(ValueError,
+                          klass,
+                          app,
+                          identifiers,
+                          authenticators,
+                          challengers,
+                          mdproviders,
+                          request_classifier,
+                          challenge_decider,
+                          classifier = object()
+                          )
+
+    def test_ctor_wo_challenge_decider_raises(self):
+        # BBB for old argument name
+        klass = self._getTargetClass()
+        app = DummyApp()
+        identifiers = []
+        authenticators = []
+        challengers = []
+        request_classifier = DummyRequestClassifier()
+        mdproviders = []
+        self.assertRaises(ValueError,
+                          klass,
+                          app,
+                          identifiers,
+                          authenticators,
+                          challengers,
+                          mdproviders,
+                          classifier = request_classifier,
+                          )
+
+    def test_ctor_w_classifier(self):
+        # BBB for old argument name
+        klass = self._getTargetClass()
+        app = DummyApp()
+        identifiers = []
+        authenticators = []
+        challengers = []
+        request_classifier = DummyRequestClassifier()
+        mdproviders = []
+        challenge_decider = DummyChallengeDecider()
+        mw = klass(app,
+                   identifiers,
+                   authenticators,
+                   challengers,
+                   mdproviders,
+                   classifier = request_classifier,
+                   challenge_decider = challenge_decider,
+                  )
+        self.assertEqual(mw.app, app)
+        af = mw.api_factory
+        self.assertEqual(af.identifiers, identifiers)
+        self.assertEqual(af.authenticators, authenticators)
+        self.assertEqual(af.challengers, challengers)
+        self.assertEqual(af.mdproviders, mdproviders)
+        self.assertEqual(af.request_classifier, request_classifier)
+        self.assertEqual(af.challenge_decider, challenge_decider)
+
+    def test_ctor_accepts_logger(self):
         import logging
         logger = logging.Logger('something')
         logger.setLevel(logging.INFO)
