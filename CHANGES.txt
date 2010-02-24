@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-1.1a1 (unreleased)
+2.0a1 (2010-02-24)
 ------------------
 
 Features

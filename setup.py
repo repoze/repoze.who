@@ -16,14 +16,12 @@ import os
 
 from setuptools import setup, find_packages
 
-__version__ = '1.1dev'
-
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 setup(name='repoze.who',
-      version=__version__,
+      version='2.0a1',
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
       long_description='\n\n'.join([README, CHANGES]),
@@ -54,5 +52,5 @@ setup(name='repoze.who',
       predicate = repoze.who.restrict:make_predicate_restriction
       authenticated = repoze.who.restrict:make_authenticated_restriction
       """
-      )
+)
 
