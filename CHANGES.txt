@@ -7,9 +7,9 @@ repoze.who Changelog
 Features
 ~~~~~~~~
 
-- Restored the ability to create the middleware using the old 'classifier'
-  argument (now a deprecated-but-will-work-forever alias for
-  'request_classifier').
+- Restored the ability to create the middleware using the old ``classifier``
+  argument.  That argument is now a deprecated-but-will-work-forever alias for
+  ``request_classifier``.
 
 - The ``auth_tkt`` plugin now implements the ``IAuthenticator`` interface,
   and should normally be used both as an ``IIdentifier`` and an
@@ -29,7 +29,8 @@ Features
 
   - "hybrid" applications are configured with ``repoze.who`` middleware,
     but use a new library function to fetch the ``API`` object from the
-    environ.
+    environ, e.g. to permit calling ``remember`` after a signup or successful
+    login.
 
 Bugs Fixed
 ~~~~~~~~~~
@@ -46,7 +47,7 @@ Backward Incompatibilities
 - The middleware used to allow identifier plugins to "pre-authenticate"
   an identity.  This feature is no longer supported: the ``auth_tkt`` 
   plugin, which used to use the feature, is now configured to work as
-  an authenticator plugin.
+  an authenticator plugin (as well as an identifier).
 
 - The ``repoze.who.middleware:PluggableAuthenticationMiddleware`` class
   no longer has the following (non-API) methods (now made API methods
