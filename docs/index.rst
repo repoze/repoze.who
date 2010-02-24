@@ -4,7 +4,7 @@
 :mod:`repoze.who` -- WSGI Authentication Middleware
 ***************************************************
 
-:Author: Chris McDonough
+:Author: Chris McDonough / Tres Seaver
 :Version: |version|
 
 .. module:: repoze.who
