@@ -170,10 +170,15 @@ class TestMiddleware(unittest.TestCase):
 
     def test_ctor_accepts_logger(self):
         import logging
-        logger = logging.Logger('something')
-        logger.setLevel(logging.INFO)
-        mw = self._makeOne(log_stream=logger)
-        self.assertEqual(logger, mw.logger)
+        restore = logging.raiseExceptions
+        logging.raiseExceptions = 0
+        try:
+            logger = logging.Logger('something')
+            logger.setLevel(logging.INFO)
+            mw = self._makeOne(log_stream=logger)
+            self.assertEqual(logger, mw.logger)
+        finally:
+            logging.raiseExceptions = restore
 
     def test_call_remoteuser_already_set(self):
         environ = self._makeEnviron({'REMOTE_USER':'admin'})

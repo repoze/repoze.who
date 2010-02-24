@@ -214,10 +214,15 @@ class APITests(unittest.TestCase):
 
     def test_accepts_logger_instance(self):
         import logging
-        logger = logging.Logger('something')
-        logger.setLevel(logging.INFO)
-        api = self._makeOne(logger=logger)
-        self.failUnless(api.logger is logger)
+        restore = logging.raiseExceptions
+        logging.raiseExceptions = 0
+        try:
+            logger = logging.Logger('something')
+            logger.setLevel(logging.INFO)
+            api = self._makeOne(logger=logger)
+            self.failUnless(api.logger is logger)
+        finally:
+            logging.raiseExceptions = restore
 
     def test__identify_success(self):
         environ = self._makeEnviron()
