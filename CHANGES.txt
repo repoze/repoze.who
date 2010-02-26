@@ -1,6 +1,23 @@
 repoze.who Changelog
 ====================
 
+After 2.0a1
+-----------
+
+Bugs Fixed
+~~~~~~~~~~
+
+- Fixed failure to pass substution values in log message string formatting
+  for ``repoze.who.api:API.challenge``.  Fix included adding tests for all
+  logging done by the API object.  See http://bugs.repoze.org/issue122
+
+Backward Incompatibilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Adjusted logging level for some lower-level details from ``info``
+  to ``debug``.
+
+
 2.0a1 (2010-02-24)
 ------------------
 

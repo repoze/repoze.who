@@ -179,12 +179,12 @@ class API(object):
                                        % (identifier, forget_headers))
 
         candidates = self.interface_registry.get(IChallenger, ())
-        logger and logger.info('challengers registered: %s' % repr(candidates))
+        logger and logger.debug('challengers registered: %s' % repr(candidates))
         plugins = match_classification(IChallenger, candidates,
                                        self.classification)
-        logger and logger.info('challengers matched for '
-                               'classification "%s": %s' % (classification,
-                                                            plugins))
+        logger and logger.debug('challengers matched for '
+                               'classification "%s": %s'
+                                    % (self.classification, plugins))
         for plugin in plugins:
             app = plugin.challenge(self.environ, status, app_headers,
                                    forget_headers)
@@ -234,11 +234,11 @@ class API(object):
         """
         logger = self.logger
         candidates = self.interface_registry.get(IIdentifier, ())
-        logger and self.logger.info('identifier plugins registered %s' %
+        logger and self.logger.debug('identifier plugins registered: %s' %
                                     (candidates,))
         plugins = match_classification(IIdentifier, candidates,
                                        self.classification)
-        logger and self.logger.info(
+        logger and self.logger.debug(
             'identifier plugins matched for '
             'classification "%s": %s' % (self.classification, plugins))
 
@@ -261,11 +261,11 @@ class API(object):
         """
         logger = self.logger
         candidates = self.interface_registry.get(IAuthenticator, [])
-        logger and self.logger.info('authenticator plugins registered %s' %
+        logger and self.logger.debug('authenticator plugins registered: %s' %
                                     candidates)
         plugins = match_classification(IAuthenticator, candidates,
                                        self.classification)
-        logger and self.logger.info(
+        logger and self.logger.debug(
             'authenticator plugins matched for '
             'classification "%s": %s' % (self.classification, plugins))
 

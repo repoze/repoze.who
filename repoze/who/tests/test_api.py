@@ -212,17 +212,390 @@ class APITests(unittest.TestCase):
         from repoze.who.interfaces import IAPI
         verifyClass(IAPI, self._getTargetClass())
 
-    def test_accepts_logger_instance(self):
-        import logging
-        restore = logging.raiseExceptions
-        logging.raiseExceptions = 0
-        try:
-            logger = logging.Logger('something')
-            logger.setLevel(logging.INFO)
-            api = self._makeOne(logger=logger)
-            self.failUnless(api.logger is logger)
-        finally:
-            logging.raiseExceptions = restore
+    def test_ctor_accepts_logger_instance(self):
+        logger = DummyLogger()
+        api = self._makeOne(logger=logger)
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_authenticate_no_identities(self):
+        logger = DummyLogger()
+        environ = self._makeEnviron()
+        plugin = DummyNoResultsIdentifier()
+        plugins = [ ('dummy', plugin) ]
+        api = self._makeOne(environ=environ,
+                            identifiers=plugins,
+                            logger=logger)
+        identity = api.authenticate()
+        self.assertEqual(identity, None)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(logger._info[1], 'no identities found, '
+                                          'not authenticating')
+
+    def test_authenticate_w_identities_no_authenticators(self):
+        logger = DummyLogger()
+        environ = self._makeEnviron()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identifiers = [ ('i', identifier) ]
+        api = self._makeOne(environ=environ,
+                            identifiers=identifiers, logger=logger)
+        identity = api.authenticate()
+        self.assertEqual(identity, None)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        # Hmm, should this message distinguish "none found" from
+        # "none authenticated"?
+        self.assertEqual(logger._info[1], 'no identities found, '
+                                          'not authenticating')
+
+    #def test_authenticate_w_identities_w_authenticators_miss(self):
+    def test_authenticate_w_identities_w_authenticators_hit(self):
+        logger = DummyLogger()
+        environ = self._makeEnviron()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identifiers = [ ('i', identifier) ]
+        authenticator = DummyAuthenticator('chrisid')
+        authenticators = [ ('a', authenticator) ]
+        api = self._makeOne(environ=environ,
+                            identifiers=identifiers,
+                            authenticators=authenticators,
+                            logger=logger)
+        identity = api.authenticate()
+        self.assertEqual(identity['repoze.who.userid'], 'chrisid')
+        self.failUnless(identity['identifier'] is identifier)
+        self.failUnless(identity['authenticator'] is authenticator)
+
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+
+    def test_challenge_noidentifier_noapp(self):
+        logger = DummyLogger()
+        identity = {'login':'chris', 'password':'password'}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        challenger = DummyChallenger()
+        plugins = [ ('challenge', challenger) ]
+        api = self._makeOne(environ=environ,
+                            challengers=plugins,
+                            request_classifier=lambda environ: 'match',
+                            logger=logger,
+                           )
+        app = api.challenge('401 Unauthorized', [])
+        self.assertEqual(app, None)
+        self.assertEqual(environ['challenged'], None)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: match')
+        self.assertEqual(logger._info[1], 'no challenge app returned')
+        self.assertEqual(len(logger._debug), 2)
+        self.failUnless(logger._debug[0].startswith(
+                                        'challengers registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'challengers matched for '
+                                        'classification "match": ['))
+
+    def test_challenge_noidentifier_with_app(self):
+        logger = DummyLogger()
+        identity = {'login':'chris', 'password':'password'}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        app = DummyApp()
+        challenger = DummyChallenger(app)
+        plugins = [ ('challenge', challenger) ]
+        api = self._makeOne(environ=environ,
+                            challengers=plugins,
+                            request_classifier=lambda environ: 'match',
+                            logger=logger,
+                           )
+        result = api.challenge('401 Unauthorized', [])
+        self.assertEqual(result, app)
+        self.assertEqual(environ['challenged'], app)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: match')
+        self.failUnless(logger._info[1].startswith('challenger plugin '))
+        self.failUnless(logger._info[1].endswith(
+                         '"challenge" returned an app'))
+        self.assertEqual(len(logger._debug), 2)
+        self.failUnless(logger._debug[0].startswith(
+                                        'challengers registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'challengers matched for '
+                                        'classification "match": ['))
+
+    def test_challenge_identifier_no_app_no_forget_headers(self):
+        logger = DummyLogger()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identity = {'login':'chris',
+                    'password':'password',
+                    'identifier': identifier}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        challenger = DummyChallenger()
+        plugins = [ ('challenge', challenger) ]
+        api = self._makeOne(environ=environ,
+                            challengers=plugins,
+                            request_classifier=lambda environ: 'match',
+                            logger=logger,
+                           )
+        result = api.challenge('401 Unauthorized', [])
+        self.assertEqual(result, None)
+        self.assertEqual(environ['challenged'], None)
+        self.assertEqual(identifier.forgotten, identity)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: match')
+        self.assertEqual(logger._info[1], 'no challenge app returned')
+        self.assertEqual(len(logger._debug), 2)
+        self.failUnless(logger._debug[0].startswith(
+                                        'challengers registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'challengers matched for '
+                                        'classification "match": ['))
+
+    def test_challenge_identifier_app_no_forget_headers(self):
+        logger = DummyLogger()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identity = {'login':'chris',
+                    'password':'password',
+                    'identifier': identifier}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        app = DummyApp()
+        challenger = DummyChallenger(app)
+        plugins = [ ('challenge', challenger) ]
+        api = self._makeOne(environ=environ,
+                            challengers=plugins,
+                            request_classifier=lambda environ: 'match',
+                            logger=logger,
+                           )
+        result = api.challenge('401 Unauthorized', [])
+        self.assertEqual(result, app)
+        self.assertEqual(environ['challenged'], app)
+        self.assertEqual(identifier.forgotten, identity)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: match')
+        self.failUnless(logger._info[1].startswith('challenger plugin '))
+        self.failUnless(logger._info[1].endswith(
+                         '"challenge" returned an app'))
+        self.assertEqual(len(logger._debug), 2)
+        self.failUnless(logger._debug[0].startswith(
+                                        'challengers registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'challengers matched for '
+                                        'classification "match": ['))
+
+    def test_challenge_identifier_no_app_forget_headers(self):
+        FORGET_HEADERS = [('X-testing-forget', 'Oubliez!')]
+        logger = DummyLogger()
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials,
+                                     forget_headers=FORGET_HEADERS)
+        identity = {'login':'chris',
+                    'password':'password',
+                    'identifier': identifier}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        app = DummyApp()
+        challenger = DummyChallenger(app)
+        plugins = [ ('challenge', challenger) ]
+        api = self._makeOne(environ=environ,
+                            challengers=plugins,
+                            request_classifier=lambda environ: 'match',
+                            logger=logger,
+                           )
+        result = api.challenge('401 Unauthorized', [])
+        self.assertEqual(result, app)
+        self.assertEqual(environ['challenged'], app)
+        self.assertEqual(challenger._challenged_with[3], FORGET_HEADERS)
+        self.assertEqual(len(logger._info), 3)
+        self.assertEqual(logger._info[0], 'request classification: match')
+        self.failUnless(logger._info[1].startswith(
+                                        'forgetting via headers from'))
+        self.failUnless(logger._info[1].endswith(repr(FORGET_HEADERS)))
+        self.failUnless(logger._info[2].startswith('challenger plugin '))
+        self.failUnless(logger._info[2].endswith(
+                         '"challenge" returned an app'))
+        self.assertEqual(len(logger._debug), 2)
+        self.failUnless(logger._debug[0].startswith(
+                                        'challengers registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'challengers matched for '
+                                        'classification "match": ['))
+
+    def test_multi_challenge_firstwins(self):
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identity = {'login':'chris',
+                    'password':'password',
+                    'identifier': identifier}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        app1 = DummyApp()
+        app2 = DummyApp()
+        challenger1 = DummyChallenger(app1)
+        challenger2 = DummyChallenger(app2)
+        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
+        api = self._makeOne(environ=environ, challengers=plugins,
+                            request_classifier=lambda environ: 'match')
+        result = api.challenge('401 Unauthorized', [])
+        self.assertEqual(result, app1)
+        self.assertEqual(environ['challenged'], app1)
+        self.assertEqual(identifier.forgotten, identity)
+
+    def test_multi_challenge_skipnomatch_findimplicit(self):
+        from repoze.who.interfaces import IChallenger
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identity = {'login':'chris',
+                    'password':'password',
+                    'identifier': identifier}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        app1 = DummyApp()
+        app2 = DummyApp()
+        challenger1 = DummyChallenger(app1)
+        challenger1.classifications = {IChallenger:['nomatch']}
+        challenger2 = DummyChallenger(app2)
+        challenger2.classifications = {IChallenger:None}
+        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
+        api = self._makeOne(environ=environ, challengers=plugins,
+                            request_classifier=lambda environ: 'match')
+        result = api.challenge('401 Unauthorized', [])
+        self.assertEqual(result, app2)
+        self.assertEqual(environ['challenged'], app2)
+        self.assertEqual(identifier.forgotten, identity)
+
+    def test_multi_challenge_skipnomatch_findexplicit(self):
+        from repoze.who.interfaces import IChallenger
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identity = {'login':'chris',
+                    'password':'password',
+                    'identifier': identifier}
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = identity
+        app1 = DummyApp()
+        app2 = DummyApp()
+        challenger1 = DummyChallenger(app1)
+        challenger1.classifications = {IChallenger:['nomatch']}
+        challenger2 = DummyChallenger(app2)
+        challenger2.classifications = {IChallenger:['match']}
+        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
+        api = self._makeOne(environ=environ, challengers=plugins,
+                            request_classifier=lambda environ: 'match')
+        result = api.challenge('401 Unauthorized', [])
+        self.assertEqual(result, app2)
+        self.assertEqual(environ['challenged'], app2)
+        self.assertEqual(identifier.forgotten, identity)
+
+    def test_remember_no_identity_passed_or_in_environ(self):
+        logger = DummyLogger()
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ)
+        self.assertEqual(len(api.remember()), 0)
+        self.assertEqual(len(logger._info), 0)
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_remember_no_identity_passed_but_in_environ(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        logger = DummyLogger()
+        class _Identifier:
+            def remember(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = {'identifier': _Identifier()}
+        api = self._makeOne(environ=environ, logger=logger)
+        self.assertEqual(api.remember(), HEADERS)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.failUnless(logger._info[1].startswith(
+                                        'remembering via headers from'))
+        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_remember_w_identity_passed_no_identifier(self):
+        logger = DummyLogger()
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ, logger=logger)
+        identity = {}
+        self.assertEqual(len(api.remember(identity)), 0)
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_remember_w_identity_passed_w_identifier(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        logger = DummyLogger()
+        class _Identifier:
+            def remember(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ, logger=logger)
+        identity = {'identifier': _Identifier()}
+        self.assertEqual(api.remember(identity), HEADERS)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.failUnless(logger._info[1].startswith(
+                                        'remembering via headers from'))
+        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_forget_no_identity_passed_or_in_environ(self):
+        logger = DummyLogger()
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ, logger=logger)
+        self.assertEqual(len(api.forget()), 0)
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_forget_no_identity_passed_but_in_environ(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        logger = DummyLogger()
+        class _Identifier:
+            def forget(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = {'identifier': _Identifier()}
+        api = self._makeOne(environ=environ, logger=logger)
+        self.assertEqual(api.forget(), HEADERS)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.failUnless(logger._info[1].startswith(
+                                        'forgetting via headers from'))
+        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_forget_w_identity_passed_no_identifier(self):
+        environ = self._makeEnviron()
+        logger = DummyLogger()
+        api = self._makeOne(environ=environ, logger=logger)
+        identity = {}
+        self.assertEqual(len(api.forget(identity)), 0)
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 0)
+
+    def test_forget_w_identity_passed_w_identifier(self):
+        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
+        logger = DummyLogger()
+        class _Identifier:
+            def forget(self, environ, identity):
+                return HEADERS
+        environ = self._makeEnviron()
+        api = self._makeOne(environ=environ, logger=logger)
+        identity = {'identifier': _Identifier()}
+        self.assertEqual(api.forget(identity), HEADERS)
+        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.failUnless(logger._info[1].startswith(
+                                        'forgetting via headers from'))
+        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertEqual(len(logger._debug), 0)
 
     def test__identify_success(self):
         environ = self._makeEnviron()
@@ -249,12 +622,27 @@ class APITests(unittest.TestCase):
         self.assertEqual(identity, {})
 
     def test__identify_fail(self):
+        logger = DummyLogger()
         environ = self._makeEnviron()
         plugin = DummyNoResultsIdentifier()
         plugins = [ ('dummy', plugin) ]
-        api = self._makeOne(environ=environ, identifiers=plugins)
+        api = self._makeOne(environ=environ,
+                            identifiers=plugins,
+                            logger=logger)
         results = api._identify()
         self.assertEqual(len(results), 0)
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 4)
+        self.failUnless(logger._debug[0].startswith(
+                                        'identifier plugins registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'identifier plugins matched for '
+                                        'classification "browser": ['))
+        self.failUnless(logger._debug[2].startswith(
+                                        'no identity returned from <'))
+        self.failUnless(logger._debug[2].endswith('> (None)'))
+        self.assertEqual(logger._debug[3], 'identities found: []')
 
     def test__identify_success_skip_noresults(self):
         environ = self._makeEnviron()
@@ -341,18 +729,29 @@ class APITests(unittest.TestCase):
         self.assertEqual(userid, 'a')
 
     def test__authenticate_fail(self):
+        logger = DummyLogger()
         environ = self._makeEnviron()
-        api = self._makeOne(environ=environ) # no authenticators
+        # no authenticators
+        api = self._makeOne(environ=environ, logger=logger)
         identities = [ (None, {'login':'chris', 'password':'password'}) ]
         result = api._authenticate(identities)
         self.assertEqual(len(result), 0)
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 3)
+        self.assertEqual(logger._debug[0], 'authenticator plugins '
+                                           'registered: []')
+        self.assertEqual(logger._debug[1], 'authenticator plugins matched '
+                                           'for classification "browser": []')
+        self.assertEqual(logger._debug[2], 'identities authenticated: []')
 
     def test__authenticate_success_skip_fail(self):
+        logger = DummyLogger()
         environ = self._makeEnviron()
         plugin1 = DummyFailAuthenticator()
         plugin2 = DummyAuthenticator()
         plugins = [ ('dummy1', plugin1), ('dummy2', plugin2) ]
-        api = self._makeOne(authenticators=plugins)
+        api = self._makeOne(authenticators=plugins, logger=logger)
         creds = {'login':'chris', 'password':'password'}
         identities = [ (None, {'login':'chris', 'password':'password'}) ]
         results = api._authenticate(identities)
@@ -366,12 +765,28 @@ class APITests(unittest.TestCase):
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris')
 
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 5)
+        self.failUnless(logger._debug[0].startswith(
+                                        'authenticator plugins registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'authenticator plugins matched for '
+                                        'classification "browser": ['))
+        self.failUnless(logger._debug[2].startswith('no userid returned from'))
+        self.failUnless(logger._debug[3].startswith('userid returned from'))
+        self.failUnless(logger._debug[3].endswith('"chris"'))
+        self.failUnless(logger._debug[4].startswith(
+                                         'identities authenticated: [((1, 0),'))
+
     def test__authenticate_success_multiresult(self):
+        logger = DummyLogger()
         environ = self._makeEnviron()
         plugin1 = DummyAuthenticator('chris_id1')
         plugin2 = DummyAuthenticator('chris_id2')
         plugins = [ ('dummy1',plugin1), ('dummy2',plugin2) ]
-        api = self._makeOne(environ=environ, authenticators=plugins)
+        api = self._makeOne(environ=environ,
+                            authenticators=plugins, logger=logger)
         creds = {'login':'chris', 'password':'password'}
         identities = [ (None, {'login':'chris', 'password':'password'}) ]
         results = api._authenticate(identities)
@@ -392,6 +807,22 @@ class APITests(unittest.TestCase):
         self.assertEqual(creds['login'], 'chris')
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 'chris_id2')
+
+        self.assertEqual(len(logger._info), 1)
+        self.assertEqual(logger._info[0], 'request classification: browser')
+        self.assertEqual(len(logger._debug), 5)
+        self.failUnless(logger._debug[0].startswith(
+                                        'authenticator plugins registered: ['))
+        self.failUnless(logger._debug[1].startswith(
+                                        'authenticator plugins matched for '
+                                        'classification "browser": ['))
+        self.failUnless(logger._debug[2].startswith('userid returned from'))
+        self.failUnless(logger._debug[2].endswith('"chris_id1"'))
+        self.failUnless(logger._debug[3].startswith('userid returned from'))
+        self.failUnless(logger._debug[3].endswith('"chris_id2"'))
+        self.failUnless(logger._debug[4].startswith(
+                                         'identities authenticated: [((0, 0),')
+                                         )
 
     def test__authenticate_find_implicit_classifier(self):
         from repoze.who.interfaces import IAuthenticator
@@ -453,149 +884,6 @@ class APITests(unittest.TestCase):
         self.assertEqual(creds['password'], 'password')
         self.assertEqual(userid, 0)
 
-    def test_challenge_noidentifier_noapp(self):
-        identity = {'login':'chris', 'password':'password'}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        challenger = DummyChallenger()
-        plugins = [ ('challenge', challenger) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        app = api.challenge('401 Unauthorized', [])
-        self.assertEqual(app, None)
-        self.assertEqual(environ['challenged'], app)
-
-    def test_challenge_noidentifier_withapp(self):
-        identity = {'login':'chris', 'password':'password'}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        app = DummyApp()
-        challenger = DummyChallenger(app)
-        plugins = [ ('challenge', challenger) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        result = api.challenge('401 Unauthorized', [])
-        self.assertEqual(result, app)
-        self.assertEqual(environ['challenged'], app)
-
-    def test_challenge_identifier_noapp(self):
-        credentials = {'login':'chris', 'password':'password'}
-        identifier = DummyIdentifier(credentials)
-        identity = {'login':'chris',
-                    'password':'password',
-                    'identifier': identifier}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        challenger = DummyChallenger()
-        plugins = [ ('challenge', challenger) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        result = api.challenge('401 Unauthorized', [])
-        self.assertEqual(result, None)
-        self.assertEqual(environ['challenged'], None)
-        self.assertEqual(identifier.forgotten, identity)
-
-    def test_challenge_identifier_app(self):
-        credentials = {'login':'chris', 'password':'password'}
-        identifier = DummyIdentifier(credentials)
-        identity = {'login':'chris',
-                    'password':'password',
-                    'identifier': identifier}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        app = DummyApp()
-        challenger = DummyChallenger(app)
-        plugins = [ ('challenge', challenger) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        result = api.challenge('401 Unauthorized', [])
-        self.assertEqual(result, app)
-        self.assertEqual(environ['challenged'], app)
-        self.assertEqual(identifier.forgotten, identity)
-
-    def test_challenge_identifier_forget_headers(self):
-        FORGET_HEADERS = [('X-testing-forget', 'Oubliez!')]
-        credentials = {'login':'chris', 'password':'password'}
-        identifier = DummyIdentifier(credentials,
-                                     forget_headers=FORGET_HEADERS)
-        identity = {'login':'chris',
-                    'password':'password',
-                    'identifier': identifier}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        app = DummyApp()
-        challenger = DummyChallenger(app)
-        plugins = [ ('challenge', challenger) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        result = api.challenge('401 Unauthorized', [])
-
-    def test_multi_challenge_firstwins(self):
-        credentials = {'login':'chris', 'password':'password'}
-        identifier = DummyIdentifier(credentials)
-        identity = {'login':'chris',
-                    'password':'password',
-                    'identifier': identifier}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        app1 = DummyApp()
-        app2 = DummyApp()
-        challenger1 = DummyChallenger(app1)
-        challenger2 = DummyChallenger(app2)
-        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        result = api.challenge('401 Unauthorized', [])
-        self.assertEqual(result, app1)
-        self.assertEqual(environ['challenged'], app1)
-        self.assertEqual(identifier.forgotten, identity)
-
-    def test_multi_challenge_skipnomatch_findimplicit(self):
-        from repoze.who.interfaces import IChallenger
-        credentials = {'login':'chris', 'password':'password'}
-        identifier = DummyIdentifier(credentials)
-        identity = {'login':'chris',
-                    'password':'password',
-                    'identifier': identifier}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        app1 = DummyApp()
-        app2 = DummyApp()
-        challenger1 = DummyChallenger(app1)
-        challenger1.classifications = {IChallenger:['nomatch']}
-        challenger2 = DummyChallenger(app2)
-        challenger2.classifications = {IChallenger:None}
-        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        result = api.challenge('401 Unauthorized', [])
-        self.assertEqual(result, app2)
-        self.assertEqual(environ['challenged'], app2)
-        self.assertEqual(identifier.forgotten, identity)
-
-    def test_multi_challenge_skipnomatch_findexplicit(self):
-        from repoze.who.interfaces import IChallenger
-        credentials = {'login':'chris', 'password':'password'}
-        identifier = DummyIdentifier(credentials)
-        identity = {'login':'chris',
-                    'password':'password',
-                    'identifier': identifier}
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = identity
-        app1 = DummyApp()
-        app2 = DummyApp()
-        challenger1 = DummyChallenger(app1)
-        challenger1.classifications = {IChallenger:['nomatch']}
-        challenger2 = DummyChallenger(app2)
-        challenger2.classifications = {IChallenger:['match']}
-        plugins = [ ('challenge1', challenger1), ('challenge2', challenger2) ]
-        api = self._makeOne(environ=environ, challengers=plugins,
-                            request_classifier=lambda environ: 'match')
-        result = api.challenge('401 Unauthorized', [])
-        self.assertEqual(result, app2)
-        self.assertEqual(environ['challenged'], app2)
-        self.assertEqual(identifier.forgotten, identity)
-
     def test__add_metadata(self):
         environ = self._makeEnviron()
         plugin1 = DummyMDProvider({'foo':'bar'})
@@ -621,68 +909,6 @@ class APITests(unittest.TestCase):
         api._add_metadata(identity)
         self.assertEqual(identity['foo'], 'bar')
         self.assertEqual(identity.get('fuz'), None)
-
-    def test_remember_no_identity_passed_or_in_environ(self):
-        environ = self._makeEnviron()
-        api = self._makeOne(environ=environ)
-        self.assertEqual(len(api.remember()), 0)
-
-    def test_remember_no_identity_passed_but_in_environ(self):
-        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
-        class _Identifier:
-            def remember(self, environ, identity):
-                return HEADERS
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = {'identifier': _Identifier()}
-        api = self._makeOne(environ=environ)
-        self.assertEqual(api.remember(), HEADERS)
-
-    def test_remember_w_identity_passed_no_identifier(self):
-        environ = self._makeEnviron()
-        api = self._makeOne(environ=environ)
-        identity = {}
-        self.assertEqual(len(api.remember(identity)), 0)
-
-    def test_remember_w_identity_passed_w_identifier(self):
-        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
-        class _Identifier:
-            def remember(self, environ, identity):
-                return HEADERS
-        environ = self._makeEnviron()
-        api = self._makeOne(environ=environ)
-        identity = {'identifier': _Identifier()}
-        self.assertEqual(api.remember(identity), HEADERS)
-
-    def test_forget_no_identity_passed_or_in_environ(self):
-        environ = self._makeEnviron()
-        api = self._makeOne(environ=environ)
-        self.assertEqual(len(api.forget()), 0)
-
-    def test_forget_no_identity_passed_but_in_environ(self):
-        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
-        class _Identifier:
-            def forget(self, environ, identity):
-                return HEADERS
-        environ = self._makeEnviron()
-        environ['repoze.who.identity'] = {'identifier': _Identifier()}
-        api = self._makeOne(environ=environ)
-        self.assertEqual(api.forget(), HEADERS)
-
-    def test_forget_w_identity_passed_no_identifier(self):
-        environ = self._makeEnviron()
-        api = self._makeOne(environ=environ)
-        identity = {}
-        self.assertEqual(len(api.forget(identity)), 0)
-
-    def test_forget_w_identity_passed_w_identifier(self):
-        HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
-        class _Identifier:
-            def forget(self, environ, identity):
-                return HEADERS
-        environ = self._makeEnviron()
-        api = self._makeOne(environ=environ)
-        identity = {'identifier': _Identifier()}
-        self.assertEqual(api.forget(identity), HEADERS)
 
 
 class TestIdentityDict(unittest.TestCase):
@@ -760,11 +986,13 @@ class DummyFailAuthenticator:
 
 
 class DummyChallenger:
+    _challenged_with = None
     def __init__(self, app=None):
         self.app = app
 
     def challenge(self, environ, status, app_headers, forget_headers):
         environ['challenged'] = self.app
+        self._challenged_with = (environ, status, app_headers, forget_headers)
         return self.app
 
 
@@ -790,6 +1018,13 @@ class DummyChallengeDecider:
         if status.startswith('401 '):
             return True
 
+
+class DummyLogger:
+    _info = _debug = ()
+    def info(self, msg):
+        self._info += (msg,)
+    def debug(self, msg):
+        self._debug += (msg,)
 
 class DummyApp:
     environ = None
