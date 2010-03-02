@@ -1,9 +1,12 @@
-***************************************************
-``repoze.who`` -- WSGI Authentication Middleware
-***************************************************
+``repoze.who`` -- WSGI Authentication Middleware / API
+======================================================
+
+Overview
+--------
 
 ``repoze.who`` is an identification and authentication framework
-for arbitrary WSGI applications.  It acts as WSGI middleware.
+for arbitrary WSGI applications.  ``repoze.who`` can be configured
+either as WSGI middleware or as an API for use by an application.
 
 ``repoze.who`` is inspired by Zope 2's Pluggable Authentication
 Service (PAS) (but ``repoze.who`` is not dependent on Zope in any
@@ -15,4 +18,3 @@ domain of the WSGI application.
 See the ``docs`` subdirectory of this package (also available at least
 provisionally at http://static.repoze.org/whodocs) for more
 information.
-
