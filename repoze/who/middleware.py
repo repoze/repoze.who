@@ -73,13 +73,8 @@ class PluggableAuthenticationMiddleware(object):
         logger = self.logger
         path_info = environ.get('PATH_INFO', None)
         logger and logger.info(_STARTED % path_info)
-        userid = None
         identity = None
-        identifier = None
-
         identity = api.authenticate()
-        if identity:
-            identifier = identity.get('identifier')
 
         # allow identifier plugins to replace the downstream
         # application (to do redirection and unauthorized themselves
@@ -213,11 +208,9 @@ def make_test_middleware(app, global_conf):
     # be able to test without a config file
     from repoze.who.plugins.basicauth import BasicAuthPlugin
     from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
-    from repoze.who.plugins.cookie import InsecureCookiePlugin
     from repoze.who.plugins.form import FormPlugin
     from repoze.who.plugins.htpasswd import HTPasswdPlugin
     io = StringIO()
-    salt = 'aa'
     for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
         io.write('%s:%s\n' % (name, password))
     io.seek(0)
@@ -226,7 +219,6 @@ def make_test_middleware(app, global_conf):
     htpasswd = HTPasswdPlugin(io, cleartext_check)
     basicauth = BasicAuthPlugin('repoze.who')
     auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
-    cookie = InsecureCookiePlugin('oatmeal')
     form = FormPlugin('__do_login', rememberer_name='auth_tkt')
     form.classifications = { IIdentifier:['browser'],
                              IChallenger:['browser'] } # only for browser
