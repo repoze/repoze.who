@@ -22,7 +22,7 @@ to perform two separate tasks to use :mod:`repoze.who` machinery:
    # myapp/run.py
    from repoze.who.api import APIFactory
    def startup(global_conf):
-       global who_api
+       global who_api_factory
 
        parser = WhoConfig(global_conf['here'])
        parser.parse(open(global_conf['who_config']))
@@ -70,8 +70,8 @@ the WSGI environment.
        who_api = get_api(request.environ)
 
 Alternately, the application might configure the ``APIFactory`` at startup,
-and then use it to find the API object, or create it if it was not already
-created for the current request:
+as above, and then use it to find the API object, or create it if it was
+not already created for the current request (e.g. perhaps by the middleware):
 
 .. code-block:: python
 
