@@ -17,12 +17,40 @@ to perform two separate tasks to use :mod:`repoze.who` machinery:
   (see :ref:`imperative_configuration`), or using a declarative
   configuration file (see :ref:`declarative_configuration`).
 
+.. code-block:: python
+
+   # myapp/run.py
+   from repoze.who.api import APIFactory
+   def startup(global_conf):
+       global who_api
+
+       parser = WhoConfig(global_conf['here'])
+       parser.parse(open(global_conf['who_config']))
+
+       who_api_factory = APIFactory(
+                            parser.identifiers,
+                            parser.authenticators,
+                            parser.challengers,
+                            parser.mdproviders,
+                            parser.request_classifier,
+                            parser.challenge_decider,
+                            parser.remote_user_key,
+                          )
+
 - When it needs to use the API, it must call the ``APIFactory``, passing
   the WSGI environment to it.  The ``APIFactory`` returns an object
   implementing the :class:`repoze.who.interfaces:IRepozeWhoAPI` interface.
 
+.. code-block:: python
+
+   # myapp/views.py
+   from myapp.run import who_api_factory
+   def my_view(context, request):
+       who_api = who_api_factory(request.environ)
+
 - Calling the ``APIFactory`` multiple times within the same request is
-  allowed, and should be very cheap.
+  allowed, and should be very cheap (the API object is cached in the
+  request environment).
 
 
 .. _middleware_api_hybrid:
@@ -34,6 +62,22 @@ An application which uses the :mod:`repoze.who` middleware may still need
 to interact directly with the ``IRepozeWhoAPI`` object for some purposes.
 In such cases, it should call :func:`repoze.who.api:get_api`, passing
 the WSGI environment.
+
+.. code-block:: python
+
+   from repoze.who.api import get_api
+   def my_view(context, request):
+       who_api = get_api(request.environ)
+
+Alternately, the application might configure the ``APIFactory`` at startup,
+and then use it to find the API object, or create it if it was not already
+created for the current request:
+
+.. code-block:: python
+
+   def my_view(context, request):
+       who_api = context.who_api_factory(request.environ)
+
 
 .. _interfaces:
 
