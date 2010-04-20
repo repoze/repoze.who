@@ -55,6 +55,8 @@ displaying a form or presenting the user with a basic or digest
 authentication dialog.
 
 
+.. _default_plugins:
+
 Default Plugin Implementations
 ------------------------------
 
@@ -518,3 +520,105 @@ Arbitrarily add information to the identity dict based in other data
 in the environment or identity.  Our plugin adds ``first_name`` and
 ``last_name`` values to the identity if the userid matches ``chris``
 or ``whit``.
+
+
+Known Plugins for :mod:`repoze.who`
+===================================
+
+
+Plugins shipped with :mod:`repoze.who`
+--------------------------------------
+
+See :ref:`default_plugins`.
+
+
+Third-party Plugins
+-------------------
+
+:class:`repoze.who.plugins.zodb.ZODBPlugin`
+    This class implements the :class:`repoze.who.interfaces.IAuthenticator`
+    and :class:`repoze.who.interfaces.IMetadataProvider` plugin interfaces
+    using ZODB database lookups.  See
+    http://pypi.python.org/pypi/repoze.whoplugins.zodb/
+
+:class:`repoze.who.plugins.ldap.LDAPAuthenticatorPlugin`
+    This class implements the :class:`repoze.who.interfaces.IAuthenticator`
+    plugin interface using the :mod:`python-ldap` library to query an LDAP
+    database.  See http://code.gustavonarea.net/repoze.who.plugins.ldap/
+
+:class:`repoze.who.plugins.ldap.LDAPAttributesPlugin`
+    This class implements the :class:`repoze.who.interfaces.IMetadataProvider`
+    plugin interface using the :mod:`python-ldap` library to query an LDAP
+    database.  See http://code.gustavonarea.net/repoze.who.plugins.ldap/
+
+:class:`repoze.who.plugins.friendlyform.FriendlyFormPlugin`
+    This class implements the :class:`repoze.who.interfaces.IIdentifier` and 
+    :class:`repoze.who.interfaces.IChallenger` plugin interfaces.  It is
+    similar to :class:`repoze.who.plugins.form.RedirectingFormPlugin`,
+    bt with with additional features:
+
+    - Users are not challenged on logout, unless the referrer URL is a
+      private one (but that’s up to the application).
+
+    - Developers may define post-login and/or post-logout pages.
+
+    - In the login URL, the amount of failed logins is available in the
+      environ. It’s also increased by one on every login try. This counter
+      will allow developers not using a post-login page to handle logins that
+      fail/succeed.
+
+    See http://code.gustavonarea.net/repoze.who-friendlyform/ 
+
+:func:`repoze.who.plugins.openid.identifiers.OpenIdIdentificationPlugin`
+    This class implements the :class:`repoze.who.interfaces.IIdentifier`,
+    :class:`repoze.who.interfaces.IAuthenticator`, and 
+    :class:`repoze.who.interfaces.IChallenger` plugin interfaces using OpenId.
+    See http://quantumcore.org/docs/repoze.who.plugins.openid/
+
+:func:`repoze.who.plugins.openid.classifiers.openid_challenge_decider`
+    This function provides the :class:`repoze.who.interfaces.IChallengeDecider`
+    interface using OpenId.  See
+    http://quantumcore.org/docs/repoze.who.plugins.openid/
+
+:class:`repoze.who.plugins.use_beaker.UseBeakerPlugin`
+    This packkage provids a :class:`repoze.who.interfaces.IIdentifier` plugin
+    using :mod:`beaker.session` cache.  See
+    http://pypi.python.org/pypi/repoze.who-use_beaker/
+
+:class:`repoze.who.plugins.cas.main_plugin.CASChallengePlugin`
+    This class implements the :class:`repoze.who.interfaces.IIdentifier`
+    :class:`repoze.who.interfaces.IAuthenticator`, and 
+    :class:`repoze.who.interfaces.IChallenger` plugin interfaces using CAS.
+    See http://pypi.python.org/pypi/repoze.who.plugins.cas
+
+:class:`repoze.who.plugins.cas.challenge_decider.my_challenge_decider`
+    This function provides the :class:`repoze.who.interfaces.IChallengeDecider`
+    interface using CAS.  See
+    http://pypi.python.org/pypi/repoze.who.plugins.cas/
+
+:class:`repoze.who.plugins.recaptcha.captcha.RecaptchaPlugin`
+    This class implements the :class:`repoze.who.interfaces.IAuthenticator`
+    plugin interface, using the recaptch API.
+    See http://pypi.python.org/pypi/repoze.who.plugins.recaptcha/
+
+:class:`repoze.who.plugins.sa.SQLAlchemyUserChecker`
+    User existence checker for
+    :class:`repoze.who.plugins.auth_tkt.AuthTktCookiePlugin`, based on
+    the SQLAlchemy ORM. See http://pypi.python.org/pypi/repoze.who.plugins.sa/
+
+:class:`repoze.who.plugins.sa.SQLAlchemyAuthenticatorPlugin`
+    This class implements the :class:`repoze.who.interfaces.IAuthenticator`
+    plugin interface, using the the SQLAlchemy ORM.
+    See http://pypi.python.org/pypi/repoze.who.plugins.sa/
+    
+:class:`repoze.who.plugins.sa.SQLAlchemyUserMDPlugin`
+    This class implements the :class:`repoze.who.interfaces.IMetadataProvider`
+    plugin interface, using the the SQLAlchemy ORM.
+    See http://pypi.python.org/pypi/repoze.who.plugins.sa/
+
+:class:`repoze.who.plugins.formcookie.CookieRedirectingFormPlugin`
+    This class implements the :class:`repoze.who.interfaces.IIdentifier` and 
+    :class:`repoze.who.interfaces.IChallenger` plugin interfaces, similar
+    to :class:`repoze.who.plugins.form.RedirectingFormPlugin`.  The
+    plugin tracks the ``came_from`` URL via a cookie, rather than the query
+    string.  See http://pypi.python.org/pypi/repoze.who.plugins.formcookie/
