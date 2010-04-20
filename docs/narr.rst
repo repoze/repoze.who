@@ -497,10 +497,10 @@ configuration.
 
 To configure :mod:`repoze.who` in Python, using an .INI file, call
 the `make_middleware_with_config` entry point, passing the right-hand
-application and the path to the confi file ::
+application, the global config dictionary and the path to the config file ::
 
     from repoze.who.config import make_middleware_with_config
-    who = make_middleware_with_config(app, '/path/to/who.ini')
+    who = make_middleware_with_config(app, global_conf, '/path/to/who.ini')
 
 :mod:`repoze.who`'s configuration file can be pointed to within a PasteDeploy
 configuration file ::
