@@ -4,6 +4,10 @@ repoze.who Changelog
 After 2.0a2 (unreleased)
 -----------------------
 
+- Added ``repoze.who.config:make_api_factory_with_config``, a convenience
+  method for applications which want to set up their own API Factory from
+  a configuration file.
+  
 - Fixed example call to ``repoze.who.config:make_middleware_with_config``
   (added missing ``global_config`` argument).  See
   http://bugs.repoze.org/issue114

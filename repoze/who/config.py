@@ -6,6 +6,7 @@ import logging
 from pkg_resources import EntryPoint
 import sys
 
+from repoze.who.api import APIFactory
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IChallengeDecider
 from repoze.who.interfaces import IChallenger
@@ -131,6 +132,23 @@ _LEVELS = {'debug': logging.DEBUG,
            'warning': logging.WARNING,
            'error': logging.ERROR,
           }
+
+def make_api_factory_with_config(global_conf,
+                                 config_file,
+                                 remote_user_key = 'REMOTE_USER',
+                                 logger=None,
+                                ):
+    parser = WhoConfig(global_conf['here'])
+    parser.parse(open(config_file))
+    return APIFactory(parser.identifiers,
+                      parser.authenticators,
+                      parser.challengers,
+                      parser.mdproviders,
+                      parser.request_classifier,
+                      parser.challenge_decider,
+                      remote_user_key,
+                      logger,
+                     )
 
 def make_middleware_with_config(app, global_conf, config_file,
                                 log_file=None, log_level=None):

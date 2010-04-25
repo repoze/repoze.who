@@ -407,6 +407,68 @@ class TestConfigMiddleware(unittest.TestCase):
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
         logging.shutdown()
 
+class Test_make_api_with_config(unittest.TestCase):
+    tempdir = None
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        if self.tempdir is not None:
+            import shutil
+            shutil.rmtree(self.tempdir)
+
+    def _getFactory(self):
+        from repoze.who.config import make_api_factory_with_config
+        return make_api_factory_with_config
+
+    def _getTempfile(self, text):
+        import os
+        import tempfile
+        tempdir = self.tempdir = tempfile.mkdtemp()
+        path = os.path.join(tempdir, 'who.ini')
+        config = open(path, 'w')
+        config.write(text)
+        config.flush()
+        config.close()
+        return path
+
+    def test_sample_config_no_logger(self):
+        factory = self._getFactory()
+        path = self._getTempfile(SAMPLE_CONFIG)
+        global_conf = {'here': '/'}
+        api_factory = factory(global_conf, config_file=path)
+        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.authenticators), 1)
+        self.assertEqual(len(api_factory.challengers), 2)
+        self.assertEqual(len(api_factory.mdproviders), 0)
+        self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
+        self.failUnless(api_factory.logger is None)
+
+    def test_sample_config_w_remote_user_key(self):
+        factory = self._getFactory()
+        path = self._getTempfile(SAMPLE_CONFIG)
+        global_conf = {'here': '/'}
+        api_factory = factory(global_conf, config_file=path,
+                              remote_user_key = 'X-OTHER-USER')
+        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.authenticators), 1)
+        self.assertEqual(len(api_factory.challengers), 2)
+        self.assertEqual(len(api_factory.mdproviders), 0)
+        self.assertEqual(api_factory.remote_user_key, 'X-OTHER-USER')
+
+    def test_sample_config_w_logger(self):
+        factory = self._getFactory()
+        path = self._getTempfile(SAMPLE_CONFIG)
+        global_conf = {'here': '/'}
+        logger = object()
+        api_factory = factory(global_conf, config_file=path, logger=logger)
+        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.authenticators), 1)
+        self.assertEqual(len(api_factory.challengers), 2)
+        self.assertEqual(len(api_factory.mdproviders), 0)
+        self.failUnless(api_factory.logger is logger)
+
 SAMPLE_CONFIG = """\
 [plugin:form]
 use = repoze.who.plugins.form:make_plugin

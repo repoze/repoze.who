@@ -15,27 +15,19 @@ to perform two separate tasks to use :mod:`repoze.who` machinery:
   instance, populating it with a request classifier, a challenge decider,
   and a set of plugins.  It can do this process imperatively
   (see :ref:`imperative_configuration`), or using a declarative
-  configuration file (see :ref:`declarative_configuration`).
+  configuration file (see :ref:`declarative_configuration`).  For the latter
+  case, there is a convenience function,
+  :func:`repoze.who.config.make_api_factory_with_config`:
 
 .. code-block:: python
 
    # myapp/run.py
-   from repoze.who.api import APIFactory
+   from repoze.who.config import make_api_factory_with_config
+   who_api_factory = None
    def startup(global_conf):
        global who_api_factory
-
-       parser = WhoConfig(global_conf['here'])
-       parser.parse(open(global_conf['who_config']))
-
-       who_api_factory = APIFactory(
-                            parser.identifiers,
-                            parser.authenticators,
-                            parser.challengers,
-                            parser.mdproviders,
-                            parser.request_classifier,
-                            parser.challenge_decider,
-                            parser.remote_user_key,
-                          )
+       who_api_factory = make_api_factory_with_config(global_conf,
+                                                      '/path/to/who.config')
 
 - When it needs to use the API, it must call the ``APIFactory``, passing
   the WSGI environment to it.  The ``APIFactory`` returns an object
