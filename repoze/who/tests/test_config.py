@@ -370,9 +370,6 @@ class TestConfigMiddleware(unittest.TestCase):
 
     def test_sample_config(self):
         import logging
-        from repoze.who.interfaces import IIdentifier
-        from repoze.who.interfaces import IAuthenticator
-        from repoze.who.interfaces import IChallenger
         app = DummyApp()
         factory = self._getFactory()
         path = self._getTempfile(SAMPLE_CONFIG)
