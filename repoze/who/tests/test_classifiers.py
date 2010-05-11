@@ -32,6 +32,24 @@ class TestDefaultRequestClassifier(unittest.TestCase):
         result = classifier(environ)
         self.assertEqual(result, 'xmlpost')
 
+    def test_classify_xmlpost_uppercase(self):
+        """RFC 2045, Sec. 5.1: The type, subtype, and parameter names
+           are not case sensitive"""
+        classifier = self._getFUT()
+        environ = self._makeEnviron({'CONTENT_TYPE':'TEXT/XML',
+                                     'REQUEST_METHOD':'POST'})
+        result = classifier(environ)
+        self.assertEqual(result, 'xmlpost')
+
+    def test_classify_rich_xmlpost(self):
+        """RFC 2046, sec. 4.1.2: A critical parameter that may be specified
+           in the Content-Type field for "text/plain" data is the character set.""" 
+        classifier = self._getFUT()
+        environ = self._makeEnviron({'CONTENT_TYPE':'text/xml; charset=UTF-8 (some comment)',
+                                     'REQUEST_METHOD':'POST'})
+        result = classifier(environ)
+        self.assertEqual(result, 'xmlpost')
+
     def test_classify_browser(self):
         classifier = self._getFUT()
         environ = self._makeEnviron({'CONTENT_TYPE':'text/xml',

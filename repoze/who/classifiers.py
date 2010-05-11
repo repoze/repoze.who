@@ -1,7 +1,6 @@
 from paste.httpheaders import REQUEST_METHOD
 from paste.httpheaders import CONTENT_TYPE
 from paste.httpheaders import USER_AGENT
-from paste.httpheaders import WWW_AUTHENTICATE
 
 import zope.interface
 from repoze.who.interfaces import IRequestClassifier
@@ -44,7 +43,7 @@ def default_request_classifier(environ):
             if useragent.find(agent) != -1:
                 return 'dav'
     if request_method == 'POST':
-        if CONTENT_TYPE(environ) == 'text/xml':
+        if CONTENT_TYPE(environ).lower().startswith('text/xml'):
             return 'xmlpost'
     return 'browser'
 zope.interface.directlyProvides(default_request_classifier, IRequestClassifier)
