@@ -152,7 +152,7 @@ The above example configures the repoze.who middleware with:
 - Two ``IAuthenticator`` plugins: the auth_tkt plugin and an htpasswd plugin.
   The auth_tkt plugin performs both ``IIdentifier`` and ``IAuthenticator``
   functions.  The htpasswd plugin is configured with two valid username /
-  assword combinations: chris/chris, and admin/admin.  When an username
+  password combinations: chris/chris, and admin/admin.  When an username
   and password is found via any identifier, it will be checked against this
   authenticator.
 
