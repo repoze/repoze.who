@@ -170,8 +170,6 @@ class RedirectingFormPlugin(FormPluginBase):
             form = parse_formvars(environ)
             form.update(query)
             try:
-                login = form['login']
-                password = form['password']
                 max_age = form.get('max_age', None)
                 credentials = {
                     'login':form['login'],
