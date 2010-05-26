@@ -4,6 +4,9 @@ repoze.who Changelog
 After 1.0.18 (unreleased)
 -------------------------
 
+- In ``repoze.who.restrict``, return headers as a list, to keep ``wsgiref``
+  from complaining.
+
 - Fixed example call to ``repoze.who.config:make_middleware_with_config``
   (added missing ``global_config`` argument).  See
   http://bugs.repoze.org/issue114

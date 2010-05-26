@@ -17,7 +17,7 @@ class PredicateRestriction:
     def __call__(self, environ, start_response):
         if self.enabled:
             if not self.predicate(environ):
-                start_response('401 Unauthorized', ())
+                start_response('401 Unauthorized', [])
                 return []
         return self.app(environ, start_response)
 
