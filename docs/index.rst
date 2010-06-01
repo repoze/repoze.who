@@ -13,7 +13,8 @@
 .. topic:: Overview
 
    :mod:`repoze.who` is an identification and authentication framework
-   for arbitrary WSGI applications.  It acts as WSGI middleware.
+   for arbitrary WSGI applications.  It can be used as WSGI middleware,
+   or as an API from within a WSGI application.
 
    :mod:`repoze.who` is inspired by Zope 2's Pluggable Authentication
    Service (PAS) (but :mod:`repoze.who` is not dependent on Zope in any
