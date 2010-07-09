@@ -31,7 +31,7 @@ class PluggableAuthenticationMiddleware(object):
         if request_classifier is None:
             if classifier is None:
                 raise ValueError(
-                        'Either request_classifier and classifier is required')
+                        'Either request_classifier or classifier is required')
             request_classifier = classifier
         self.app = app
         logger = self.logger = None
