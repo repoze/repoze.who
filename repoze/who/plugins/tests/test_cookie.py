@@ -49,6 +49,16 @@ class TestInsecureCookiePlugin(unittest.TestCase):
         result = plugin.identify(environ)
         self.assertEqual(result, {'login':'foo', 'password':'password'})
 
+    def test_identify_encoded(self):
+        LOGIN = 'tr\xc3\xa9sbien'       # UTF-8 encoded e-acute
+        PASSWORD = 'p\xc3\x80ssword'    # UTF-8 encoded capital A grave
+        plugin = self._makeOne('oatmeal', charset='utf-8')
+        auth = ('%s:%s' % (LOGIN, PASSWORD)).encode('base64').rstrip()
+        environ = self._makeEnviron({'HTTP_COOKIE':'oatmeal=%s;' % auth})
+        result = plugin.identify(environ)
+        self.assertEqual(result, {'login': LOGIN.decode('utf8'),
+                                  'password': PASSWORD.decode('utf8')})
+
     def test_remember_creds_same(self):
         plugin = self._makeOne('oatmeal')
         creds = {'login':'foo', 'password':'password'}
@@ -68,10 +78,17 @@ class TestInsecureCookiePlugin(unittest.TestCase):
         expected = 'oatmeal=%s; Path=/;' % creds_auth
         self.assertEqual(result, [('Set-Cookie', expected)])
 
-    def test_factory(self):
-        from repoze.who.plugins.cookie import make_plugin
-        plugin = make_plugin('foo')
-        self.assertEqual(plugin.cookie_name, 'foo')
+    def test_remember_encoded(self):
+        LOGIN = 'tr\xc3\xa9sbien'       # UTF-8 encoded e-acute
+        PASSWORD = 'p\xc3\x80ssword'    # UTF-8 encoded capital A grave
+        plugin = self._makeOne('oatmeal', charset='utf-8')
+        creds = {'login': LOGIN.decode('utf8'),
+                 'password': PASSWORD.decode('utf8')}
+        creds_auth = ('%s:%s' % (LOGIN, PASSWORD)).encode('base64').rstrip()
+        environ = self._makeEnviron()
+        result = plugin.remember(environ, creds)
+        expected = 'oatmeal=%s; Path=/;' % creds_auth
+        self.assertEqual(result, [('Set-Cookie', expected)])
 
     def test_forget(self):
         plugin = self._makeOne('oatmeal')
@@ -82,3 +99,21 @@ class TestInsecureCookiePlugin(unittest.TestCase):
         self.assertEqual(name, 'Set-Cookie')
         self.assertEqual(value,
             'oatmeal=""; Path=/; Expires=Sun, 10-May-1971 11:59:00 GMT')
+
+    def test_factory(self):
+        from repoze.who.plugins.cookie import make_plugin
+        plugin = make_plugin('foo')
+        self.assertEqual(plugin.cookie_name, 'foo')
+        self.assertEqual(plugin.charset, None)
+
+    def test_factory_with_cookie_path(self):
+        from repoze.who.plugins.cookie import make_plugin
+        plugin = make_plugin('foo', '/bar')
+        self.assertEqual(plugin.cookie_name, 'foo')
+        self.assertEqual(plugin.cookie_path, '/bar')
+
+    def test_factory_with_charset(self):
+        from repoze.who.plugins.cookie import make_plugin
+        plugin = make_plugin('foo', charset='utf8')
+        self.assertEqual(plugin.cookie_name, 'foo')
+        self.assertEqual(plugin.charset, 'utf8')

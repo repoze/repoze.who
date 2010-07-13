@@ -10,9 +10,10 @@ class InsecureCookiePlugin(object):
 
     implements(IIdentifier)
     
-    def __init__(self, cookie_name, cookie_path='/'):
+    def __init__(self, cookie_name, cookie_path='/', charset=None):
         self.cookie_name = cookie_name
         self.cookie_path = cookie_path
+        self.charset = charset
 
     # IIdentifier
     def identify(self, environ):
@@ -29,6 +30,9 @@ class InsecureCookiePlugin(object):
 
         try:
             login, password = auth.split(':', 1)
+            if self.charset is not None:
+                login = login.decode(self.charset)
+                password = password.decode(self.charset)
             return {'login':login, 'password':password}
         except ValueError: # not enough values to unpack
             return None
@@ -42,7 +46,12 @@ class InsecureCookiePlugin(object):
     
     # IIdentifier
     def remember(self, environ, identity):
-        cookie_value = '%(login)s:%(password)s' % identity
+        login = identity['login']
+        password = identity['password']
+        if self.charset is not None:
+            login = login.encode(self.charset)
+            password = password.encode(self.charset)
+        cookie_value = '%s:%s' % (login, password)
         cookie_value = cookie_value.encode('base64').rstrip()
         cookies = get_cookies(environ)
         existing = cookies.get(self.cookie_name)
@@ -57,7 +66,9 @@ class InsecureCookiePlugin(object):
         return '<%s %s>' % (self.__class__.__name__,
                             id(self)) #pragma NO COVERAGE
 
-def make_plugin(cookie_name='repoze.who.plugins.cookie', cookie_path='/'):
-    plugin = InsecureCookiePlugin(cookie_name, cookie_path)
+def make_plugin(cookie_name='repoze.who.plugins.cookie',
+                cookie_path='/',
+                charset=None):
+    plugin = InsecureCookiePlugin(cookie_name, cookie_path, charset)
     return plugin
 

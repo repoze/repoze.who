@@ -108,9 +108,12 @@ authentication, identification, challenge and metadata provision.
   A :class:`InsecureCookiePlugin` is an ``IIdentifier`` plugin.  It
   stores identification information in an insecure form (the base64
   value of the username and password separated by a colon) in a
-  client-side cookie.  It accepts a single argument named
+  client-side cookie.  It accepts a single required argument named
   *cookie_name*.  This is the cookie name of the cookie used to store
-  the identification information.
+  the identification information.  The plugin also accepts two optional
+  arguments:  *cookie_path* is the URL path root which scopes the cookie,
+  and *charset* is the name of a codec used to convert the login and password
+  to and from unicode.
 
 .. module:: repoze.who.plugins.form
 
