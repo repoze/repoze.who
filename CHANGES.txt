@@ -2,7 +2,7 @@ repoze.who Changelog
 ====================
 
 After 2.0a2 (unreleased)
------------------------
+------------------------
 
 - Make the ``repoze.who.plugins.cookie.InsecureCookiePlugin`` take a
   ``charset`` argument, and use to to encode / decode login and password.
