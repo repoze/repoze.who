@@ -55,7 +55,10 @@ copyright = '2008, Agendaless Consulting'
 # other places throughout the built documents.
 #
 # The short X.Y version.
-version = '2.0a2'
+
+from pkg_resources import require
+dist = require('repoze.who')[0]
+version = dist.version
 # The full version, including alpha/beta/rc tags.
 release = version
 
