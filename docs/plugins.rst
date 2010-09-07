@@ -171,6 +171,27 @@ authentication, identification, challenge and metadata provision.
   ``repoze.who.plugins.htpasswd:crypt_check``; it assumes the values
   in the htpasswd file are encrypted with the UNIX ``crypt`` function.
 
+.. module:: repoze.who.plugins.redirector
+
+.. class:: RedirectorPlugin(login_url, came_from_param, reason_param, reason_header)
+
+  A :class:`RedirectorPlugin` is an ``IChallenger`` plugin.
+  It redirects to a configured login URL at egress if a challenge is
+  required .
+  *login_url* is the URL that should be redirected to when a
+  challenge is required.  *came_from_param* is the name of an optional
+  query string parameter:  if configured, the plugin provides the current
+  request URL in the redirected URL's query string, using the supplied
+  parameter name.  *reason_param* is the name of an optional
+  query string parameter:  if configured, and the application supplies
+  a header matching *reason_header* (defaulting to
+  ``X-Authorization-Failure-Reason``), the plugin includes that reason in
+  the query string of the redirected URL, using the supplied parameter name.
+  *reason_header* is an optional parameter overriding the default response
+  header name (``X-Authorization-Failure-Reason``) which
+  the plugin checks to find the application-supplied reason for the challenge.
+  *reason_header* cannot be set unless *reason_header* is also set.
+
 .. module:: repoze.who.plugins.sql
 
 .. class:: SQLAuthenticatorPlugin(query, conn_factory, compare_fn)

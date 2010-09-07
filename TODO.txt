@@ -8,7 +8,7 @@ Features
 
 - [_] Allow the ZODB plugin to connect read-only.
 
-- [_] Add a ``RedirectingChallengePlugin``, similar to
+- [X] Add a ``RedirectorPlugin``, similar to
       ``plugins.form.RedirectingFormPlugin``, but which *only* implements
       the ``IChallenger`` interface.
 
