@@ -174,13 +174,13 @@ class StartResponseWrapper(object):
 def make_test_middleware(app, global_conf):
     """ Functionally equivalent to
 
-    [plugin:form]
-    use = repoze.who.plugins.form.FormPlugin
-    rememberer_name = cookie
-    login_form_qs=__do_login
+    [plugin:redirector]
+    use = repoze.who.plugins.redirector.RedirectorPlugin
+    login_url = /login.html
 
-    [plugin:cookie]
-    use = repoze.who.plugins.cookie:InsecureCookiePlugin
+    [plugin:auth_tkt]
+    use = repoze.who.plugins.auth_tkt:AuthTktCookiePlugin
+    secret = SEEKRIT
     cookie_name = oatmeal
 
     [plugin:basicauth]
@@ -197,18 +197,18 @@ def make_test_middleware(app, global_conf):
     challenge_decider = repoze.who.classifiers:default_challenge_decider
 
     [identifiers]
-    plugins = form:browser cookie basicauth
+    plugins = authtkt basicauth
 
     [authenticators]
-    plugins = htpasswd
+    plugins = authtkt htpasswd
 
     [challengers]
-    plugins = form:browser basicauth
+    plugins = redirector:browser basicauth
     """
     # be able to test without a config file
     from repoze.who.plugins.basicauth import BasicAuthPlugin
     from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
-    from repoze.who.plugins.form import FormPlugin
+    from repoze.who.plugins.redirector import RedirectorPlugin
     from repoze.who.plugins.htpasswd import HTPasswdPlugin
     io = StringIO()
     for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
@@ -219,12 +219,14 @@ def make_test_middleware(app, global_conf):
     htpasswd = HTPasswdPlugin(io, cleartext_check)
     basicauth = BasicAuthPlugin('repoze.who')
     auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
-    form = FormPlugin('__do_login', rememberer_name='auth_tkt')
-    form.classifications = { IIdentifier:['browser'],
-                             IChallenger:['browser'] } # only for browser
-    identifiers = [('form', form),('auth_tkt',auth_tkt),('basicauth',basicauth)]
+    redirector = RedirectorPlugin('/login.html')
+    redirector.classifications = {IChallenger: ['browser']} # only for browser
+    identifiers = [('auth_tkt', auth_tkt),
+                   ('basicauth', basicauth),
+                  ]
     authenticators = [('htpasswd', htpasswd)]
-    challengers = [('form',form), ('basicauth',basicauth)]
+    challengers = [('redirector', redirector),
+                   ('basicauth', basicauth)]
     mdproviders = []
     from repoze.who.classifiers import default_request_classifier
     from repoze.who.classifiers import default_challenge_decider
@@ -244,5 +246,3 @@ def make_test_middleware(app, global_conf):
         log_level = logging.DEBUG
         )
     return middleware
-
-

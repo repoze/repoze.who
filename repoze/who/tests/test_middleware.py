@@ -506,15 +506,12 @@ class TestMakeTestMiddleware(unittest.TestCase):
         return make_test_middleware
 
     def test_it_no_WHO_LOG_in_environ(self):
-        from repoze.who.interfaces import IIdentifier
-        from repoze.who.interfaces import IAuthenticator
-        from repoze.who.interfaces import IChallenger
         app = DummyApp()
         factory = self._getFactory()
         global_conf = {'here': '/'}
         middleware = factory(app, global_conf)
         api_factory = middleware.api_factory
-        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.identifiers), 2)
         self.assertEqual(len(api_factory.authenticators), 1)
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)

@@ -377,7 +377,7 @@ class TestConfigMiddleware(unittest.TestCase):
         middleware = factory(app, global_conf, config_file=path,
                              log_file='STDOUT', log_level='debug')
         api_factory = middleware.api_factory
-        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.identifiers), 2)
         self.assertEqual(len(api_factory.authenticators), 1)
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)
@@ -438,7 +438,7 @@ class Test_make_api_with_config(unittest.TestCase):
         path = self._getTempfile(SAMPLE_CONFIG)
         global_conf = {'here': '/'}
         api_factory = factory(global_conf, config_file=path)
-        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.identifiers), 2)
         self.assertEqual(len(api_factory.authenticators), 1)
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)
@@ -451,7 +451,7 @@ class Test_make_api_with_config(unittest.TestCase):
         global_conf = {'here': '/'}
         api_factory = factory(global_conf, config_file=path,
                               remote_user_key = 'X-OTHER-USER')
-        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.identifiers), 2)
         self.assertEqual(len(api_factory.authenticators), 1)
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)
@@ -463,17 +463,16 @@ class Test_make_api_with_config(unittest.TestCase):
         global_conf = {'here': '/'}
         logger = object()
         api_factory = factory(global_conf, config_file=path, logger=logger)
-        self.assertEqual(len(api_factory.identifiers), 3)
+        self.assertEqual(len(api_factory.identifiers), 2)
         self.assertEqual(len(api_factory.authenticators), 1)
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)
         self.failUnless(api_factory.logger is logger)
 
 SAMPLE_CONFIG = """\
-[plugin:form]
-use = repoze.who.plugins.form:make_plugin
-login_form_qs = __do_login
-rememberer_name = auth_tkt
+[plugin:redirector]
+use = repoze.who.plugins.redirector:make_plugin
+login_url = /login.html
 
 [plugin:auth_tkt]
 use = repoze.who.plugins.auth_tkt:make_plugin
@@ -497,7 +496,6 @@ challenge_decider = repoze.who.classifiers:default_challenge_decider
 
 [identifiers]
 plugins =
-    form;browser
     auth_tkt
     basicauth
 
@@ -506,7 +504,7 @@ plugins = htpasswd
 
 [challengers]
 plugins =
-    form;browser
+    redirector;browser
     basicauth
 
 [mdproviders]
