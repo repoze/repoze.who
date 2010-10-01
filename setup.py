@@ -21,7 +21,7 @@ README = open(os.path.join(here, 'README.txt')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 setup(name='repoze.who',
-      version='2.0a2+',
+      version='2.0a3',
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
       long_description='\n\n'.join([README, CHANGES]),
