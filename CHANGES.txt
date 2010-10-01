@@ -5,7 +5,9 @@ After 2.0a3 (unreleased)
 ------------------------
 
 - Added a ``login`` method to the ``repoze.who.api.API`` object, as a
-  convenience for application-driven login code.
+  convenience for application-driven login code, which would
+  otherwise need to use private methods of the API, and reach down into
+  its plugins.
 
 2.0a3 (2010-09030)
 ------------------
