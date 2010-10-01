@@ -65,6 +65,17 @@ class IAPI(Interface):
           "forget" headers.
         """
 
+    def logout(identifier_name=None):
+        """ -> (headers)
+        
+        o This is an API for browser-based application logout.
+        
+        o If 'identifier_name' is passed, use it to look up the identifier;
+          othewise, use the first configured identifier.
+
+        o Returned headers will be "forget" headers.
+        """
+
 
 class IPlugin(Interface):
     pass

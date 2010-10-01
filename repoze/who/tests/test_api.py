@@ -685,6 +685,56 @@ class APITests(unittest.TestCase):
         self.assertEqual(headers, FORGET_HEADERS)
 
     def test_login_wo_identifier_name_miss(self):
+        FORGET_HEADERS = [('Spam', 'Blah')]
+        class _Identifier:
+            def identify(self, environ):
+                pass
+            def remember(self, environ, identity):
+                pass
+            def forget(self, environ, identity):
+                return FORGET_HEADERS
+        class _BogusIdentifier:
+            def identify(self, environ):
+                pass
+            def remember(self, environ, identity):
+                pass
+            def forget(self, environ, identity):
+                pass
+        environ = self._makeEnviron()
+        identifiers = [('valid', _Identifier()),
+                       ('bogus', _BogusIdentifier()),
+                      ]
+        api = self._makeOne(identifiers=identifiers,
+                            environ=environ)
+        headers = api.logout()
+        self.assertEqual(headers, FORGET_HEADERS)
+
+    def test_logout_w_identifier_name(self):
+        FORGET_HEADERS = [('Spam', 'Blah')]
+        class _Identifier:
+            def identify(self, environ):
+                pass
+            def remember(self, environ, identity):
+                pass
+            def forget(self, environ, identity):
+                return FORGET_HEADERS
+        class _BogusIdentifier:
+            def identify(self, environ):
+                pass
+            def remember(self, environ, identity):
+                pass
+            def forget(self, environ, identity):
+                pass
+        environ = self._makeEnviron()
+        identifiers = [('bogus', _BogusIdentifier()),
+                       ('valid', _Identifier()),
+                      ]
+        api = self._makeOne(identifiers=identifiers,
+                            environ=environ)
+        headers = api.logout('valid')
+        self.assertEqual(headers, FORGET_HEADERS)
+
+    def test_logout_wo_identifier_name(self):
         REMEMBER_HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         FORGET_HEADERS = [('Spam', 'Blah')]
         class _Identifier:

@@ -249,6 +249,16 @@ class API(object):
             headers = identifier.forget(self.environ, None)
             return None, headers
 
+    def logout(self, identifier_name=None):
+        """ See IAPI.
+        """
+        if identifier_name is not None:
+            identifier = self.name_registry[identifier_name]
+        else:
+            identifier = self.identifiers[0][1]
+        # Pretend that the given identifier extracted the identity.
+        return identifier.forget(self.environ, None)
+
     def _identify(self):
         """ See IAPI.
         """
