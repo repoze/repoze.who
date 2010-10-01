@@ -47,6 +47,24 @@ class IAPI(Interface):
         o If 'identity' is not passed, use the identity in the environment.
         """
 
+    def login(credentials, identifier_name=None):
+        """ -> (identity, headers)
+        
+        o This is an API for browser-based application login forms.
+        
+        o If 'identifier_name' is passed, use it to look up the identifier;
+          othewise, use the first configured identifier.
+
+        o Attempt to authenticate 'credentials' as though the identifier
+          had extracted them.
+          
+        o On success, 'identity' will be authenticated mapping, and 'headers'
+          will be "remember" headers.
+
+        o On failure, 'identity' will be None, and response_headers will be
+          "forget" headers.
+        """
+
 
 class IPlugin(Interface):
     pass

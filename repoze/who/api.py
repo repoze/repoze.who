@@ -113,6 +113,7 @@ class API(object):
         (self.interface_registry,
          self.name_registry) = make_registries(identifiers, authenticators,
                                                challengers, mdproviders)
+        self.identifiers = identifiers
         self.authenticators = authenticators
         self.challengers = challengers
         self.mdproviders = mdproviders
@@ -122,7 +123,7 @@ class API(object):
         classification = self.classification = (request_classifier and
                                                 request_classifier(environ))
         logger and logger.info('request classification: %s' % classification)
-
+        
     def authenticate(self):
 
         ids = self._identify()
@@ -228,6 +229,25 @@ class API(object):
                 logger and logger.info('forgetting via headers from %s: %s'
                                         % (identifier, headers))
         return headers
+
+    def login(self, credentials, identifier_name=None):
+        """ See IAPI.
+        """
+        if identifier_name is not None:
+            identifier = self.name_registry[identifier_name]
+        else:
+            identifier = self.identifiers[0][1]
+        # Pretend that the given identifier extracted the identity.
+        authenticated = self._authenticate([(identifier, credentials)])
+        if authenticated:
+            # and therefore can remember it
+            rank, plugin, identifier, identity, userid = authenticated[0]
+            headers = identifier.remember(self.environ, identity)
+            return identity, headers
+        else:
+            # or forget it
+            headers = identifier.forget(self.environ, None)
+            return None, headers
 
     def _identify(self):
         """ See IAPI.
