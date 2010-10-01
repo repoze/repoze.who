@@ -5,7 +5,7 @@ After 2.0a2 (unreleased)
 ------------------------
 
 - Deprecated the following plugins, moving their modules, tests, and docs
-  to a new``repoze.who.deprecatedplugins`` distribution:
+  to a new project, ``repoze.who.deprecatedplugins``:
 
   - ``repoze.who.plugins.cookie.InsecureCookiePlugin``
 
