@@ -91,8 +91,7 @@ An example configuration which uses the default plugins follows::
     from repoze.who.interfaces import IChallenger
     from repoze.who.plugins.basicauth import BasicAuthPlugin
     from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
-    from repoze.who.plugins.cookie import InsecureCookiePlugin
-    from repoze.who.plugins.form import FormPlugin
+    from repoze.who.plugins.redirector import RedirectorPlugin
     from repoze.who.plugins.htpasswd import HTPasswdPlugin
 
     io = StringIO()
@@ -105,15 +104,13 @@ An example configuration which uses the default plugins follows::
     htpasswd = HTPasswdPlugin(io, cleartext_check)
     basicauth = BasicAuthPlugin('repoze.who')
     auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
-    form = FormPlugin('__do_login', rememberer_name='auth_tkt')
-    form.classifications = { IIdentifier:['browser'],
-                             IChallenger:['browser'] } # only for browser
-    identifiers = [('form', form),
-                   ('auth_tkt', auth_tkt),
+    redirector = FormPlugin('/login.html')
+    redirector.classifications = {IChallenger:['browser'],} # only for browser
+    identifiers = [('auth_tkt', auth_tkt),
                    ('basicauth', basicauth)]
     authenticators = [('auth_tkt', auth_tkt),
                       ('htpasswd', htpasswd)]
-    challengers = [('form', form),
+    challengers = [('redirector', redirector),
                    ('basicauth', basicauth)]
     mdproviders = []
 
@@ -138,16 +135,12 @@ An example configuration which uses the default plugins follows::
 
 The above example configures the repoze.who middleware with:
 
-- Three ``IIdentifier`` plugins (form auth, auth_tkt cookie, and a
-  basic auth plugin).  The form auth plugin is set up to fire only
-  when the request is a ``browser`` request (as per the combination of
-  the request classifier returning ``browser`` and the framework
-  checking against the *classifications* attribute of the plugin,
-  which limits ``IIdentifier`` and ``IChallenger`` to the ``browser``
-  classification only).  In this setup, when "identification" needs to
-  be performed, the form auth plugin will be checked first (if the
-  request is a browser request), then the auth_tkt cookie plugin, then
-  the basic auth plugin.
+- Two ``IIdentifier`` plugins (auth_tkt cookie, and a
+  basic auth plugin).  In this setup, when "identification" needs to
+  be performed, the auth_tkt plugin will be checked first, then
+  the basic auth plugin.  The application is responsible for handling
+  login via a form:  this view would use the API (via :method:`remember`)
+  to generate apprpriate response headers.
 
 - Two ``IAuthenticator`` plugins: the auth_tkt plugin and an htpasswd plugin.
   The auth_tkt plugin performs both ``IIdentifier`` and ``IAuthenticator``
@@ -156,8 +149,8 @@ The above example configures the repoze.who middleware with:
   and password is found via any identifier, it will be checked against this
   authenticator.
 
-- Two ``IChallenger`` plugins: the form plugin, then the basic auth
-  plugin.  The form auth will fire if the request is a ``browser``
+- Two ``IChallenger`` plugins: the redirector plugin, then the basic auth
+  plugin.  The redirector auth will fire if the request is a ``browser``
   request, otherwise the basic auth plugin will fire.
 
 The rest of the middleware configuration is for values like logging
@@ -210,12 +203,10 @@ form, cookie, and basicauth plugins are nominated to act as
 identification plugins.  The htpasswd and sqlusers plugins are
 nominated to act as authenticator plugins. ::
 
-    [plugin:form]
+    [plugin:redirector]
     # identificaion and challenge
-    use = repoze.who.plugins.form:make_plugin
-    login_form_qs = __do_login
-    rememberer_name = auth_tkt
-    form = %(here)s/login_form.html
+    use = repoze.who.plugins.redirector:make_plugin
+    login_url = /login.html
 
     [plugin:auth_tkt]
     # identification and authentication
@@ -258,7 +249,6 @@ nominated to act as authenticator plugins. ::
     [identifiers]
     # plugin_name;classifier_name:.. or just plugin_name (good for any)
     plugins =
-          form;browser
           auth_tkt
           basicauth
 
@@ -272,7 +262,7 @@ nominated to act as authenticator plugins. ::
     [challengers]
     # plugin_name;classifier_name:.. or just plugin_name (good for any)
     plugins =
-          form;browser
+          redirector;browser
           basicauth
 
     [mdproviders]
@@ -280,12 +270,9 @@ nominated to act as authenticator plugins. ::
           sqlproperties
 
 The basicauth section configures a plugin that does identification and
-challenge for basic auth credentials.  The form section configures a
-plugin that does identification and challenge (its implementation
-defers to the cookie plugin for identification "forget" and "remember"
-duties, thus the "identifier_impl_name" key; this is looked up at
-runtime).  The auth_tkt section configures a plugin that does
-identification for cookie auth credentials, as well as authenticating
+challenge for basic auth credentials.  The redirector section configures a
+plugin that does challenges.  The auth_tkt section configures a plugin that
+does identification for cookie auth credentials, as well as authenticating
 them.  The htpasswd plugin obtains its user info from a file.  The sqlusers
 plugin obtains its user info from a Postgres database.
 
@@ -295,8 +282,7 @@ in the defined order.  The tokens on each line of the ``plugins=`` key
 are in the form "plugin_name;requestclassifier_name:..."  (or just
 "plugin_name" if the plugin can be consulted regardless of the
 classification of the request).  The configuration above indicates
-that the system will look for credentials using the form plugin (if
-the request is classified as a browser request), then the cookie
+that the system will look for credentials using the auth_tkt cookie
 identifier (unconditionally), then the basic auth plugin
 (unconditionally).
 
@@ -322,6 +308,6 @@ The challengers section provides an ordered list of plugins that
 provide challenger capability.  These will be consulted in the defined
 order, so the system will consult the cookie auth plugin first, then
 the basic auth plugin.  Each will have a chance to initiate a
-challenge.  The above configuration indicates that the form challenger
+challenge.  The above configuration indicates that the redirector challenger
 will fire if it's a browser request, and the basic auth challenger
 will fire if it's not (fallback).

@@ -4,18 +4,27 @@ repoze.who Changelog
 After 2.0a2 (unreleased)
 ------------------------
 
-- Make the ``repoze.who.plugins.cookie.InsecureCookiePlugin`` take a
+- Deprecated the following plugins, moving their modules, tests, and docs
+  to a new``repoze.who.deprecatedplugins`` distribution:
+
+  - ``repoze.who.plugins.cookie.InsecureCookiePlugin``
+
+  - ``repoze.who.plugins.form.FormPlugin
+
+  - ``repoze.who.plugins.form.RedirectingFormPlugin
+
+- Made the ``repoze.who.plugins.cookie.InsecureCookiePlugin`` take a
   ``charset`` argument, and use to to encode / decode login and password.
   See http://bugs.repoze.org/issue155
 
-- In ``repoze.who.restrict``, return headers as a list, to keep ``wsgiref``
-  from complaining.
+- Updated ``repoze.who.restrict`` to return headers as a list, to keep
+  ``wsgiref`` from complaining.
 
-- Help default request classifier cope with xml submissions with an
+- Helped default request classifier cope with xml submissions with an
   explicit charset defined: http://bugs.repoze.org/issue145 (Lorenzo
   M. Catucci)
 
-- Correct the handling of type and subtype when matching an XML post
+- Corrected the handling of type and subtype when matching an XML post
   to ``xmlpost`` in the default classifier, which, according to RFC
   2045, must be matched case-insensitively:
   http://bugs.repoze.org/issue145 (Lorenzo M. Catucci)
