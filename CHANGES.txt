@@ -4,6 +4,9 @@ repoze.who Changelog
 After 2.0a3 (unreleased)
 ------------------------
 
+- Added a single-file example BFG application demonstrating the use of
+  the new 'login' and 'logout' methods of the API object.
+
 - Add ``login`` and ``logout`` methods to the ``repoze.who.api.API`` object,
   as a convenience for application-driven login / logout code, which would
   otherwise need to use private methods of the API, and reach down into
