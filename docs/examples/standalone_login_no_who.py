@@ -30,6 +30,8 @@ LOGIN_FORM_TEMPLATE = """\
 </html>
 """
 
+# oh emacs python-mode, you disappoint me """
+
 # Clients have to know about these values out-of-band
 SECRET = 's33kr1t'
 COOKIE_NAME = 'auth_cookie'
@@ -70,7 +72,6 @@ def login(environ, start_response):
         login_name = request.POST['login_name']
         password = request.POST['password']
         remote_addr = environ['REMOTE_ADDR']
-        tokens = userdata = ''
         if _validate(login_name, password):
             headers = [('Location', came_from)]
             ticket = auth_tkt.AuthTicket(SECRET, login_name, remote_addr,

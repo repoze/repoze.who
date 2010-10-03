@@ -65,6 +65,8 @@ plugins =
 plugins =
 """
 
+# oh emacs python-mode, you disappoint me """
+
 api_factory = None
 
 def _configure_api_factory():

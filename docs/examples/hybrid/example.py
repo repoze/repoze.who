@@ -1,7 +1,7 @@
 """ Simple BFG application demonstrating use of repoze.who in "hybrid" mode.
 
 - repoze.who middleware intercepts and validates existing request credentials,
-  leaving 'REMOTE_USER' in the WSGI environ if they are OK>
+  leaving 'REMOTE_USER' in the WSGI environ if they are OK.
 
 - Application handles login / logout directly, using the repoze.who API
   to validate credentials and set headers.
