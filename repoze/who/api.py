@@ -257,7 +257,16 @@ class API(object):
         else:
             identifier = self.identifiers[0][1]
         # Pretend that the given identifier extracted the identity.
-        return identifier.forget(self.environ, None)
+        headers = identifier.forget(self.environ, None)
+
+        # we need to remove the identity for hybrid middleware/api usages to
+        # work correctly: middleware calls ``remember`` unconditionally "on
+        # the way out", and if an identity is found, competing login headers
+        # will be set.
+        if 'repoze.who.identity' in self.environ:
+            del self.environ['repoze.who.identity']
+
+        return headers
 
     def _identify(self):
         """ See IAPI.

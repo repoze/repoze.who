@@ -3,7 +3,6 @@ from StringIO import StringIO
 import sys
 
 from repoze.who.api import APIFactory
-from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IChallenger
 
 _STARTED = '-- repoze.who request started (%s) --'

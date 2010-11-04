@@ -759,9 +759,26 @@ class APITests(unittest.TestCase):
         api = self._makeOne(identifiers=identifiers,
                             authenticators=[('authentic', authenticator)],
                             environ=environ)
-        identity, headers = api.login({'login': 'notchrisid'})
-        self.assertEqual(identity, None)
+        headers = api.logout()
         self.assertEqual(headers, FORGET_HEADERS)
+
+    def test_logout_removes_repoze_who_identity(self):
+        class _Identifier:
+            def identify(self, environ):
+                pass
+            def forget(self, environ, identity):
+                pass
+            def remember(self, environ, identity):
+                pass
+        authenticator = DummyFailAuthenticator()
+        environ = self._makeEnviron()
+        environ['repoze.who.identity'] = 'identity'
+        identifiers = [('valid', _Identifier())]
+        api = self._makeOne(identifiers=identifiers,
+                            authenticators=[('authentic', authenticator)],
+                            environ=environ)
+        api.logout()
+        self.failIf('repoze.who.identity' in environ)
 
     def test__identify_success(self):
         environ = self._makeEnviron()
