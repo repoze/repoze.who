@@ -163,7 +163,8 @@ class AuthTktCookiePlugin(object):
 
     def _get_cookies(self, environ, value, max_age=None):
         if max_age is not None:
-            later = _now() + datetime.timedelta(seconds=int(max_age))
+            max_age = int(max_age)
+            later = _now() + datetime.timedelta(seconds=max_age)
             # Wdy, DD-Mon-YY HH:MM:SS GMT
             expires = later.strftime('%a, %d %b %Y %H:%M:%S')
             # the Expires header is *required* at least for IE7 (IE7 does
