@@ -4,6 +4,9 @@ repoze.who Changelog
 After 1.0.18 (unreleased)
 -------------------------
 
+- Avoid propagating unicode 'max_age' value into cookie headers.  See
+  https://bugs.launchpad.net/bugs/674123 .
+
 - In ``repoze.who.restrict``, return headers as a list, to keep ``wsgiref``
   from complaining.
 
