@@ -107,7 +107,7 @@ class AuthTktCookiePlugin(object):
         old_cookie_value = getattr(existing, 'value', None)
         max_age = identity.get('max_age', None)
 
-        timestamp, userid, tokens, userdata = None, '', '', ''
+        timestamp, userid, tokens, userdata = None, '', (), ''
 
         if old_cookie_value:
             try:
@@ -115,9 +115,10 @@ class AuthTktCookiePlugin(object):
                     self.secret, old_cookie_value, remote_addr)
             except auth_tkt.BadTicket:
                 pass
+        tokens = tuple(tokens)
 
         who_userid = identity['repoze.who.userid']
-        who_tokens = identity.get('tokens', '')
+        who_tokens = tuple(identity.get('tokens', ()))
         who_userdata = identity.get('userdata', '')
 
         encoding_data = self.userid_type_encoders.get(type(who_userid))
@@ -126,10 +127,6 @@ class AuthTktCookiePlugin(object):
             who_userid = encoder(who_userid)
             who_userdata = 'userid_type:%s' % encoding
         
-        if not isinstance(tokens, basestring):
-            tokens = ','.join(tokens)
-        if not isinstance(who_tokens, basestring):
-            who_tokens = ','.join(who_tokens)
         old_data = (userid, tokens, userdata)
         new_data = (who_userid, who_tokens, who_userdata)
 
