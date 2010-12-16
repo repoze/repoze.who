@@ -208,8 +208,9 @@ class API(object):
             identity = self.environ.get('repoze.who.identity', {})
         identifier = identity.get('identifier')
         if identifier:
-            headers = identifier.remember(self.environ, identity)
-            if headers:
+            got_headers = identifier.remember(self.environ, identity)
+            if got_headers:
+                headers = got_headers
                 logger = self.logger
                 logger and logger.info('remembering via headers from %s: %s'
                                         % (identifier, headers))
@@ -223,8 +224,9 @@ class API(object):
             identity = self.environ.get('repoze.who.identity', {})
         identifier = identity.get('identifier')
         if identifier:
-            headers = identifier.forget(self.environ, identity)
-            if headers:
+            got_headers = identifier.forget(self.environ, identity)
+            if got_headers:
+                headers = got_headers
                 logger = self.logger
                 logger and logger.info('forgetting via headers from %s: %s'
                                         % (identifier, headers))

@@ -626,6 +626,21 @@ class APITests(unittest.TestCase):
         self.assertEqual(identity['repoze.who.userid'], 'chrisid')
         self.assertEqual(headers, REMEMBER_HEADERS)
 
+    def test_identifier_plugin_returns_none(self):
+        class _Identifier:
+            def identify(self, environ):
+                return None
+            def remember(self, environ, identity):
+                return None
+            def forget(self, environ, identity):
+                return None
+        identity = {'identifier': _Identifier()}
+        api = self._makeOne()
+        headers = api.remember(identity=identity)
+        self.assertEqual(tuple(headers), ())
+        headers = api.forget(identity=identity)
+        self.assertEqual(tuple(headers), ())
+
     def test_login_wo_identifier_name_hit(self):
         REMEMBER_HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         FORGET_HEADERS = [('Spam', 'Blah')]

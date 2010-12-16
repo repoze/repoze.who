@@ -4,6 +4,11 @@ repoze.who Changelog
 After 2.0a3 (unreleased)
 ------------------------
 
+- Fix bug in repoze.who.api where the remember() or forget() methods could
+  return a None if the identifier plugin returned a None. According to the
+  interfaces in repoze.who.interfaces the API methods cannot return None while
+  the plugin methods can.
+
 - Fix auth_tkt plugin to not hand over tokens as strings to paste. See
   http://lists.repoze.org/pipermail/repoze-dev/2010-November/003680.html
 
