@@ -172,7 +172,7 @@ class AuthTktCookiePlugin(object):
 
         secure = ''
         if self.secure:
-            secure = '; secure'
+            secure = '; secure; HttpOnly'
 
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
         wild_domain = '.' + cur_domain

@@ -188,14 +188,14 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/; secure' % val))
+                          'auth_tkt="%s"; Path=/; secure; HttpOnly' % val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost; secure'
+                           'auth_tkt="%s"; Path=/; Domain=localhost; secure; HttpOnly'
                             % val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost; secure'
+                           'auth_tkt="%s"; Path=/; Domain=.localhost; secure; HttpOnly'
                             % val))
 
     def test_remember_creds_different(self):
