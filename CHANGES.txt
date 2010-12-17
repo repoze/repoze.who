@@ -12,6 +12,10 @@ After 2.0a3 (unreleased)
 - Fix auth_tkt plugin to not hand over tokens as strings to paste. See
   http://lists.repoze.org/pipermail/repoze-dev/2010-November/003680.html
 
+- Fix auth_tkt plugin to add "secure" to cookies when it is configured with
+  secure=True. Before this was not added meaning that cookies could be sent
+  by the browser over insecure channels.
+
 - Avoid propagating unicode 'max_age' value into cookie headers.  See
   https://bugs.launchpad.net/bugs/674123 .
 
