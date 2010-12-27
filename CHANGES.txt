@@ -4,17 +4,15 @@ repoze.who Changelog
 After 2.0a3 (unreleased)
 ------------------------
 
-- Fix bug in repoze.who.api where the remember() or forget() methods could
-  return a None if the identifier plugin returned a None. According to the
-  interfaces in repoze.who.interfaces the API methods cannot return None while
-  the plugin methods can.
+- Fix bug in ``repoze.who.api`` where the ``remember()`` or ``forget()``
+  methods could return a None if the identifier plugin returned a None.
 
-- Fix auth_tkt plugin to not hand over tokens as strings to paste. See
+- Fix ``auth_tkt`` plugin to not hand over tokens as strings to paste. See
   http://lists.repoze.org/pipermail/repoze-dev/2010-November/003680.html
 
-- Fix auth_tkt plugin to add "secure" and "HttpOnly" to cookies when it is
-  configured with secure=True. Before this was not added meaning that cookies
-  could be sent by the browser over insecure channels and were vulnerable to some
+- Fix ``auth_tkt`` plugin to add "secure" and "HttpOnly" to cookies when
+  configured with ``secure=True``:  these attributes prevent the browser from
+  sending cookies over insecure channels, which could be vulnerable to some
   XSS attacks.
 
 - Avoid propagating unicode 'max_age' value into cookie headers.  See
