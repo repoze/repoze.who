@@ -28,7 +28,7 @@ After 2.0a3 (unreleased)
   otherwise need to use private methods of the API, and reach down into
   its plugins.
 
-2.0a3 (2010-09030)
+2.0a3 (2010-09-30)
 ------------------
 
 - Deprecated the following plugins, moving their modules, tests, and docs
