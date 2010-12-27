@@ -36,9 +36,9 @@ After 2.0a3 (unreleased)
 
   - ``repoze.who.plugins.cookie.InsecureCookiePlugin``
 
-  - ``repoze.who.plugins.form.FormPlugin
+  - ``repoze.who.plugins.form.FormPlugin``
 
-  - ``repoze.who.plugins.form.RedirectingFormPlugin
+  - ``repoze.who.plugins.form.RedirectingFormPlugin``
 
 - Made the ``repoze.who.plugins.cookie.InsecureCookiePlugin`` take a
   ``charset`` argument, and use to to encode / decode login and password.
