@@ -407,7 +407,7 @@ class TestConfigMiddleware(unittest.TestCase):
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
         logging.shutdown()
 
-class Test_make_api_with_config(unittest.TestCase):
+class Test_make_api_factory_with_config(unittest.TestCase):
     tempdir = None
 
     def setUp(self):
