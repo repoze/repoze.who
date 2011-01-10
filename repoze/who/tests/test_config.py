@@ -343,15 +343,15 @@ iface = iface
 """
 
 class TestConfigMiddleware(unittest.TestCase):
-    tempdir = None
+    _tempdir = None
 
     def setUp(self):
         pass
 
     def tearDown(self):
-        if self.tempdir is not None:
+        if self._tempdir is not None:
             import shutil
-            shutil.rmtree(self.tempdir)
+            shutil.rmtree(self._tempdir)
 
     def _getFactory(self):
         from repoze.who.config import make_middleware_with_config
@@ -360,7 +360,7 @@ class TestConfigMiddleware(unittest.TestCase):
     def _getTempfile(self, text):
         import os
         import tempfile
-        tempdir = self.tempdir = tempfile.mkdtemp()
+        tempdir = self._tempdir = tempfile.mkdtemp()
         path = os.path.join(tempdir, 'who.ini')
         config = open(path, 'w')
         config.write(text)
@@ -400,7 +400,7 @@ class TestConfigMiddleware(unittest.TestCase):
         app = DummyApp()
         factory = self._getFactory()
         path = self._getTempfile(SAMPLE_CONFIG)
-        logfile = os.path.join(self.tempdir, 'who.log')
+        logfile = os.path.join(self._tempdir, 'who.log')
         global_conf = {'here': '/'}
         middleware = factory(app, global_conf, config_file=path,
                              log_file=logfile)
@@ -408,15 +408,29 @@ class TestConfigMiddleware(unittest.TestCase):
         logging.shutdown()
 
 class Test_make_api_factory_with_config(unittest.TestCase):
-    tempdir = None
+    _tempdir = None
+    _warning_filters = None
 
     def setUp(self):
         pass
 
     def tearDown(self):
-        if self.tempdir is not None:
+        if self._tempdir is not None:
             import shutil
-            shutil.rmtree(self.tempdir)
+            shutil.rmtree(self._tempdir)
+        if self._warning_filters is not None:
+            import warnings
+            warnings.filters[:] = self._warning_filters
+
+    def _filterWarnings(self):
+        global __warningregistry__
+        try:
+            del __warningregistry__
+        except NameError:
+            pass
+        import warnings
+        self._warning_filters = warnings.filters[:]
+        warnings.filterwarnings("ignore")
 
     def _getFactory(self):
         from repoze.who.config import make_api_factory_with_config
@@ -425,13 +439,43 @@ class Test_make_api_factory_with_config(unittest.TestCase):
     def _getTempfile(self, text):
         import os
         import tempfile
-        tempdir = self.tempdir = tempfile.mkdtemp()
+        tempdir = self._tempdir = tempfile.mkdtemp()
         path = os.path.join(tempdir, 'who.ini')
         config = open(path, 'w')
         config.write(text)
         config.flush()
         config.close()
         return path
+
+    def test_bad_config_filename(self):
+        global __warningregistry__
+        self._filterWarnings()
+        factory = self._getFactory()
+        path = '/nonesuch/file/should/exist'
+        global_conf = {'here': '/'}
+        api_factory = factory(global_conf, config_file=path)
+        self.assertEqual(len(api_factory.identifiers), 0)
+        self.assertEqual(len(api_factory.authenticators), 0)
+        self.assertEqual(len(api_factory.challengers), 0)
+        self.assertEqual(len(api_factory.mdproviders), 0)
+        self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
+        self.failUnless(api_factory.logger is None)
+        self.failUnless(__warningregistry__)
+
+    def test_bad_config_content(self):
+        global __warningregistry__
+        self._filterWarnings()
+        factory = self._getFactory()
+        path = self._getTempfile('this is not an INI file')
+        global_conf = {'here': '/'}
+        api_factory = factory(global_conf, config_file=path)
+        self.assertEqual(len(api_factory.identifiers), 0)
+        self.assertEqual(len(api_factory.authenticators), 0)
+        self.assertEqual(len(api_factory.challengers), 0)
+        self.assertEqual(len(api_factory.mdproviders), 0)
+        self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
+        self.failUnless(api_factory.logger is None)
+        self.failUnless(__warningregistry__)
 
     def test_sample_config_no_logger(self):
         factory = self._getFactory()

@@ -1,10 +1,12 @@
 """ Configuration parser
 """
 from ConfigParser import ConfigParser
+from ConfigParser import ParsingError
 from StringIO import StringIO
 import logging
 from pkg_resources import EntryPoint
 import sys
+import warnings
 
 from repoze.who.api import APIFactory
 from repoze.who.interfaces import IAuthenticator
@@ -138,14 +140,35 @@ def make_api_factory_with_config(global_conf,
                                  remote_user_key = 'REMOTE_USER',
                                  logger=None,
                                 ):
+    identifiers = authenticators = challengers = mdproviders = ()
+    request_classifier = None
+    challenge_decider = None
     parser = WhoConfig(global_conf['here'])
-    parser.parse(open(config_file))
-    return APIFactory(parser.identifiers,
-                      parser.authenticators,
-                      parser.challengers,
-                      parser.mdproviders,
-                      parser.request_classifier,
-                      parser.challenge_decider,
+    try:
+        opened = open(config_file)
+    except IOError:
+        warnings.warn('Non-existent who config file: %s' % config_file,
+                      stacklevel=2)
+    else:
+        try:
+            parser.parse(opened)
+        except ParsingError:
+            warnings.warn('Invalid who config file: %s' % config_file,
+                          stacklevel=2)
+        else:
+            identifiers = parser.identifiers
+            authenticators = parser.authenticators
+            challengers = parser.challengers
+            mdproviders = parser.mdproviders
+            request_classifier = parser.request_classifier
+            challenge_decider = parser.challenge_decider
+
+    return APIFactory(identifiers,
+                      authenticators,
+                      challengers,
+                      mdproviders,
+                      request_classifier,
+                      challenge_decider,
                       remote_user_key,
                       logger,
                      )
