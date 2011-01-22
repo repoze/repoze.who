@@ -9,9 +9,9 @@ class TestRedirectorPlugin(unittest.TestCase):
 
     def _makeOne(self,
                  login_url='http://example.com/login.html',
-                 came_from_param='came_from',
-                 reason_param='reason',
-                 reason_header='X-Authorization-Failure-Reason',
+                 came_from_param=None,
+                 reason_param=None,
+                 reason_header=None,
                 ):
         return self._getTargetClass()(login_url,
                                       came_from_param=came_from_param,
@@ -58,10 +58,23 @@ class TestRedirectorPlugin(unittest.TestCase):
         from repoze.who.interfaces import IChallenger
         verifyObject(IChallenger, self._makeOne())
 
+    def test_ctor_w_reason_param_wo_reason_header(self):
+        self.assertRaises(ValueError, self._makeOne,
+                                        reason_param='reason',
+                                        reason_header=None)
+
+    def test_ctor_wo_reason_param_w_reason_header(self):
+        self.assertRaises(ValueError, self._makeOne,
+                                        reason_param=None,
+                                        reason_header='X-Reason')
+
     def test_challenge(self):
         import urlparse
         import cgi
-        plugin = self._makeOne()
+        plugin = self._makeOne(came_from_param='came_from',
+                               reason_param='reason',
+                               reason_header='X-Authorization-Failure-Reason',
+                              )
         environ = self._makeEnviron()
         app = plugin.challenge(environ, '401 Unauthorized', [('app', '1')],
                                [('forget', '1')])
@@ -92,7 +105,10 @@ class TestRedirectorPlugin(unittest.TestCase):
     def test_challenge_with_reason_header(self):
         import urlparse
         import cgi
-        plugin = self._makeOne()
+        plugin = self._makeOne(came_from_param='came_from',
+                               reason_param='reason',
+                               reason_header='X-Authorization-Failure-Reason',
+                              )
         environ = self._makeEnviron()
         app = plugin.challenge(
             environ, '401 Unauthorized',
@@ -122,7 +138,10 @@ class TestRedirectorPlugin(unittest.TestCase):
     def test_challenge_with_custom_reason_header(self):
         import urlparse
         import cgi
-        plugin = self._makeOne(reason_header='X-Custom-Auth-Failure')
+        plugin = self._makeOne(came_from_param='came_from',
+                               reason_param='reason',
+                               reason_header='X-Custom-Auth-Failure',
+                              )
         environ = self._makeEnviron()
         environ['came_from'] = 'http://example.com/came_from'
         app = plugin.challenge(
@@ -149,7 +168,7 @@ class TestRedirectorPlugin(unittest.TestCase):
     def test_challenge_w_reason_no_reason_param_no_came_from_param(self):
         import urlparse
         import cgi
-        plugin = self._makeOne(reason_param=None, came_from_param=None)
+        plugin = self._makeOne()
         environ = self._makeEnviron()
         app = plugin.challenge(
             environ, '401 Unauthorized',
@@ -172,7 +191,8 @@ class TestRedirectorPlugin(unittest.TestCase):
     def test_challenge_w_reason_no_reason_param_w_came_from_param(self):
         import urlparse
         import cgi
-        plugin = self._makeOne(reason_param=None)
+        plugin = self._makeOne(came_from_param='came_from',
+                              )
         environ = self._makeEnviron()
         environ['came_from'] = 'http://example.com/came_from'
         app = plugin.challenge(
@@ -199,11 +219,15 @@ class TestRedirectorPlugin(unittest.TestCase):
     def test_challenge_with_reason_and_custom_reason_param(self):
         import urlparse
         import cgi
-        plugin = self._makeOne(reason_param='auth_failure')
+        plugin = self._makeOne(came_from_param='came_from',
+                               reason_param='auth_failure',
+                               reason_header='X-Custom-Auth-Failure',
+                              )
         environ = self._makeEnviron()
         app = plugin.challenge(
             environ, '401 Unauthorized',
-            [('X-Authorization-Failure-Reason', 'you are ugly')],
+            [('X-Authorization-Failure-Reason', 'wrong reason'),
+             ('X-Custom-Auth-Failure', 'you are ugly')],
             [('forget', '1')])
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
@@ -226,8 +250,37 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(reason_key, 'auth_failure')
         self.assertEqual(reason_value, 'you are ugly')
 
+    def test_challenge_wo_reason_w_came_from_param(self):
+        import urlparse
+        import cgi
+        plugin = self._makeOne(came_from_param='came_from')
+        environ = self._makeEnviron()
+        app = plugin.challenge(
+            environ, '401 Unauthorized',
+            [],
+            [('forget', '1')])
+        sr = DummyStartResponse()
+        result = ''.join(app(environ, sr))
+        self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(len(sr.headers), 3)
+        self.assertEqual(sr.headers[0][0], 'Location')
+        url = sr.headers[0][1]
+        parts = urlparse.urlparse(url)
+        parts_qsl = cgi.parse_qsl(parts[4])
+        self.assertEqual(len(parts_qsl), 1)
+        came_from_key, came_from_value = parts_qsl[0]
+        self.assertEqual(parts[0], 'http')
+        self.assertEqual(parts[1], 'example.com')
+        self.assertEqual(parts[2], '/login.html')
+        self.assertEqual(parts[3], '')
+        self.assertEqual(came_from_key, 'came_from')
+        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
+
     def test_challenge_with_setcookie_from_app(self):
-        plugin = self._makeOne()
+        plugin = self._makeOne(came_from_param='came_from',
+                               reason_param='reason',
+                               reason_header='X-Authorization-Failure-Reason',
+                              )
         environ = self._makeEnviron()
         app = plugin.challenge(
             environ,

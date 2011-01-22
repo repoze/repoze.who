@@ -26,6 +26,11 @@ class RedirectorPlugin(object):
                 ):
         self.login_url = login_url
         self.came_from_param = came_from_param
+        if ((reason_param is None and reason_header is not None) or
+            (reason_param is not None and reason_header is None)):
+            raise ValueError(
+                "Must supply both 'reason_header' and 'reason_param', "
+                "or neither one.")
         self.reason_param = reason_param
         self.reason_header = reason_header
         self._login_url_parts = list(urlparse.urlparse(login_url))
@@ -36,9 +41,10 @@ class RedirectorPlugin(object):
             url_parts = self._login_url_parts[:]
             query = url_parts[4]
             query_elements = cgi.parse_qs(query)
-            reason = header_value(app_headers, self.reason_header)
-            if reason and self.reason_param is not None:
-                query_elements[self.reason_param] = reason
+            if self.reason_param is not None:
+                reason = header_value(app_headers, self.reason_header)
+                if reason:
+                    query_elements[self.reason_param] = reason
             if self.came_from_param is not None:
                 query_elements[self.came_from_param] = construct_url(environ)
             url_parts[4] = urllib.urlencode(query_elements, doseq=True)
