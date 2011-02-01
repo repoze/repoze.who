@@ -102,6 +102,10 @@ class PluggableAuthenticationMiddleware(object):
                 logger and logger.info('executing challenge app')
                 if app_iter:
                     list(app_iter) # unwind the original app iterator
+                # PEP 333 requires that we call the original iterator's
+                # 'close' method, if it exists, before releasing it.
+                close = getattr(app_iter, 'close', lambda: None)
+                close()
                 # replace the downstream app with the challenge app
                 app_iter = challenge_app(environ, start_response)
             else:
@@ -122,6 +126,9 @@ def wrap_generator(result):
     caches it to trigger any immediate side effects (in a WSGI world, this
     ensures start_response is called).
     """
+    # PEP 333 requires that we call the original iterator's
+    # 'close' method, if it exists, before releasing it.
+    close = getattr(result, 'close', lambda: None)
     # Neat trick to pull the first iteration only. We need to do this outside
     # of the generator function to ensure it is called.
     for iter in result:
@@ -135,6 +142,7 @@ def wrap_generator(result):
         for iter in result:
             # We'll let result's StopIteration bubble up directly.
             yield iter
+        close()
     return wrapper()
 
 class StartResponseWrapper(object):

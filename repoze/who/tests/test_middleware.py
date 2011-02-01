@@ -422,6 +422,30 @@ class TestMiddleware(unittest.TestCase):
         # metadata
         self.assertEqual(environ['repoze.who.identity']['foo'], 'bar')
 
+    def test_call_w_challenge_closes_iterable(self):
+        from paste.httpexceptions import HTTPUnauthorized
+        environ = self._makeEnviron()
+        headers = [('a', '1')]
+        app = DummyIterableWithCloseApp('401 Unauthorized', headers)
+        challenge_app = HTTPUnauthorized()
+        challenge = DummyChallenger(challenge_app)
+        challengers = [ ('challenge', challenge) ]
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identifiers = [ ('identifier', identifier) ]
+        authenticator = DummyAuthenticator()
+        authenticators = [ ('authenticator', authenticator) ]
+        mdprovider = DummyMDProvider({'foo':'bar'})
+        mdproviders = [ ('mdprovider', mdprovider) ]
+        mw = self._makeOne(app=app, challengers=challengers,
+                           identifiers=identifiers,
+                           authenticators=authenticators,
+                           mdproviders=mdproviders)
+        start_response = DummyStartResponse()
+        result = mw(environ, start_response)
+        self.failUnless(result[0].startswith('401 Unauthorized\r\n'))
+        self.failUnless(app._iterable._closed)
+
     # XXX need more call tests:
     #  - auth_id sorting
 
@@ -472,20 +496,29 @@ class TestStartResponseWrapper(unittest.TestCase):
 
 class WrapGeneratorTests(unittest.TestCase):
 
-    def _getFUT(self):
+    def _callFUT(self, iterable):
         from repoze.who.middleware import wrap_generator
-        return wrap_generator
+        return wrap_generator(iterable)
 
-    def test_it(self):
+    def test_w_generator(self):
         L = []
         def gen(L=L):
             L.append('yo!')
             yield 'a'
             yield 'b'
-        wrap_generator = self._getFUT()
-        newgen = wrap_generator(gen())
+        newgen = self._callFUT(gen())
         self.assertEqual(L, ['yo!'])
         self.assertEqual(list(newgen), ['a', 'b'])
+
+    def test_w_iterator_having_close(self):
+        def gen():
+            yield 'a'
+            yield 'b'
+        iterable = DummyIterableWithClose(gen())
+        newgen = self._callFUT(iterable)
+        self.failIf(iterable._closed)
+        self.assertEqual(list(newgen), ['a', 'b'])
+        self.failUnless(iterable._closed)
 
 class TestMakeTestMiddleware(unittest.TestCase):
 
@@ -554,6 +587,26 @@ class DummyGeneratorApp:
             start_response(self.status, self.headers)
             yield 'body'
         return gen()
+
+class DummyIterableWithClose:
+    _closed = False
+    def __init__(self, iterable):
+        self._iterable = iterable
+    def __iter__(self):
+        return iter(self._iterable)
+    def close(self):
+        self._closed = True
+
+class DummyIterableWithCloseApp:
+    def __init__(self, status, headers):
+        self.status = status
+        self.headers = headers
+        self._iterable = DummyIterableWithClose(['body'])
+
+    def __call__(self, environ, start_response):
+        self.environ = environ
+        start_response(self.status, self.headers)
+        return self._iterable
 
 class DummyIdentityResetApp:
     def __init__(self, status, headers, new_identity):
