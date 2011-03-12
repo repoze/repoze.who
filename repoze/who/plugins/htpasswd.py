@@ -1,3 +1,5 @@
+import itertools
+
 from zope.interface import implements
 
 from repoze.who.interfaces import IAuthenticator
@@ -31,6 +33,7 @@ class HTPasswdPlugin(object):
                                                   'file %s' % self.filename)
                 return None
 
+        result = None
         for line in f:
             try:
                 username, hashed = line.rstrip().split(':', 1)
@@ -38,20 +41,30 @@ class HTPasswdPlugin(object):
                 continue
             if username == login:
                 if self.check(password, hashed):
-                    return username
-        return None
+                    result = username
+                    # Don't bail early:  leaks information!!
+        return result
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__,
                             id(self)) #pragma NO COVERAGE
 
+PADDING = ' ' * 1000
+
+def _same_string(x, y):
+    match = True
+    for a, b, ignored in itertools.izip_longest(x, y, PADDING):
+        match = a == b and match
+    return match
+
 def crypt_check(password, hashed):
     from crypt import crypt
     salt = hashed[:2]
-    return hashed == crypt(password, salt)
+    return _same_string(hashed, crypt(password, salt))
 
 def plain_check(password, hashed):
-    return hashed == password
+    return _same_string(password, hashed)
+
 
 def make_plugin(filename=None, check_fn=None):
     if filename is None:
@@ -60,5 +73,3 @@ def make_plugin(filename=None, check_fn=None):
         raise ValueError('check_fn must be specified')
     check = resolveDotted(check_fn)
     return HTPasswdPlugin(filename, check)
-
-    
