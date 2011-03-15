@@ -35,7 +35,9 @@ class TestHTPasswdPlugin(unittest.TestCase):
     def test_authenticate_nolines(self):
         from StringIO import StringIO
         io = StringIO()
-        plugin = self._makeOne(io, None)
+        def check(password, hashed):
+            return True
+        plugin = self._makeOne(io, check)
         environ = self._makeEnviron()
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)
@@ -44,7 +46,9 @@ class TestHTPasswdPlugin(unittest.TestCase):
     def test_authenticate_nousermatch(self):
         from StringIO import StringIO
         io = StringIO('nobody:foo')
-        plugin = self._makeOne(io, None)
+        def check(password, hashed):
+            return True
+        plugin = self._makeOne(io, check)
         environ = self._makeEnviron()
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)

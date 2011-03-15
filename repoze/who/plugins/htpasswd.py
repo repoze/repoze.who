@@ -5,6 +5,11 @@ from zope.interface import implements
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.utils import resolveDotted
 
+
+def _padding_for_file_lines():
+    yield 'aaaaaa:bbbbbb'
+
+
 class HTPasswdPlugin(object):
 
     implements(IAuthenticator)
@@ -34,15 +39,27 @@ class HTPasswdPlugin(object):
                 return None
 
         result = None
-        for line in f:
+        maybe_user = None
+        to_check = 'ABCDEF0123456789'
+
+        # Try not to reveal how many users we have.
+        # XXX:  the max count here should be configurable ;(
+        lines = itertools.chain(f, _padding_for_file_lines())
+        for line in itertools.islice(lines, 0, 1000):
             try:
                 username, hashed = line.rstrip().split(':', 1)
             except ValueError:
                 continue
-            if username == login:
-                if self.check(password, hashed):
-                    result = username
-                    # Don't bail early:  leaks information!!
+            if _same_string(username, login):
+                # Don't bail early:  leaks information!!
+                maybe_user = username
+                to_check = hashed
+
+        # Check *something* here, to mitigate a timing attack.
+        password_ok = self.check(password, to_check)
+        if password_ok and maybe_user:
+            result = maybe_user
+
         return result
 
     def __repr__(self):
