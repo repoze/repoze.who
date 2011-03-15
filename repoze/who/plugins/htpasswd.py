@@ -20,6 +20,13 @@ class HTPasswdPlugin(object):
 
     # IAuthenticatorPlugin
     def authenticate(self, environ, identity):
+        # NOW HEAR THIS!!!
+        #
+        # This method is *intentionally* slower than would be ideal because
+        # it is trying to avoid leaking information via timing attacks
+        # (number of users, length of user IDs, length of passwords, etc.).
+        #
+        # Do *not* try to optimize anything away here.
         try:
             login = identity['login']
             password = identity['password']
@@ -57,6 +64,8 @@ class HTPasswdPlugin(object):
 
         # Check *something* here, to mitigate a timing attack.
         password_ok = self.check(password, to_check)
+
+        # Check our flags:  if both are OK, we found a match.
         if password_ok and maybe_user:
             result = maybe_user
 
@@ -69,6 +78,7 @@ class HTPasswdPlugin(object):
 PADDING = ' ' * 1000
 
 def _same_string(x, y):
+    # Attempt at isochronous string comparison.
     match = True
     for a, b, ignored in itertools.izip_longest(x, y, PADDING):
         match = a == b and match
