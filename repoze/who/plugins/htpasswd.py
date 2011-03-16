@@ -79,9 +79,9 @@ PADDING = ' ' * 1000
 
 def _same_string(x, y):
     # Attempt at isochronous string comparison.
-    mismatches = sum([a != b for a, b, ignored
-                              in itertools.izip_longest(x, y, PADDING)])
-    return mismatches == 0
+    mismatches = filter(None, [a != b for a, b, ignored
+                                    in itertools.izip_longest(x, y, PADDING)])
+    return len(mismatches) == 0
 
 def crypt_check(password, hashed):
     from crypt import crypt
