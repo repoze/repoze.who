@@ -235,31 +235,49 @@ class API(object):
     def login(self, credentials, identifier_name=None):
         """ See IAPI.
         """
+        authenticated = identity = plugin = None
+        headers = []
+
+        # Filter identifiers using 'identifier_name', if provided.
         if identifier_name is not None:
-            identifier = self.name_registry[identifier_name]
+            identifiers = [(name, plugin) for name, plugin in self.identifiers
+                                           if name == identifier_name]
         else:
-            identifier = self.identifiers[0][1]
-        # Pretend that the given identifier extracted the identity.
-        authenticated = self._authenticate([(identifier, credentials)])
-        if authenticated:
-            # and therefore can remember it
-            rank, plugin, identifier, identity, userid = authenticated[0]
-            headers = identifier.remember(self.environ, identity)
-            return identity, headers
-        else:
-            # or forget it
-            headers = identifier.forget(self.environ, None)
-            return None, headers
+            identifiers = self.identifiers
+
+        # First pass:  for each identifier, pretend that it was the source
+        # of the credentials, and try to authenticate.
+        for name, identifier in identifiers:
+            authenticated = self._authenticate([(identifier, credentials)])
+
+            if authenticated: # and therefore can remember it
+                rank, plugin, identifier, identity, userid = authenticated[0]
+                break
+
+        # Second pass to allow identifiers which passed on auth to participate
+        # in remember / forget.
+        for name, identifier in identifiers:
+            if identity is not None:
+                headers.extend(identifier.remember(self.environ, identity))
+            else:
+                headers.extend(identifier.forget(self.environ, None))
+
+        return identity, headers
 
     def logout(self, identifier_name=None):
         """ See IAPI.
         """
+        authenticated = None
+        headers = []
+        # Filter identifiers using 'identifier_name', if provided.
         if identifier_name is not None:
-            identifier = self.name_registry[identifier_name]
+            identifiers = [(name, plugin) for name, plugin in self.identifiers
+                                           if name == identifier_name]
         else:
-            identifier = self.identifiers[0][1]
-        # Pretend that the given identifier extracted the identity.
-        headers = identifier.forget(self.environ, None)
+            identifiers = self.identifiers
+
+        for name, identifier in identifiers:
+            headers.extend(identifier.forget(self.environ, None))
 
         # we need to remove the identity for hybrid middleware/api usages to
         # work correctly: middleware calls ``remember`` unconditionally "on
