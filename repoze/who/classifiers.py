@@ -2,7 +2,7 @@ from paste.httpheaders import REQUEST_METHOD
 from paste.httpheaders import CONTENT_TYPE
 from paste.httpheaders import USER_AGENT
 
-import zope.interface
+from zope.interface import directlyProvides
 from repoze.who.interfaces import IRequestClassifier
 from repoze.who.interfaces import IChallengeDecider
 
@@ -46,11 +46,11 @@ def default_request_classifier(environ):
         if CONTENT_TYPE(environ).lower().startswith('text/xml'):
             return 'xmlpost'
     return 'browser'
-zope.interface.directlyProvides(default_request_classifier, IRequestClassifier)
+directlyProvides(default_request_classifier, IRequestClassifier)
 
 def default_challenge_decider(environ, status, headers):
     return status.startswith('401 ')
-zope.interface.directlyProvides(default_challenge_decider, IChallengeDecider)
+directlyProvides(default_challenge_decider, IChallengeDecider)
 
 def passthrough_challenge_decider(environ, status, headers):
     """ Don't challenge for pre-challenged responses.
@@ -67,5 +67,4 @@ def passthrough_challenge_decider(environ, status, headers):
     if ct is not None:
         return not ct.startswith('text/html')
     return True
-zope.interface.directlyProvides(passthrough_challenge_decider,
-                                IChallengeDecider)
+directlyProvides(passthrough_challenge_decider, IChallengeDecider)
