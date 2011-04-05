@@ -74,7 +74,7 @@ order during middleware ingress:
 
     Each plugin configured as an identifiers for a particular class of
     request is called to extract identity data ("credentials") from the
-    WSGI enfironment.
+    WSGI environment.
  
     For example, a basic auth identifier might use
     the ``HTTP_AUTHORIZATION`` header to find login and password
