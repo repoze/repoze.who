@@ -13,6 +13,10 @@ class TestDefaultRequestClassifier(unittest.TestCase):
             environ.update(kw)
         return environ
 
+    def test_conforms_to_IRequestClassifier(self):
+        from repoze.who.interfaces import IRequestClassifier
+        self.failUnless(IRequestClassifier.providedBy(self._getFUT()))
+
     def test_classify_dav_method(self):
         classifier = self._getFUT()
         environ = self._makeEnviron({'REQUEST_METHOD':'COPY'})
@@ -71,6 +75,10 @@ class TestDefaultChallengeDecider(unittest.TestCase):
             environ.update(kw)
         return environ
 
+    def test_conforms_to_IChallengeDecider(self):
+        from repoze.who.interfaces import IChallengeDecider
+        self.failUnless(IChallengeDecider.providedBy(self._getFUT()))
+
     def test_challenges_on_401(self):
         decider = self._getFUT()
         self.failUnless(decider({}, '401 Unauthorized', []))
@@ -91,6 +99,10 @@ class TestPassthroughChallengeDecider(unittest.TestCase):
         if kw is not None:
             environ.update(kw)
         return environ
+
+    def test_conforms_to_IChallengeDecider(self):
+        from repoze.who.interfaces import IChallengeDecider
+        self.failUnless(IChallengeDecider.providedBy(self._getFUT()))
 
     def test_challenges_on_bare_401(self):
         decider = self._getFUT()
