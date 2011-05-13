@@ -72,7 +72,7 @@ order during middleware ingress:
 
 #.  Identification
 
-    Each plugin configured as an identifiers for a particular class of
+    Each plugin configured as an identifier for a particular class of
     request is called to extract identity data ("credentials") from the
     WSGI environment.
  
