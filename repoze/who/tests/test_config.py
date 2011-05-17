@@ -405,7 +405,43 @@ class TestConfigMiddleware(unittest.TestCase):
         middleware = factory(app, global_conf, config_file=path,
                              log_file=logfile)
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
+        handlers = middleware.logger.handlers
+        self.assertEqual(len(handlers), 1)
+        self.failUnless(isinstance(handlers[0], logging.StreamHandler))
+        self.assertEqual(handlers[0].stream.name, logfile)
         logging.shutdown()
+
+    def test_sample_config_wo_log_file(self):
+        import logging
+        from repoze.who.config import NullHandler
+        app = DummyApp()
+        factory = self._getFactory()
+        path = self._getTempfile(SAMPLE_CONFIG)
+        global_conf = {'here': '/'}
+        middleware = factory(app, global_conf, config_file=path)
+        self.assertEqual(middleware.logger.getEffectiveLevel(), 0)
+        handlers = middleware.logger.handlers
+        self.assertEqual(len(handlers), 1)
+        self.failUnless(isinstance(handlers[0], NullHandler))
+        logging.shutdown()
+
+class NullHandlerTests(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from repoze.who.config import NullHandler
+        return NullHandler
+
+    def _makeOne(self):
+        return self._getTargetClass()()
+
+    def test_inheritance(self):
+        import logging
+        handler = self._makeOne()
+        self.failUnless(isinstance(handler, logging.Handler))
+
+    def test_emit_doesnt_raise_NotImplementedError(self):
+        handler = self._makeOne()
+        handler.emit(object())
 
 class Test_make_api_factory_with_config(unittest.TestCase):
     _tempdir = None

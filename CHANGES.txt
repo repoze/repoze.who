@@ -4,6 +4,11 @@ repoze.who Changelog
 Unreleased
 ----------
 
+- Enabled standard use of logging module's configuration mechanism. 
+  See http://docs.python.org/dev/howto/logging.html#configuring-logging-for-a-library
+  Thanks to jgoldsmith for the patch: http://bugs.repoze.org/issue178
+
+
 - ``repoze.who.plugins.htpasswd``:  defend against timing-based attacks.
 
 

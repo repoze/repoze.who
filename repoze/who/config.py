@@ -129,6 +129,11 @@ class WhoConfig:
                                      )
 
 
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+
 _LEVELS = {'debug': logging.DEBUG,
            'info': logging.INFO,
            'warning': logging.WARNING,
@@ -184,6 +189,9 @@ def make_middleware_with_config(app, global_conf, config_file,
             log_stream = sys.stdout
         else:
             log_stream = open(log_file, 'wb')
+    else:
+        log_stream = logging.getLogger('repoze.who')
+        log_stream.addHandler(NullHandler())
 
     if log_level is None:
         log_level = logging.INFO
