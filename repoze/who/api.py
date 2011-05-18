@@ -258,9 +258,11 @@ class API(object):
         # in remember / forget.
         for name, identifier in identifiers:
             if identity is not None:
-                headers.extend(identifier.remember(self.environ, identity))
+                i_headers = identifier.remember(self.environ, identity)
             else:
-                headers.extend(identifier.forget(self.environ, None))
+                i_headers = identifier.forget(self.environ, None)
+            if i_headers is not None:
+                headers.extend(i_headers)
 
         return identity, headers
 
