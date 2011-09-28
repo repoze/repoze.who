@@ -4,6 +4,9 @@ repoze.who Changelog
 2.0 (unreleased)
 ----------------
 
+- ``auth_tkt`` plugin:  strip any port number from the 'Domain' of generated
+  cookies.  http://bugs.repoze.org/issue66
+
 - Further harden middleware, calling ``close()`` on the iterable even if
   raising an exception for a missing challenger.
   http://bugs.repoze.org/issue174

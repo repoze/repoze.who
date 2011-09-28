@@ -142,8 +142,6 @@ class AuthTktCookiePlugin(object):
                 secure=self.secure)
             new_cookie_value = ticket.cookie_value()
             
-            cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
-            wild_domain = '.' + cur_domain
             if old_cookie_value != new_cookie_value:
                 # return a set of Set-Cookie headers
                 return self._get_cookies(environ, new_cookie_value, max_age)
@@ -175,6 +173,7 @@ class AuthTktCookiePlugin(object):
             secure = '; secure; HttpOnly'
 
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
+        cur_domain = cur_domain.split(':')[0] # drop port
         wild_domain = '.' + cur_domain
         cookies = [
             ('Set-Cookie', '%s="%s"; Path=/%s%s' % (

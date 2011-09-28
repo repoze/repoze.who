@@ -188,14 +188,23 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/; secure; HttpOnly' % val))
+                          'auth_tkt="%s"; '
+                          'Path=/; '
+                          'secure; '
+                          'HttpOnly' % val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost; secure; HttpOnly'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost; '
+                           'secure; HttpOnly'
                             % val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost; secure; HttpOnly'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost; '
+                           'secure; HttpOnly'
                             % val))
 
     def test_remember_creds_different(self):
@@ -208,14 +217,46 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost'
                             % new_val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost'
+                            % new_val))
+
+    def test_remember_creds_different_strips_port(self):
+        plugin = self._makeOne('secret')
+        old_val = self._makeTicket(userid='userid')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val,
+                                     'HTTP_HOST': 'localhost:8080',
+                                    })
+        new_val = self._makeTicket(userid='other', userdata='userdata')
+        result = plugin.remember(environ, {'repoze.who.userid':'other',
+                                           'userdata':'userdata'})
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
+        self.assertEqual(result[1],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost'
+                            % new_val))
+        self.assertEqual(result[2],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost'
                             % new_val))
 
     def test_remember_creds_different_include_ip(self):
@@ -230,14 +271,19 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost'
                             % new_val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost'
                             % new_val))
 
     def test_remember_creds_different_bad_old_cookie(self):
@@ -250,14 +296,19 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost'
                             % new_val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost'
                             % new_val))
 
     def test_remember_creds_different_with_tokens(self):
@@ -275,14 +326,18 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; Domain=localhost'
                             % new_val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost'
                             % new_val))
 
     def test_remember_creds_different_with_tuple_tokens(self):
@@ -300,14 +355,19 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
         self.assertEqual(result[1],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost'
                             % new_val))
         self.assertEqual(result[2],
                          ('Set-Cookie',
-                           'auth_tkt="%s"; Path=/; Domain=.localhost'
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost'
                             % new_val))
 
     def test_remember_creds_different_int_userid(self):
@@ -321,7 +381,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
 
     def test_remember_creds_different_long_userid(self):
         plugin = self._makeOne('secret')
@@ -333,7 +394,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
 
     def test_remember_creds_different_unicode_userid(self):
         plugin = self._makeOne('secret')
@@ -348,7 +410,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
 
     def test_remember_creds_reissue(self):
         import time
@@ -363,7 +426,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
 
     def test_remember_max_age(self):
         plugin = self._makeOne('secret')
