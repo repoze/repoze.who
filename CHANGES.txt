@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-2.0 (unreleased)
+2.0 (2011-09-28)
 ----------------
 
 - ``auth_tkt`` plugin:  strip any port number from the 'Domain' of generated
