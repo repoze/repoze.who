@@ -446,6 +446,26 @@ class TestMiddleware(unittest.TestCase):
         self.failUnless(result[0].startswith('401 Unauthorized\r\n'))
         self.failUnless(app._iterable._closed)
 
+    def test_call_w_challenge_but_no_challenger_still_closes_iterable(self):
+        environ = self._makeEnviron()
+        headers = [('a', '1')]
+        app = DummyIterableWithCloseApp('401 Unauthorized', headers)
+        challengers = []
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+        identifiers = [ ('identifier', identifier) ]
+        authenticator = DummyAuthenticator()
+        authenticators = [ ('authenticator', authenticator) ]
+        mdprovider = DummyMDProvider({'foo':'bar'})
+        mdproviders = [ ('mdprovider', mdprovider) ]
+        mw = self._makeOne(app=app, challengers=challengers,
+                           identifiers=identifiers,
+                           authenticators=authenticators,
+                           mdproviders=mdproviders)
+        start_response = DummyStartResponse()
+        self.assertRaises(RuntimeError, mw, environ, start_response)
+        self.failUnless(app._iterable._closed)
+
     # XXX need more call tests:
     #  - auth_id sorting
 

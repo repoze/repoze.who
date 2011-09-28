@@ -96,6 +96,7 @@ class PluggableAuthenticationMiddleware(object):
 
         if api.challenge_decider(environ, wrapper.status, wrapper.headers):
             logger and logger.info('challenge required')
+            close = getattr(app_iter, 'close', _no_op)
 
             challenge_app = api.challenge(wrapper.status, wrapper.headers)
             if challenge_app is not None:
@@ -104,12 +105,12 @@ class PluggableAuthenticationMiddleware(object):
                     list(app_iter) # unwind the original app iterator
                 # PEP 333 requires that we call the original iterator's
                 # 'close' method, if it exists, before releasing it.
-                close = getattr(app_iter, 'close', lambda: None)
                 close()
                 # replace the downstream app with the challenge app
                 app_iter = challenge_app(environ, start_response)
             else:
                 logger and logger.info('configuration error: no challengers')
+                close()
                 raise RuntimeError('no challengers found')
         else:
             logger and logger.info('no challenge required')
@@ -118,6 +119,9 @@ class PluggableAuthenticationMiddleware(object):
 
         logger and logger.info(_ENDED % path_info)
         return app_iter
+
+def _no_op():
+    pass
 
 def wrap_generator(result):
     """\

@@ -1,6 +1,14 @@
 repoze.who Changelog
 ====================
 
+2.0 (unreleased)
+----------------
+
+- Further harden middleware, calling ``close()`` on the iterable even if
+  raising an exception for a missing challenger.
+  http://bugs.repoze.org/issue174
+
+
 2.0b1 (2011-05-24)
 ------------------
 
