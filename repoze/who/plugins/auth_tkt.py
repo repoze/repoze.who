@@ -4,8 +4,8 @@ from codecs import utf_8_encode
 import os
 import time
 
-from paste.request import get_cookies
-from paste.auth import auth_tkt
+from repoze.who._compat import get_cookies
+import repoze.who._auth_tkt as auth_tkt
 
 from zope.interface import implements
 

@@ -19,11 +19,13 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         return AuthTktCookiePlugin
 
     def _makeEnviron(self, kw=None):
-        environ = {'wsgi.version': (1,0)}
+        from wsgiref.util import setup_testing_defaults
+        environ = {}
+        setup_testing_defaults(environ)
         if kw is not None:
             environ.update(kw)
         environ['REMOTE_ADDR'] = '1.1.1.1'
-        environ['SERVER_NAME'] = 'localhost'
+        environ['HTTP_HOST'] = 'localhost'
         return environ
 
     def _makeOne(self, secret='s33kr3t', *arg, **kw):
@@ -34,7 +36,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                     tokens = [], userdata='userdata',
                     cookie_name='auth_tkt', secure=False,
                     time=None):
-        from paste.auth import auth_tkt
+        #from paste.auth import auth_tkt
+        import repoze.who._auth_tkt as auth_tkt
         ticket = auth_tkt.AuthTicket(
             'secret',
             userid,

@@ -11,8 +11,9 @@ class TestBasicAuthPlugin(unittest.TestCase):
         return plugin
 
     def _makeEnviron(self, kw=None):
+        from wsgiref.util import setup_testing_defaults
         environ = {}
-        environ['wsgi.version'] = (1,0)
+        setup_testing_defaults(environ)
         if kw is not None:
             environ.update(kw)
         return environ
@@ -89,7 +90,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         environ = self._makeEnviron()
         forget = plugin._get_wwwauth()
         result = plugin.challenge(environ, '401 Unauthorized', [], forget)
-        self.assertEqual(result.headers, forget)
+        self.assertTrue(forget[0] in result.headers.items())
         
     def test_challenge_forgetheaders_omits(self):
         plugin = self._makeOne('realm')
@@ -97,7 +98,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         environ = self._makeEnviron()
         forget = plugin._get_wwwauth()
         result = plugin.challenge(environ, '401 Unauthorized', [], [])
-        self.assertEqual(result.headers, forget)
+        self.assertTrue(forget[0] in result.headers.items())
 
 
     def test_factory(self):

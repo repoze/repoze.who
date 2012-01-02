@@ -1,6 +1,4 @@
-from paste.httpheaders import REQUEST_METHOD
-from paste.httpheaders import CONTENT_TYPE
-from paste.httpheaders import USER_AGENT
+from repoze.who._compat import REQUEST_METHOD, CONTENT_TYPE, USER_AGENT
 
 from zope.interface import directlyProvides
 from repoze.who.interfaces import IRequestClassifier
