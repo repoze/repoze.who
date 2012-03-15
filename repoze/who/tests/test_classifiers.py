@@ -7,8 +7,9 @@ class TestDefaultRequestClassifier(unittest.TestCase):
         return default_request_classifier
 
     def _makeEnviron(self, kw=None):
+        from wsgiref.util import setup_testing_defaults
         environ = {}
-        environ['wsgi.version'] = (1,0)
+        setup_testing_defaults(environ)
         if kw is not None:
             environ.update(kw)
         return environ

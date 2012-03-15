@@ -2,9 +2,8 @@ import urlparse
 import urllib
 import cgi
 
-from paste.httpexceptions import HTTPFound
-from paste.request import construct_url
-from paste.response import header_value
+from webob.exc import HTTPFound
+from repoze.who._compat import construct_url, header_value
 from zope.interface import implements
 
 from repoze.who.interfaces import IChallenger

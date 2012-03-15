@@ -1,8 +1,7 @@
 import binascii
 
-from paste.httpheaders import WWW_AUTHENTICATE
-from paste.httpheaders import AUTHORIZATION
-from paste.httpexceptions import HTTPUnauthorized
+from repoze.who._compat import AUTHORIZATION
+from webob.exc import HTTPUnauthorized
 
 from zope.interface import implements
 
@@ -44,7 +43,7 @@ class BasicAuthPlugin(object):
         pass
 
     def _get_wwwauth(self):
-        head = WWW_AUTHENTICATE.tuples('Basic realm="%s"' % self.realm)
+        head = [('WWW-Authenticate', 'Basic realm="%s"' % self.realm)]
         return head
 
     # IIdentifier

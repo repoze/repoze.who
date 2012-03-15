@@ -81,9 +81,10 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
-        self.assertEqual(len(sr.headers), 3)
-        self.assertEqual(sr.headers[0][0], 'Location')
-        url = sr.headers[0][1]
+        self.assertEqual(sr.headers[0][0], 'forget')
+        self.assertEqual(sr.headers[0][1], '1')
+        self.assertEqual(sr.headers[1][0], 'Location')
+        url = sr.headers[1][1]
         parts = urlparse.urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
@@ -95,11 +96,10 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(came_from_key, 'came_from')
         self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
         headers = sr.headers
-        self.assertEqual(len(headers), 3)
-        self.assertEqual(sr.headers[1][0], 'forget')
-        self.assertEqual(sr.headers[1][1], '1')
-        self.assertEqual(sr.headers[2][0], 'content-type')
-        self.assertEqual(sr.headers[2][1], 'text/plain; charset=utf8')
+        self.assertEqual(sr.headers[2][0], 'Content-Length')
+        self.assertEqual(sr.headers[2][1], '165')
+        self.assertEqual(sr.headers[3][0], 'Content-Type')
+        self.assertEqual(sr.headers[3][1], 'text/plain; charset=UTF-8')
         self.assertEqual(sr.status, '302 Found')
 
     def test_challenge_with_reason_header(self):
@@ -117,9 +117,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
-        self.assertEqual(len(sr.headers), 3)
-        self.assertEqual(sr.headers[0][0], 'Location')
-        url = sr.headers[0][1]
+        self.assertEqual(sr.headers[1][0], 'Location')
+        url = sr.headers[1][1]
         parts = urlparse.urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 2)
@@ -151,9 +150,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
-        self.assertEqual(len(sr.headers), 3)
-        self.assertEqual(sr.headers[0][0], 'Location')
-        url = sr.headers[0][1]
+        self.assertEqual(sr.headers[1][0], 'Location')
+        url = sr.headers[1][1]
         parts = urlparse.urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
@@ -177,9 +175,10 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
-        self.assertEqual(len(sr.headers), 3)
-        self.assertEqual(sr.headers[0][0], 'Location')
-        url = sr.headers[0][1]
+        self.assertEqual(sr.headers[0][0], "forget")
+        self.assertEqual(sr.headers[0][1], "1")
+        self.assertEqual(sr.headers[1][0], 'Location')
+        url = sr.headers[1][1]
         parts = urlparse.urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 0)
@@ -202,9 +201,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
-        self.assertEqual(len(sr.headers), 3)
-        self.assertEqual(sr.headers[0][0], 'Location')
-        url = sr.headers[0][1]
+        self.assertEqual(sr.headers[1][0], 'Location')
+        url = sr.headers[1][1]
         parts = urlparse.urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
@@ -232,9 +230,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
-        self.assertEqual(len(sr.headers), 3)
-        self.assertEqual(sr.headers[0][0], 'Location')
-        url = sr.headers[0][1]
+        self.assertEqual(sr.headers[1][0], 'Location')
+        url = sr.headers[1][1]
         parts = urlparse.urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 2)
@@ -262,9 +259,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
-        self.assertEqual(len(sr.headers), 3)
-        self.assertEqual(sr.headers[0][0], 'Location')
-        url = sr.headers[0][1]
+        self.assertEqual(sr.headers[1][0], 'Location')
+        url = sr.headers[1][1]
         parts = urlparse.urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
@@ -290,10 +286,10 @@ class TestRedirectorPlugin(unittest.TestCase):
         sr = DummyStartResponse()
         result = ''.join(app(environ, sr))
         self.failUnless(result.startswith('302 Found'))
+        self.assertEqual(sr.headers[0][0], 'set-cookie')
+        self.assertEqual(sr.headers[0][1], 'a')
         self.assertEqual(sr.headers[1][0], 'set-cookie')
-        self.assertEqual(sr.headers[1][1], 'a')
-        self.assertEqual(sr.headers[2][0], 'set-cookie')
-        self.assertEqual(sr.headers[2][1], 'b')
+        self.assertEqual(sr.headers[1][1], 'b')
 
 class Test_make_redirecting_plugin(unittest.TestCase):
 

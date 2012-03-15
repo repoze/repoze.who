@@ -205,7 +205,10 @@ class APITests(unittest.TestCase):
         return api
 
     def _makeEnviron(self):
-        return {'wsgi.version': (1,0)}
+        from wsgiref.util import setup_testing_defaults
+        environ = {}
+        setup_testing_defaults(environ)
+        return environ
 
     def test_class_conforms_to_IAPI(self):
         from zope.interface.verify import verifyClass
