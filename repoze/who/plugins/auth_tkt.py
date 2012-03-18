@@ -18,9 +18,9 @@ def _now():  #pragma NO COVERAGE
         return _NOW_TESTING
     return datetime.datetime.now()
 
+
 @implementer(IIdentifier, IAuthenticator)
 class AuthTktCookiePlugin(object):
-
 
     userid_type_decoders = {'int':int}
     try:
