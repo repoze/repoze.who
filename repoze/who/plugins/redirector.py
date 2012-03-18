@@ -1,7 +1,3 @@
-try:
-    import urlparse
-except ImportError: #pragma NO COVER Python >= 3.0
-    from urllib import parse as urlparse
 import urllib
 import cgi
 
@@ -11,6 +7,9 @@ from zope.interface import implementer
 from repoze.who.interfaces import IChallenger
 from repoze.who._compat import construct_url
 from repoze.who._compat import header_value
+from repoze.who._compat import urlencode
+from repoze.who._compat import urlparse
+from repoze.who._compat import urlunparse
 
 @implementer(IChallenger)
 class RedirectorPlugin(object):
@@ -36,7 +35,7 @@ class RedirectorPlugin(object):
                 "or neither one.")
         self.reason_param = reason_param
         self.reason_header = reason_header
-        self._login_url_parts = list(urlparse.urlparse(login_url))
+        self._login_url_parts = list(urlparse(login_url))
 
     # IChallenger
     def challenge(self, environ, status, app_headers, forget_headers):
@@ -50,8 +49,8 @@ class RedirectorPlugin(object):
                     query_elements[self.reason_param] = reason
             if self.came_from_param is not None:
                 query_elements[self.came_from_param] = construct_url(environ)
-            url_parts[4] = urllib.urlencode(query_elements, doseq=True)
-            login_url = urlparse.urlunparse(url_parts)
+            url_parts[4] = urlencode(query_elements, doseq=True)
+            login_url = urlunparse(url_parts)
         else:
             login_url = self.login_url
         headers = [('Location', login_url)] + forget_headers

@@ -20,7 +20,7 @@ class TestRedirectorPlugin(unittest.TestCase):
 
     def _makeEnviron(self, login=None, password=None, came_from=None,
                          path_info='/', identifier=None, max_age=None):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         fields = []
         if login:
             fields.append(('login', login))
@@ -69,8 +69,8 @@ class TestRedirectorPlugin(unittest.TestCase):
                                         reason_header='X-Reason')
 
     def test_challenge(self):
-        import urlparse
         import cgi
+        from repoze.who._compat import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='reason',
                                reason_header='X-Authorization-Failure-Reason',
@@ -79,13 +79,13 @@ class TestRedirectorPlugin(unittest.TestCase):
         app = plugin.challenge(environ, '401 Unauthorized', [('app', '1')],
                                [('forget', '1')])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], 'forget')
         self.assertEqual(sr.headers[0][1], '1')
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
-        parts = urlparse.urlparse(url)
+        parts = urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
         came_from_key, came_from_value = parts_qsl[0]
@@ -103,8 +103,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(sr.status, '302 Found')
 
     def test_challenge_with_reason_header(self):
-        import urlparse
         import cgi
+        from repoze.who._compat import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='reason',
                                reason_header='X-Authorization-Failure-Reason',
@@ -115,11 +115,11 @@ class TestRedirectorPlugin(unittest.TestCase):
             [('X-Authorization-Failure-Reason', 'you are ugly')],
             [('forget', '1')])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
-        parts = urlparse.urlparse(url)
+        parts = urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 2)
         parts_qsl.sort()
@@ -135,8 +135,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(reason_value, 'you are ugly')
 
     def test_challenge_with_custom_reason_header(self):
-        import urlparse
         import cgi
+        from repoze.who._compat import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='reason',
                                reason_header='X-Custom-Auth-Failure',
@@ -148,11 +148,11 @@ class TestRedirectorPlugin(unittest.TestCase):
             [('X-Authorization-Failure-Reason', 'you are ugly')],
             [('forget', '1')])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
-        parts = urlparse.urlparse(url)
+        parts = urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
         came_from_key, came_from_value = parts_qsl[0]
@@ -164,8 +164,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
 
     def test_challenge_w_reason_no_reason_param_no_came_from_param(self):
-        import urlparse
         import cgi
+        from repoze.who._compat import urlparse
         plugin = self._makeOne()
         environ = self._makeEnviron()
         app = plugin.challenge(
@@ -173,13 +173,13 @@ class TestRedirectorPlugin(unittest.TestCase):
             [('X-Authorization-Failure-Reason', 'you are ugly')],
             [('forget', '1')])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], "forget")
         self.assertEqual(sr.headers[0][1], "1")
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
-        parts = urlparse.urlparse(url)
+        parts = urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 0)
         self.assertEqual(parts[0], 'http')
@@ -188,8 +188,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(parts[3], '')
 
     def test_challenge_w_reason_no_reason_param_w_came_from_param(self):
-        import urlparse
         import cgi
+        from repoze.who._compat import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                               )
         environ = self._makeEnviron()
@@ -199,11 +199,11 @@ class TestRedirectorPlugin(unittest.TestCase):
             [('X-Authorization-Failure-Reason', 'you are ugly')],
             [('forget', '1')])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
-        parts = urlparse.urlparse(url)
+        parts = urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
         came_from_key, came_from_value = parts_qsl[0]
@@ -215,8 +215,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
 
     def test_challenge_with_reason_and_custom_reason_param(self):
-        import urlparse
         import cgi
+        from repoze.who._compat import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='auth_failure',
                                reason_header='X-Custom-Auth-Failure',
@@ -228,11 +228,11 @@ class TestRedirectorPlugin(unittest.TestCase):
              ('X-Custom-Auth-Failure', 'you are ugly')],
             [('forget', '1')])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
-        parts = urlparse.urlparse(url)
+        parts = urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 2)
         parts_qsl.sort()
@@ -248,8 +248,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(reason_value, 'you are ugly')
 
     def test_challenge_wo_reason_w_came_from_param(self):
-        import urlparse
         import cgi
+        from repoze.who._compat import urlparse
         plugin = self._makeOne(came_from_param='came_from')
         environ = self._makeEnviron()
         app = plugin.challenge(
@@ -257,11 +257,11 @@ class TestRedirectorPlugin(unittest.TestCase):
             [],
             [('forget', '1')])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
-        parts = urlparse.urlparse(url)
+        parts = urlparse(url)
         parts_qsl = cgi.parse_qsl(parts[4])
         self.assertEqual(len(parts_qsl), 1)
         came_from_key, came_from_value = parts_qsl[0]
@@ -284,7 +284,7 @@ class TestRedirectorPlugin(unittest.TestCase):
             [('app', '1'), ('set-cookie','a'), ('set-cookie','b')],
             [])
         sr = DummyStartResponse()
-        result = ''.join(app(environ, sr))
+        result = b''.join(app(environ, sr)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], 'set-cookie')
         self.assertEqual(sr.headers[0][1], 'a')

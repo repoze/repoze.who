@@ -40,11 +40,20 @@ except ImportError: #pragma NO COVER Python >= 3.0
     from io import StringIO
 
 try:
+    from urllib import urlencode
     from urllib import quote as url_quote
     from urllib import unquote as url_unquote
 except ImportError: #pragma NO COVER Python >= 3.0
+    from urllib.parse import urlencode
     from urllib.parse import quote as url_quote
     from urllib.parse import unquote as url_unquote
+
+try:
+    from urlparse import urlparse
+    from urlparse import urlunparse
+except ImportError: #pragma NO COVER Python >= 3.0
+    from urllib.parse import urlparse
+    from urllib.parse import urlunparse
 
 import wsgiref.util
 import wsgiref.headers
