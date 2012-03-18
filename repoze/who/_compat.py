@@ -1,12 +1,11 @@
-import sys
-py3k = sys.version_info >= (3, 0)
-
 import wsgiref.util
 import wsgiref.headers
-if py3k:
-    from http.cookies import SimpleCookie
-else:
+try:
     from Cookie import SimpleCookie
+    from Cookie import CookieError
+except ImportError: #pragma NO COVER Python >= 3.0
+    from http.cookies import SimpleCookie
+    from http.cookies import CookieError
 
 def REQUEST_METHOD(environ):
     return environ['REQUEST_METHOD']

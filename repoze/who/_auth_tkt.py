@@ -37,16 +37,27 @@ makes it possible to use the same authentication process with
 non-Python code run under Apache.
 """
 
+try:
+    from Cookie import SimpleCookie
+except ImportError: #pragma NO COVER Python >= 3.0
+    from http.cookies import SimpleCookie
 import time as time_mod
+try:
+    from urllib import quote as url_quote
+    from urllib import unquote as url_unquote
+except ImportError: #pragma NO COVER Python >= 3.0
+    from urllib.parse import quote as url_quote
+    from urllib.parse import unquote as url_unquote
 try:
     from hashlib import md5
 except ImportError:
     from md5 import md5
-import Cookie
-#from paste import request
+try:
+    STRING_TYPES = (str, unicode)
+except NameError:  #pragma NO COVER Python >= 3.0
+    STRING_TYPES = (str,)
+
 from repoze.who._compat import get_cookies
-from urllib import quote as url_quote
-from urllib import unquote as url_unquote
 
 
 class AuthTicket(object):
@@ -106,15 +117,17 @@ class AuthTicket(object):
             self.user_data)
 
     def cookie_value(self):
-        v = '%s%08x%s!' % (self.digest(), int(self.time), url_quote(self.userid))
+        v = '%s%08x%s!' % (self.digest(), int(self.time),
+                           url_quote(self.userid))
         if self.tokens:
             v += self.tokens + '!'
         v += self.user_data
         return v
 
     def cookie(self):
-        c = Cookie.SimpleCookie()
-        c[self.cookie_name] = self.cookie_value().encode('base64').strip().replace('\n', '')
+        c = SimpleCookie()
+        c_val = self.cookie_value().encode('base64').strip().replace('\n', '')
+        c[self.cookie_name] = c_val
         c[self.cookie_name]['path'] = '/'
         if self.secure:
             c[self.cookie_name]['secure'] = 'true'
@@ -144,7 +157,7 @@ def parse_ticket(secret, ticket, ip):
     digest = ticket[:32]
     try:
         timestamp = int(ticket[32:40], 16)
-    except ValueError, e:
+    except ValueError as e:
         raise BadTicket('Timestamp is not a hex integer: %s' % e)
     try:
         userid, data = ticket[40:].split('!', 1)
@@ -363,7 +376,8 @@ class AuthTKTMiddleware(object):
         wild_domain = '.' + cur_domain
         expires = 'Sat, 01-Jan-2000 12:00:00 GMT'
         cookies = [
-            ('Set-Cookie', '%s=""; Expires="%s"; Path=/' % (self.cookie_name, expires)),
+            ('Set-Cookie', '%s=""; Expires="%s"; Path=/' %
+             (self.cookie_name, expires)),
             ('Set-Cookie', '%s=""; Expires="%s"; Path=/; Domain=%s' %
              (self.cookie_name, expires, cur_domain)),
             ('Set-Cookie', '%s=""; Expires="%s"; Path=/; Domain=%s' %
@@ -372,6 +386,19 @@ class AuthTKTMiddleware(object):
         return cookies
 
 
+def asbool(obj):
+    # Lifted from paste.deploy.converters
+    if isinstance(obj, (str, unicode)):
+        obj = obj.strip().lower()
+        if obj in ['true', 'yes', 'on', 'y', 't', '1']:
+            return True
+        elif obj in ['false', 'no', 'off', 'n', 'f', '0']:
+            return False
+        else:
+            raise ValueError(
+                "String is not true/false: %r" % obj)
+    return bool(obj)
+
 def make_auth_tkt_middleware(
     app,
     global_conf,
@@ -379,14 +406,14 @@ def make_auth_tkt_middleware(
     cookie_name='auth_tkt',
     secure=False,
     include_ip=True,
-    logout_path=None):
+    logout_path=None,
+    ):
     """
     Creates the `AuthTKTMiddleware
-    <class-paste.auth.auth_tkt.AuthTKTMiddleware.html>`_.
+    <class-repoze.who._auth_tkt.AuthTKTMiddleware.html>`_.
 
-    ``secret`` is requird, but can be set globally or locally.
+    ``secret`` is required, but can be set globally or locally.
     """
-    from paste.deploy.converters import asbool
     secure = asbool(secure)
     include_ip = asbool(include_ip)
     if secret is None:

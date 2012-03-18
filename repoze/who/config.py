@@ -1,8 +1,16 @@
 """ Configuration parser
 """
-from ConfigParser import ConfigParser
-from ConfigParser import ParsingError
-from StringIO import StringIO
+import pdb; pdb.set_trace()
+try:
+    from ConfigParser import ConfigParser
+    from ConfigParser import ParsingError
+except ImportError: #pragma NO COVER Python >= 3.0
+    from configparser import ConfigParser
+    from configparser import ParsingError
+try:
+    from StringIO import StringIO
+except ImportError: #pragma NO COVER Python >= 3.0
+    from io import StringIO
 import logging
 from pkg_resources import EntryPoint
 import sys

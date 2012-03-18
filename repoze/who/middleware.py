@@ -1,5 +1,8 @@
 import logging
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError: #pragma NO COVER Python >= 3.0
+    from io import StringIO
 import sys
 
 from repoze.who.api import APIFactory

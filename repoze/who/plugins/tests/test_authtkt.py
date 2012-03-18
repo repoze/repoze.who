@@ -559,14 +559,17 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(plugin.userid_checker, make_plugin)
 
     def test_remember_max_age_unicode(self):
+        try:
+            u = unicode
+        except NameError:
+            u = str
         plugin = self._makeOne('secret')
         environ = {'HTTP_HOST':'example.com'}
         
         tkt = self._makeTicket(userid='chris', userdata='')
         result = plugin.remember(environ, {'repoze.who.userid': 'chris',
-                                           'max_age': u'500'})
-        
-        name,value = result.pop(0)
+                                           'max_age': u('500')})
+        name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
         self.failUnless(isinstance(value, str))
         self.failUnless(

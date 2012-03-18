@@ -4,13 +4,12 @@ from codecs import utf_8_encode
 import os
 import time
 
-from repoze.who._compat import get_cookies
-import repoze.who._auth_tkt as auth_tkt
-
 from zope.interface import implements
 
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IAuthenticator
+from repoze.who._compat import get_cookies
+import repoze.who._auth_tkt as auth_tkt
 
 _NOW_TESTING = None  # unit tests can replace
 def _now():  #pragma NO COVERAGE
@@ -22,17 +21,24 @@ class AuthTktCookiePlugin(object):
 
     implements(IIdentifier, IAuthenticator)
 
-    userid_type_decoders = {
-        'int':int,
-        'unicode':lambda x: utf_8_decode(x)[0],
-        }
+    userid_type_decoders = {'int':int}
+    try:
+        userid_type_decoders[unicode] = ('unicode',
+                                         lambda x: utf_8_decode(x)[0])
+    except NameError: #pragma NO COVER Python >= 3.0
+        pass
 
-    userid_type_encoders = {
-        int: ('int', str),
-        long: ('int', str),
-        unicode: ('unicode', lambda x: utf_8_encode(x)[0]),
-        }
-    
+    userid_type_encoders = {int: ('int', str)}
+    try:
+        userid_type_encoders[long] = ('int', str)
+    except NameError: #pragma NO COVER Python >= 3.0
+        pass
+    try:
+        userid_type_encoders[unicode] = ('unicode',
+                                         lambda x: utf_8_encode(x)[0])
+    except NameError: #pragma NO COVER Python >= 3.0
+        pass
+ 
     def __init__(self, secret, cookie_name='auth_tkt',
                  secure=False, include_ip=False,
                  timeout=None, reissue_time=None, userid_checker=None):

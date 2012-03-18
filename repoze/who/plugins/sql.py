@@ -90,7 +90,7 @@ def make_authenticator_plugin(query=None, conn_factory=None,
         raise ValueError('conn_factory must be specified')
     try:
         conn_factory = resolveDotted(conn_factory)(**kw)
-    except Exception, why:
+    except Exception as why:
         raise ValueError('conn_factory could not be resolved: %s' % why)
     if compare_fn is not None:
         compare_fn = resolveDotted(compare_fn)
@@ -107,7 +107,7 @@ def make_metadata_plugin(name=None, query=None, conn_factory=None,
         raise ValueError('conn_factory must be specified')
     try:
         conn_factory = resolveDotted(conn_factory)(**kw)
-    except Exception, why:
+    except Exception as why:
         raise ValueError('conn_factory could not be resolved: %s' % why)
     if filter is not None:
         filter = resolveDotted(filter)

@@ -70,7 +70,7 @@ def make_registries(identifiers, authenticators, challengers, mdproviders):
         for name, value in supplied:
             try:
                 verify(value, iface)
-            except BrokenImplementation, why:
+            except BrokenImplementation as why:
                 why = str(why)
                 raise ValueError(str(name) + ': ' + why)
             L = interface_registry.setdefault(iface, [])

@@ -1,12 +1,16 @@
-import urlparse
+try:
+    import urlparse
+except ImportError: #pragma NO COVER Python >= 3.0
+    from urllib import parse as urlparse
 import urllib
 import cgi
 
 from webob.exc import HTTPFound
-from repoze.who._compat import construct_url, header_value
 from zope.interface import implements
 
 from repoze.who.interfaces import IChallenger
+from repoze.who._compat import construct_url
+from repoze.who._compat import header_value
 
 class RedirectorPlugin(object):
     """ Plugin for issuing challenges as redirects to a configured URL.
