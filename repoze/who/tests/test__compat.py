@@ -89,3 +89,25 @@ class CompatTests(unittest.TestCase):
         from .._compat import header_value
         self.assertEqual(header_value([('simple', 'SIMPLE')], 'simple'),
                          'SIMPLE')
+
+    def test_must_decode_non_string(self):
+        from .._compat import must_decode
+        foo = object()
+        self.failUnless(must_decode(foo) is foo)
+
+    def test_must_decode_unicode(self):
+        from .._compat import must_decode
+        from .._compat import u
+        foo = u('foo')
+        self.failUnless(must_decode(foo) is foo)
+
+    def test_must_decode_utf8(self):
+        from .._compat import must_decode
+        foo = b'b\xc3\xa2tard'
+        self.assertEqual(must_decode(foo), foo.decode('utf-8'))
+
+    def test_must_decode_latin1(self):
+        from .._compat import must_decode
+        foo = b'b\xe2tard'
+        self.assertEqual(must_decode(foo), foo.decode('latin1'))
+

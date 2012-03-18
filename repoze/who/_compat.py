@@ -105,3 +105,11 @@ def header_value(environ, key):
         return ",".join(values)
     else:
         return values
+
+def must_decode(value):
+    if type(value) is b:
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            return value.decode('latin1')
+    return value
