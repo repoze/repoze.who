@@ -37,7 +37,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
             items.append(item)
         response = b''.join(items).decode('utf-8')
         self.failUnless(response.startswith('401 Unauthorized'))
-        
+
     def test_identify_noauthinfo(self):
         plugin = self._makeOne('realm')
         environ = self._makeEnviron()
@@ -93,7 +93,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         forget = plugin._get_wwwauth()
         result = plugin.challenge(environ, '401 Unauthorized', [], forget)
         self.assertTrue(forget[0] in result.headers.items())
-        
+
     def test_challenge_forgetheaders_omits(self):
         plugin = self._makeOne('realm')
         creds = {'login':'foo', 'password':'password'}
@@ -101,7 +101,6 @@ class TestBasicAuthPlugin(unittest.TestCase):
         forget = plugin._get_wwwauth()
         result = plugin.challenge(environ, '401 Unauthorized', [], [])
         self.assertTrue(forget[0] in result.headers.items())
-
 
     def test_factory(self):
         from repoze.who.plugins.basicauth import make_plugin
