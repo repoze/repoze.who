@@ -7,6 +7,7 @@ from zope.interface import implementer
 from repoze.who.interfaces import IChallenger
 from repoze.who._compat import construct_url
 from repoze.who._compat import header_value
+from repoze.who._compat import u
 from repoze.who._compat import urlencode
 from repoze.who._compat import urlparse
 from repoze.who._compat import urlunparse
@@ -63,6 +64,8 @@ def make_plugin(login_url,
                 reason_param=None,
                 reason_header=None,
                ):
+    if login_url in (u(''), b'', None):
+        raise ValueError("No 'login_url'")
     if reason_header is not None and reason_param is None:
         raise Exception("Can't set 'reason_header' without 'reason_param'.")
 

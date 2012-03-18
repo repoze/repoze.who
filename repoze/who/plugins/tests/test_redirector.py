@@ -298,7 +298,7 @@ class Test_make_redirecting_plugin(unittest.TestCase):
         return make_plugin(*args, **kw)
 
     def test_no_login_url_raises(self):
-        self.assertRaises(Exception, self._callFUT, None)
+        self.assertRaises(ValueError, self._callFUT, None)
 
     def test_defaults(self):
         plugin = self._callFUT('/go_there')
