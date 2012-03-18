@@ -17,6 +17,13 @@ try:
 except NameError: #pragma NO COVER Python >= 3.0
     u = str
 
+try:
+    from base64 import decodebytes
+    from base64 import encodebytes
+except: # Python < 3.0
+    from base64 import decodestring as decodebytes
+    from base64 import encodestring as encodebytes
+
 def REQUEST_METHOD(environ):
     return environ['REQUEST_METHOD']
 

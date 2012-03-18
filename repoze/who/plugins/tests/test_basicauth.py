@@ -35,7 +35,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         items = []
         for item in app_iter:
             items.append(item)
-        response = ''.join(items)
+        response = b''.join(items).decode('utf-8')
         self.failUnless(response.startswith('401 Unauthorized'))
         
     def test_identify_noauthinfo(self):
@@ -57,15 +57,17 @@ class TestBasicAuthPlugin(unittest.TestCase):
         self.assertEqual(creds, None)
 
     def test_identify_basic_badrepr(self):
+        from repoze.who._compat import encodebytes
         plugin = self._makeOne('realm')
-        value = 'foo'.encode('base64')
+        value = encodebytes(b'foo').decode('ascii')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
         creds = plugin.identify(environ)
         self.assertEqual(creds, None)
 
     def test_identify_basic_ok(self):
+        from repoze.who._compat import encodebytes
         plugin = self._makeOne('realm')
-        value = 'foo:bar'.encode('base64')
+        value = encodebytes(b'foo:bar').decode('ascii')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
         creds = plugin.identify(environ)
         self.assertEqual(creds, {'login':'foo', 'password':'bar'})

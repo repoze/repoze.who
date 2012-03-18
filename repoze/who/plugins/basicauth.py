@@ -1,37 +1,40 @@
 import binascii
 
-from repoze.who._compat import AUTHORIZATION
 from webob.exc import HTTPUnauthorized
-
 from zope.interface import implementer
 
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IChallenger
+from repoze.who._compat import AUTHORIZATION
+from repoze.who._compat import decodebytes
 
 @implementer(IIdentifier, IChallenger)
 class BasicAuthPlugin(object):
 
-    
     def __init__(self, realm):
         self.realm = realm
 
     # IIdentifier
     def identify(self, environ):
         authorization = AUTHORIZATION(environ)
+        if type(authorization) != type(b''):
+            # this header *must* be base64-encoded ASCII
+            authorization = authorization.encode('ascii')
         try:
-            authmeth, auth = authorization.split(' ', 1)
+            authmeth, auth = authorization.split(b' ', 1)
         except ValueError: # not enough values to unpack
             return None
         if authmeth.lower() == 'basic':
             try:
-                auth = auth.strip().decode('base64')
+                auth = auth.strip()
+                auth = decodebytes(auth)
             except binascii.Error: # can't decode
                 return None
             try:
-                login, password = auth.split(':', 1)
+                login, password = auth.split(b':', 1)
             except ValueError: # not enough values to unpack
                 return None
-            auth = {'login':login, 'password':password}
+            auth = {'login': login, 'password': password}
             return auth
 
         return None
