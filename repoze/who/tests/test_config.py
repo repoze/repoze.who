@@ -39,7 +39,7 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(len(config.mdproviders), 0)
 
     def test_parse_empty_file(self):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         config = self._makeOne()
         config.parse(StringIO())
         self.assertEqual(config.request_classifier, None)

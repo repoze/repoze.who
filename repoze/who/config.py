@@ -1,15 +1,5 @@
 """ Configuration parser
 """
-try:
-    from ConfigParser import ConfigParser
-    from ConfigParser import ParsingError
-except ImportError: #pragma NO COVER Python >= 3.0
-    from configparser import ConfigParser
-    from configparser import ParsingError
-try:
-    from StringIO import StringIO
-except ImportError: #pragma NO COVER Python >= 3.0
-    from io import StringIO
 import logging
 from pkg_resources import EntryPoint
 import sys
@@ -24,6 +14,9 @@ from repoze.who.interfaces import IMetadataProvider
 from repoze.who.interfaces import IPlugin
 from repoze.who.interfaces import IRequestClassifier
 from repoze.who.middleware import PluggableAuthenticationMiddleware
+from repoze.who._compat import StringIO
+from repoze.who._compat import ConfigParser
+from repoze.who._compat import ParsingError
 
 def _resolve(name):
     if name:

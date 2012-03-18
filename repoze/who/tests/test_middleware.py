@@ -487,7 +487,7 @@ class TestStartResponseWrapper(unittest.TestCase):
         self.failUnless(wrapper.buffer)
 
     def test_finish_response(self):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         statuses = []
         headerses = []
         datases = []

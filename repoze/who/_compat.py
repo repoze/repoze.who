@@ -1,12 +1,3 @@
-import wsgiref.util
-import wsgiref.headers
-try:
-    from Cookie import SimpleCookie
-    from Cookie import CookieError
-except ImportError: #pragma NO COVER Python >= 3.0
-    from http.cookies import SimpleCookie
-    from http.cookies import CookieError
-
 try:
     STRING_TYPES = (str, unicode)
 except NameError:
@@ -23,6 +14,40 @@ try:
 except: # Python < 3.0
     from base64 import decodestring as decodebytes
     from base64 import encodestring as encodebytes
+
+try:
+    from ConfigParser import ConfigParser
+    from ConfigParser import ParsingError
+except ImportError: #pragma NO COVER Python >= 3.0
+    from configparser import ConfigParser
+    from configparser import ParsingError
+
+try:
+    from Cookie import SimpleCookie
+    from Cookie import CookieError
+except ImportError: #pragma NO COVER Python >= 3.0
+    from http.cookies import SimpleCookie
+    from http.cookies import CookieError
+
+try:
+    from itertools import izip_longest
+except ImportError: #pragma NO COVER Python >= 3.0
+    from itertools import zip_longest as izip_longest
+
+try:
+    from StringIO import StringIO
+except ImportError: #pragma NO COVER Python >= 3.0
+    from io import StringIO
+
+try:
+    from urllib import quote as url_quote
+    from urllib import unquote as url_unquote
+except ImportError: #pragma NO COVER Python >= 3.0
+    from urllib.parse import quote as url_quote
+    from urllib.parse import unquote as url_unquote
+
+import wsgiref.util
+import wsgiref.headers
 
 def REQUEST_METHOD(environ):
     return environ['REQUEST_METHOD']

@@ -36,25 +36,14 @@ it's primary benefit is compatibility with mod_auth_tkt, which in turn
 makes it possible to use the same authentication process with
 non-Python code run under Apache.
 """
-
-try:
-    from Cookie import SimpleCookie
-except ImportError: #pragma NO COVER Python >= 3.0
-    from http.cookies import SimpleCookie
+from hashlib import md5
 import time as time_mod
-try:
-    from urllib import quote as url_quote
-    from urllib import unquote as url_unquote
-except ImportError: #pragma NO COVER Python >= 3.0
-    from urllib.parse import quote as url_quote
-    from urllib.parse import unquote as url_unquote
-try:
-    from hashlib import md5
-except ImportError:
-    from md5 import md5
 
 from repoze.who._compat import get_cookies
+from repoze.who._compat import SimpleCookie
 from repoze.who._compat import STRING_TYPES
+from repoze.who._compat import url_quote
+from repoze.who._compat import url_unquote
 
 
 class AuthTicket(object):
