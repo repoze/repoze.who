@@ -397,7 +397,7 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(headers[3],
                          ('a', '1'))
         self.assertEqual(start_response.exc_info, None)
-        self.failIf(environ.has_key('repoze.who.application'))
+        self.failIf('repoze.who.application' in environ)
 
     def test_call_app_doesnt_call_start_response(self):
         from webob.exc import HTTPUnauthorized

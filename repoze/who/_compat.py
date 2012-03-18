@@ -31,7 +31,7 @@ def AUTHORIZATION(environ):
 
 def get_cookies(environ):
     header = environ.get('HTTP_COOKIE', '')
-    if environ.has_key('paste.cookies'):
+    if 'paste-cookies' in environ:
         cookies, check_header = environ['paste.cookies']
         if check_header == header:
             return cookies

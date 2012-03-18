@@ -141,7 +141,7 @@ class TestSQLMetadataProviderPlugin(unittest.TestCase):
         self.assertEqual(dummy_factory.closed, True)
         self.assertEqual(identity['md'], [ [1,2,3] ])
         self.assertEqual(dummy_factory.query, 'select foo from bar')
-        self.failIf(identity.has_key('__userid'))
+        self.failIf('__userid' in identity)
 
 class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
 
