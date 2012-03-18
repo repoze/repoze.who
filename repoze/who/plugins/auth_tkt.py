@@ -4,7 +4,7 @@ from codecs import utf_8_encode
 import os
 import time
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IAuthenticator
@@ -18,8 +18,8 @@ def _now():  #pragma NO COVERAGE
         return _NOW_TESTING
     return datetime.datetime.now()
 
+@implementer(IIdentifier, IAuthenticator)
 class AuthTktCookiePlugin(object):
-    implements(IIdentifier, IAuthenticator)
 
 
     userid_type_decoders = {'int':int}

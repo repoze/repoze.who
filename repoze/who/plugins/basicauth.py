@@ -3,14 +3,14 @@ import binascii
 from repoze.who._compat import AUTHORIZATION
 from webob.exc import HTTPUnauthorized
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IChallenger
 
+@implementer(IIdentifier, IChallenger)
 class BasicAuthPlugin(object):
 
-    implements(IIdentifier, IChallenger)
     
     def __init__(self, realm):
         self.realm = realm

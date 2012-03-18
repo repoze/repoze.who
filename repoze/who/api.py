@@ -1,4 +1,4 @@
-from zope.interface import implements
+from zope.interface import implementer
 
 from repoze.who.interfaces import IAPI
 from repoze.who.interfaces import IAPIFactory
@@ -12,8 +12,8 @@ def get_api(environ):
     return environ.get('repoze.who.api')
 
 
+@implementer(IAPIFactory)
 class APIFactory(object):
-    implements(IAPIFactory)
 
     def __init__(self,
                  identifiers=(),
@@ -95,8 +95,8 @@ def match_classification(iface, plugins, classification):
     return result
 
 
+@implementer(IAPI)
 class API(object):
-    implements(IAPI)
 
     def __init__(self,
                  environ,

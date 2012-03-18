@@ -6,12 +6,13 @@ import urllib
 import cgi
 
 from webob.exc import HTTPFound
-from zope.interface import implements
+from zope.interface import implementer
 
 from repoze.who.interfaces import IChallenger
 from repoze.who._compat import construct_url
 from repoze.who._compat import header_value
 
+@implementer(IChallenger)
 class RedirectorPlugin(object):
     """ Plugin for issuing challenges as redirects to a configured URL.
 
@@ -19,8 +20,7 @@ class RedirectorPlugin(object):
       supplied an ``X-Authorization-Failure-Reason`` header, the plugin
       includes that reason in the query string of the redirected URL.
     """
-    implements(IChallenger)
-    
+
     def __init__(self,
                  login_url,
                  came_from_param='came_from',

@@ -1,4 +1,4 @@
-from zope.interface import implements
+from zope.interface import implementer
 
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.interfaces import IMetadataProvider
@@ -30,9 +30,9 @@ def make_psycopg_conn_factory(**kw):
         return psycopg2.connect(kw['repoze.who.dsn']) #pragma NO COVERAGE
     return conn_factory #pragma NO COVERAGE
 
+@implementer(IAuthenticator)
 class SQLAuthenticatorPlugin:
-    implements(IAuthenticator)
-    
+
     def __init__(self, query, conn_factory, compare_fn):
         # statement should be pyformat dbapi binding-style, e.g.
         # "select user_id, password from users where login=%(login)s"
@@ -56,9 +56,9 @@ class SQLAuthenticatorPlugin:
             if self.compare_fn(identity['password'], password):
                 return user_id
 
+@implementer(IMetadataProvider)
 class SQLMetadataProviderPlugin:
-    implements(IMetadataProvider)
-    
+
     def __init__(self, name, query, conn_factory, filter):
         self.name = name
         self.query = query

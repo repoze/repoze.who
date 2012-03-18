@@ -1,6 +1,6 @@
 import itertools
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.utils import resolveDotted
@@ -10,9 +10,9 @@ def _padding_for_file_lines():
     yield 'aaaaaa:bbbbbb'
 
 
+@implementer(IAuthenticator)
 class HTPasswdPlugin(object):
 
-    implements(IAuthenticator)
 
     def __init__(self, filename, check):
         self.filename = filename
