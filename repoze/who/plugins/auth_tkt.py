@@ -10,6 +10,7 @@ from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IAuthenticator
 from repoze.who._compat import get_cookies
 import repoze.who._auth_tkt as auth_tkt
+from repoze.who._compat import STRING_TYPES
 
 _NOW_TESTING = None  # unit tests can replace
 def _now():  #pragma NO COVERAGE
@@ -18,8 +19,8 @@ def _now():  #pragma NO COVERAGE
     return datetime.datetime.now()
 
 class AuthTktCookiePlugin(object):
-
     implements(IIdentifier, IAuthenticator)
+
 
     userid_type_decoders = {'int':int}
     try:
@@ -196,7 +197,7 @@ class AuthTktCookiePlugin(object):
                             id(self)) #pragma NO COVERAGE
 
 def _bool(value):
-    if isinstance(value, basestring):
+    if isinstance(value, STRING_TYPES):
         return value.lower() in ('yes', 'true', '1')
     return value
 

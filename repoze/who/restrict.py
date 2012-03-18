@@ -1,6 +1,8 @@
 # Authorization middleware
 from pkg_resources import EntryPoint
 
+from repoze.who._compat import STRING_TYPES
+
 def authenticated_predicate():
     def _predicate(environ):
         return 'REMOTE_USER' in environ or 'repoze.who.identity' in environ
@@ -26,6 +28,6 @@ def make_authenticated_restriction(app, global_config, enabled=True):
 
 def make_predicate_restriction(app, global_config,
                                predicate, enabled=True, **kw):
-    if isinstance(predicate, basestring):
+    if isinstance(predicate, STRING_TYPES):
         predicate = EntryPoint.parse('x=%s' % predicate).load(False)
     return PredicateRestriction(app, predicate, enabled, **kw)

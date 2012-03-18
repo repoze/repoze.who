@@ -58,6 +58,7 @@ except NameError:  #pragma NO COVER Python >= 3.0
     STRING_TYPES = (str,)
 
 from repoze.who._compat import get_cookies
+from repoze.who._compat import STRING_TYPES
 
 
 class AuthTicket(object):
@@ -331,7 +332,7 @@ class AuthTKTMiddleware(object):
         return self.app(environ, cookie_setting_start_response)
 
     def set_user_cookie(self, environ, userid, tokens, user_data):
-        if not isinstance(tokens, basestring):
+        if not isinstance(tokens, STRING_TYPES):
             tokens = ','.join(tokens)
         if self.include_ip:
             remote_addr = environ['REMOTE_ADDR']

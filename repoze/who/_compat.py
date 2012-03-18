@@ -7,6 +7,11 @@ except ImportError: #pragma NO COVER Python >= 3.0
     from http.cookies import SimpleCookie
     from http.cookies import CookieError
 
+try:
+    STRING_TYPES = (str, unicode)
+except NameError:
+    STRING_TYPES = (str,)
+
 def REQUEST_METHOD(environ):
     return environ['REQUEST_METHOD']
 
