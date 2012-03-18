@@ -24,16 +24,16 @@ class TestHTPasswdPlugin(unittest.TestCase):
         verifyClass(IAuthenticator, klass)
 
     def test_authenticate_nocreds(self):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         io = StringIO()
         plugin = self._makeOne(io, None)
         environ = self._makeEnviron()
         creds = {}
         result = plugin.authenticate(environ, creds)
         self.assertEqual(result, None)
-        
+
     def test_authenticate_nolines(self):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         io = StringIO()
         def check(password, hashed):
             return True
@@ -42,9 +42,9 @@ class TestHTPasswdPlugin(unittest.TestCase):
         creds = {'login':'chrism', 'password':'pass'}
         result = plugin.authenticate(environ, creds)
         self.assertEqual(result, None)
-        
+
     def test_authenticate_nousermatch(self):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         io = StringIO('nobody:foo')
         def check(password, hashed):
             return True
@@ -55,7 +55,7 @@ class TestHTPasswdPlugin(unittest.TestCase):
         self.assertEqual(result, None)
 
     def test_authenticate_match(self):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         io = StringIO('chrism:pass')
         def check(password, hashed):
             return True
@@ -66,7 +66,7 @@ class TestHTPasswdPlugin(unittest.TestCase):
         self.assertEqual(result, 'chrism')
 
     def test_authenticate_badline(self):
-        from StringIO import StringIO
+        from repoze.who._compat import StringIO
         io = StringIO('badline\nchrism:pass')
         def check(password, hashed):
             return True
