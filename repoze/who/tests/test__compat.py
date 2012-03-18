@@ -85,11 +85,6 @@ class CompatTests(unittest.TestCase):
         from .._compat import header_value
         self.assertEqual(header_value([], 'nonesuch'), '')
 
-    def test_header_value_list(self):
-        from .._compat import header_value
-        self.assertEqual(header_value([('listed', ['a', 'b'])], 'listed'),
-                         'a,b')
-
     def test_header_value_simple(self):
         from .._compat import header_value
         self.assertEqual(header_value([('simple', 'SIMPLE')], 'simple'),

@@ -5,16 +5,17 @@ except NameError: #pragma NO COVER Python >= 3.0
 
 try:
     u = unicode
-    b = str
 except NameError: #pragma NO COVER Python >= 3.0
     u = str
     b = bytes
+else: #pragma NO COVER Python < 3.0
+    b = str
 
 import base64
 if 'decodebytes' in base64.__dict__: #pragma NO COVER Python >= 3.0
     decodebytes = base64.decodebytes
     encodebytes = base64.encodebytes
-else:
+else: #pragma NO COVER Python < 3.0
     decodebytes = base64.decodestring
     encodebytes = base64.encodestring
 del base64
@@ -24,7 +25,7 @@ try:
 except ImportError: #pragma NO COVER Python >= 3.0
     from configparser import ConfigParser
     from configparser import ParsingError
-else:
+else: #pragma NO COVER Python < 3.0
     from ConfigParser import ParsingError
 
 try:
@@ -32,7 +33,7 @@ try:
 except ImportError: #pragma NO COVER Python >= 3.0
     from http.cookies import SimpleCookie
     from http.cookies import CookieError
-else:
+else: #pragma NO COVER Python < 3.0
     from Cookie import CookieError
 
 try:
@@ -51,7 +52,7 @@ except ImportError: #pragma NO COVER Python >= 3.0
     from urllib.parse import urlencode
     from urllib.parse import quote as url_quote
     from urllib.parse import unquote as url_unquote
-else:
+else: #pragma NO COVER Python < 3.0
     from urllib import quote as url_quote
     from urllib import unquote as url_unquote
 
@@ -60,7 +61,7 @@ try:
 except ImportError: #pragma NO COVER Python >= 3.0
     from urllib.parse import urlparse
     from urllib.parse import urlunparse
-else:
+else: #pragma NO COVER Python < 3.0
     from urlparse import urlunparse
 
 import wsgiref.util
@@ -100,7 +101,7 @@ def header_value(environ, key):
     values = headers.get(key)
     if not values:
         return ""
-    if isinstance(values, list):
+    if isinstance(values, list): #pragma NO COVER can't be true under Py3k.
         return ",".join(values)
     else:
         return values
