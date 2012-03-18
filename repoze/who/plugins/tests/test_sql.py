@@ -78,6 +78,8 @@ class TestDefaultPasswordCompare(unittest.TestCase):
             from hashlib import sha1
         except ImportError:
             from sha import new as sha1
+        if not isinstance(clear, type(b'')):
+            clear = clear.encode('utf-8')
         return sha1(clear).hexdigest()
 
     def test_shaprefix_success(self):

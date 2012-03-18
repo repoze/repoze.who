@@ -14,6 +14,8 @@ def default_password_compare(cleartext_password, stored_password_hash):
 
     if stored_password_hash.startswith('{SHA}'):
         stored_password_hash = stored_password_hash[5:]
+        if not isinstance(cleartext_password, type(b'')):
+            cleartext_password = cleartext_password.encode('utf-8')
         digest = sha1(cleartext_password).hexdigest()
     else:
         digest = cleartext_password
