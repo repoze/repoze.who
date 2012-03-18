@@ -1,35 +1,39 @@
 try:
     STRING_TYPES = (str, unicode)
-except NameError:
+except NameError: #pragma NO COVER Python >= 3.0
     STRING_TYPES = (str,)
 
 try:
     u = unicode
-    b = unicode
+    b = str
 except NameError: #pragma NO COVER Python >= 3.0
     u = str
     b = bytes
 
-try:
-    from base64 import decodebytes
-    from base64 import encodebytes
-except: # Python < 3.0
-    from base64 import decodestring as decodebytes
-    from base64 import encodestring as encodebytes
+import base64
+if 'decodebytes' in base64.__dict__: #pragma NO COVER Python >= 3.0
+    decodebytes = base64.decodebytes
+    encodebytes = base64.encodebytes
+else:
+    decodebytes = base64.decodestring
+    encodebytes = base64.encodestring
+del base64
 
 try:
     from ConfigParser import ConfigParser
-    from ConfigParser import ParsingError
 except ImportError: #pragma NO COVER Python >= 3.0
     from configparser import ConfigParser
     from configparser import ParsingError
+else:
+    from ConfigParser import ParsingError
 
 try:
     from Cookie import SimpleCookie
-    from Cookie import CookieError
 except ImportError: #pragma NO COVER Python >= 3.0
     from http.cookies import SimpleCookie
     from http.cookies import CookieError
+else:
+    from Cookie import CookieError
 
 try:
     from itertools import izip_longest
@@ -43,19 +47,21 @@ except ImportError: #pragma NO COVER Python >= 3.0
 
 try:
     from urllib import urlencode
-    from urllib import quote as url_quote
-    from urllib import unquote as url_unquote
 except ImportError: #pragma NO COVER Python >= 3.0
     from urllib.parse import urlencode
     from urllib.parse import quote as url_quote
     from urllib.parse import unquote as url_unquote
+else:
+    from urllib import quote as url_quote
+    from urllib import unquote as url_unquote
 
 try:
     from urlparse import urlparse
-    from urlparse import urlunparse
 except ImportError: #pragma NO COVER Python >= 3.0
     from urllib.parse import urlparse
     from urllib.parse import urlunparse
+else:
+    from urlparse import urlunparse
 
 import wsgiref.util
 import wsgiref.headers
@@ -74,14 +80,14 @@ def AUTHORIZATION(environ):
 
 def get_cookies(environ):
     header = environ.get('HTTP_COOKIE', '')
-    if 'paste-cookies' in environ:
+    if 'paste.cookies' in environ:
         cookies, check_header = environ['paste.cookies']
         if check_header == header:
             return cookies
     cookies = SimpleCookie()
     try:
         cookies.load(header)
-    except CookieError:
+    except CookieError: #pragma NO COVER (can't see how to provoke this)
         pass
     environ['paste.cookies'] = (cookies, header)
     return cookies
