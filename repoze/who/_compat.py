@@ -5,8 +5,10 @@ except NameError:
 
 try:
     u = unicode
+    b = unicode
 except NameError: #pragma NO COVER Python >= 3.0
     u = str
+    b = bytes
 
 try:
     from base64 import decodebytes
