@@ -72,6 +72,28 @@ class TestBasicAuthPlugin(unittest.TestCase):
         creds = plugin.identify(environ)
         self.assertEqual(creds, {'login':'foo', 'password':'bar'})
 
+    def test_identify_basic_ok_utf8_values(self):
+        from repoze.who._compat import encodebytes
+        LOGIN = b'b\xc3\xa2tard'
+        PASSWD = b'l\xc3\xa0 demain'
+        plugin = self._makeOne('realm')
+        value = encodebytes(b':'.join((LOGIN, PASSWD))).decode('ascii')
+        environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
+        creds = plugin.identify(environ)
+        self.assertEqual(creds, {'login': LOGIN.decode('utf-8'),
+                                 'password': PASSWD.decode('utf-8')})
+
+    def test_identify_basic_ok_latin1_values(self):
+        from repoze.who._compat import encodebytes
+        LOGIN = b'b\xe2tard'
+        PASSWD = b'l\xe0 demain'
+        plugin = self._makeOne('realm')
+        value = encodebytes(b':'.join((LOGIN, PASSWD))).decode('ascii')
+        environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
+        creds = plugin.identify(environ)
+        self.assertEqual(creds, {'login': LOGIN.decode('latin1'),
+                                 'password': PASSWD.decode('latin1')})
+
     def test_remember(self):
         plugin = self._makeOne('realm')
         creds = {}

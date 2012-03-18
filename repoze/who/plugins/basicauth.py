@@ -7,6 +7,7 @@ from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IChallenger
 from repoze.who._compat import AUTHORIZATION
 from repoze.who._compat import decodebytes
+from repoze.who._compat import must_decode
 
 @implementer(IIdentifier, IChallenger)
 class BasicAuthPlugin(object):
@@ -24,7 +25,7 @@ class BasicAuthPlugin(object):
             authmeth, auth = authorization.split(b' ', 1)
         except ValueError: # not enough values to unpack
             return None
-        if authmeth.lower() == 'basic':
+        if authmeth.lower() == b'basic':
             try:
                 auth = auth.strip()
                 auth = decodebytes(auth)
@@ -34,7 +35,8 @@ class BasicAuthPlugin(object):
                 login, password = auth.split(b':', 1)
             except ValueError: # not enough values to unpack
                 return None
-            auth = {'login': login, 'password': password}
+            auth = {'login': must_decode(login),
+                    'password': must_decode(password)}
             return auth
 
         return None
