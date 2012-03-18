@@ -388,6 +388,10 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                           'Path=/' % new_val))
 
     def test_remember_creds_different_long_userid(self):
+        try:
+            long
+        except NameError: #pragma NO COVER Python >= 3.0
+            return
         plugin = self._makeOne('secret')
         old_val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
@@ -401,11 +405,10 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                           'Path=/' % new_val))
 
     def test_remember_creds_different_unicode_userid(self):
-        from repoz.who._compat import u
         plugin = self._makeOne('secret')
         old_val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
-        userid = u('\xc2\xa9', 'utf-8')
+        userid = b'\xc2\xa9'.decode('utf-8')
         new_val = self._makeTicket(userid=userid.encode('utf-8'),
                                    userdata='userid_type:unicode')
         result = plugin.remember(environ, {'repoze.who.userid':userid,
@@ -560,7 +563,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(plugin.userid_checker, make_plugin)
 
     def test_remember_max_age_unicode(self):
-        from repoz.who._compat import u
+        from repoze.who._compat import u
         plugin = self._makeOne('secret')
         environ = {'HTTP_HOST':'example.com'}
         tkt = self._makeTicket(userid='chris', userdata='')
