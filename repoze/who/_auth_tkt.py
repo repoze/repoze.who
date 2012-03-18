@@ -52,10 +52,6 @@ try:
     from hashlib import md5
 except ImportError:
     from md5 import md5
-try:
-    STRING_TYPES = (str, unicode)
-except NameError:  #pragma NO COVER Python >= 3.0
-    STRING_TYPES = (str,)
 
 from repoze.who._compat import get_cookies
 from repoze.who._compat import STRING_TYPES
@@ -208,7 +204,7 @@ def encode_ip_timestamp(ip, timestamp):
 
 
 def maybe_encode(s, encoding='utf8'):
-    if isinstance(s, unicode):
+    if not isinstance(s, type(b'')):
         s = s.encode(encoding)
     return s
 
@@ -389,7 +385,7 @@ class AuthTKTMiddleware(object):
 
 def asbool(obj):
     # Lifted from paste.deploy.converters
-    if isinstance(obj, (str, unicode)):
+    if isinstance(obj, STRING_TYPES):
         obj = obj.strip().lower()
         if obj in ['true', 'yes', 'on', 'y', 't', '1']:
             return True
