@@ -233,9 +233,9 @@ class TestMiddleware(unittest.TestCase):
         challengers = [ ('challenge', challenge) ]
         mw = self._makeOne(app=app, challengers=challengers)
         start_response = DummyStartResponse()
-        result = mw(environ, start_response)
+        result = b''.join(mw(environ, start_response)).decode('ascii')
         self.assertEqual(environ['challenged'], challenge_app)
-        self.failUnless(result[0].startswith('401 Unauthorized'))
+        self.failUnless(result.startswith('401 Unauthorized'))
 
     def test_call_401_challenger_and_identifier_no_authenticator(self):
         from webob.exc import HTTPUnauthorized
@@ -252,9 +252,9 @@ class TestMiddleware(unittest.TestCase):
                            identifiers=identifiers)
         start_response = DummyStartResponse()
 
-        result = mw(environ, start_response)
+        result = b''.join(mw(environ, start_response)).decode('ascii')
         self.assertEqual(environ['challenged'], challenge_app)
-        self.failUnless(result[0].startswith('401 Unauthorized'))
+        self.failUnless(result.startswith('401 Unauthorized'))
         self.assertEqual(identifier.forgotten, False)
         self.assertEqual(environ.get('REMOTE_USER'), None)
 
@@ -275,9 +275,9 @@ class TestMiddleware(unittest.TestCase):
                            identifiers=identifiers,
                            authenticators=authenticators)
         start_response = DummyStartResponse()
-        result = mw(environ, start_response)
+        result = b''.join(mw(environ, start_response)).decode('ascii')
         self.assertEqual(environ['challenged'], challenge_app)
-        self.failUnless(result[0].startswith('401 Unauthorized'))
+        self.failUnless(result.startswith('401 Unauthorized'))
         # @@ unfuck
 ##         self.assertEqual(identifier.forgotten, identifier.credentials)
         self.assertEqual(environ['REMOTE_USER'], 'chris')
@@ -385,7 +385,7 @@ class TestMiddleware(unittest.TestCase):
                            authenticators=authenticators,
                            mdproviders=mdproviders)
         start_response = DummyStartResponse()
-        result = ''.join(mw(environ, start_response))
+        result = b''.join(mw(environ, start_response)).decode('ascii')
         self.failUnless(result.startswith('302 Found'))
         self.assertEqual(start_response.status, '302 Found')
         headers = start_response.headers
@@ -443,8 +443,8 @@ class TestMiddleware(unittest.TestCase):
                            authenticators=authenticators,
                            mdproviders=mdproviders)
         start_response = DummyStartResponse()
-        result = mw(environ, start_response)
-        self.failUnless(result[0].startswith('401 Unauthorized'))
+        result = b''.join(mw(environ, start_response)).decode('ascii')
+        self.failUnless(result.startswith('401 Unauthorized'))
         self.failUnless(app._iterable._closed)
 
     def test_call_w_challenge_but_no_challenger_still_closes_iterable(self):
