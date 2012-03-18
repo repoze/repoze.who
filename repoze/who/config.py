@@ -1,6 +1,5 @@
 """ Configuration parser
 """
-import pdb; pdb.set_trace()
 try:
     from ConfigParser import ConfigParser
     from ConfigParser import ParsingError
