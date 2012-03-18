@@ -82,7 +82,7 @@ def _same_string(x, y):
     # Attempt at isochronous string comparison.
     mismatches = filter(None, [a != b for a, b, ignored
                                     in izip_longest(x, y, PADDING)])
-    if type(mismatches) != list:
+    if type(mismatches) != list: #pragma NO COVER Python >= 3.0
         mismatches = list(mismatches)
     return len(mismatches) == 0
 
