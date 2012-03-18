@@ -42,8 +42,8 @@ setup(name='repoze.who',
       include_package_data=True,
       namespace_packages=['repoze', 'repoze.who', 'repoze.who.plugins'],
       zip_safe=False,
-      tests_require = ['Paste', 'zope.interface'],
-      install_requires=['Paste', 'zope.interface', 'setuptools'],
+      tests_require = ['WebOb', 'zope.interface'],
+      install_requires=['WebOb', 'zope.interface', 'setuptools'],
       test_suite="repoze.who",
       entry_points = """\
       [paste.filter_app_factory]
