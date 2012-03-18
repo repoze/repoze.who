@@ -12,6 +12,11 @@ try:
 except NameError:
     STRING_TYPES = (str,)
 
+try:
+    u = unicode
+except NameError: #pragma NO COVER Python >= 3.0
+    u = str
+
 def REQUEST_METHOD(environ):
     return environ['REQUEST_METHOD']
 
