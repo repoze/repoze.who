@@ -184,6 +184,11 @@ def make_middleware_with_config(app, global_conf, config_file,
     parser.parse(open(config_file))
     log_stream = None
 
+    if log_level is None:
+        log_level = logging.INFO
+    elif not isinstance(log_level, int):
+        log_level = _LEVELS[log_level.lower()]
+
     if log_file is not None:
         if log_file.lower() == 'stdout':
             log_stream = sys.stdout
@@ -192,11 +197,7 @@ def make_middleware_with_config(app, global_conf, config_file,
     else:
         log_stream = logging.getLogger('repoze.who')
         log_stream.addHandler(NullHandler())
-
-    if log_level is None:
-        log_level = logging.INFO
-    else:
-        log_level = _LEVELS[log_level.lower()]
+        log_stream.setLevel(log_level or 0)
 
     return PluggableAuthenticationMiddleware(
                 app,

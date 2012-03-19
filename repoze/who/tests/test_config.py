@@ -403,8 +403,8 @@ class TestConfigMiddleware(unittest.TestCase):
         logfile = os.path.join(self._tempdir, 'who.log')
         global_conf = {'here': '/'}
         middleware = factory(app, global_conf, config_file=path,
-                             log_file=logfile)
-        self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
+                             log_file=logfile, log_level=logging.WARN)
+        self.assertEqual(middleware.logger.getEffectiveLevel(), logging.WARN)
         handlers = middleware.logger.handlers
         self.assertEqual(len(handlers), 1)
         self.failUnless(isinstance(handlers[0], logging.StreamHandler))
@@ -419,7 +419,7 @@ class TestConfigMiddleware(unittest.TestCase):
         path = self._getTempfile(SAMPLE_CONFIG)
         global_conf = {'here': '/'}
         middleware = factory(app, global_conf, config_file=path)
-        self.assertEqual(middleware.logger.getEffectiveLevel(), 0)
+        self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
         handlers = middleware.logger.handlers
         self.assertEqual(len(handlers), 1)
         self.failUnless(isinstance(handlers[0], NullHandler))
