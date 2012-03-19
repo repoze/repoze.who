@@ -1,6 +1,14 @@
 import unittest
 
-class TestDefaultRequestClassifier(unittest.TestCase):
+class _Base(unittest.TestCase):
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
+
+class TestDefaultRequestClassifier(_Base):
 
     def _getFUT(self):
         from repoze.who.classifiers import default_request_classifier
@@ -63,7 +71,7 @@ class TestDefaultRequestClassifier(unittest.TestCase):
         self.assertEqual(result, 'browser')
 
 
-class TestDefaultChallengeDecider(unittest.TestCase):
+class TestDefaultChallengeDecider(_Base):
 
     def _getFUT(self):
         from repoze.who.classifiers import default_challenge_decider
@@ -88,7 +96,7 @@ class TestDefaultChallengeDecider(unittest.TestCase):
         decider = self._getFUT()
         self.failIf(decider({}, '200 Ok', []))
 
-class TestPassthroughChallengeDecider(unittest.TestCase):
+class TestPassthroughChallengeDecider(_Base):
 
     def _getFUT(self):
         from repoze.who.classifiers import passthrough_challenge_decider

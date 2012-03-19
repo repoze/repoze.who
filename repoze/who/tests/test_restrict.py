@@ -1,6 +1,14 @@
 import unittest
 
-class AuthenticatedPredicateTests(unittest.TestCase):
+class _Base(unittest.TestCase):
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
+
+class AuthenticatedPredicateTests(_Base):
 
     def _getFUT(self):
         from repoze.who.restrict import authenticated_predicate
@@ -21,7 +29,7 @@ class AuthenticatedPredicateTests(unittest.TestCase):
         environ = {'repoze.who.identity': {'login': 'fred'}}
         self.failUnless(predicate(environ))
 
-class MakeAuthenticatedRestrictionTests(unittest.TestCase):
+class MakeAuthenticatedRestrictionTests(_Base):
 
     def _getFUT(self):
         from repoze.who.restrict import make_authenticated_restriction
@@ -40,7 +48,7 @@ class MakeAuthenticatedRestrictionTests(unittest.TestCase):
         self.failUnless(predicate({'REMOTE_USER': 'fred'}))
         self.failUnless(predicate({'repoze.who.identity': {'login': 'fred'}}))
 
-class PredicateRestrictionTests(unittest.TestCase):
+class PredicateRestrictionTests(_Base):
 
     def _getTargetClass(self):
         from repoze.who.restrict import PredicateRestriction
@@ -112,7 +120,7 @@ class PredicateRestrictionTests(unittest.TestCase):
         self.assertEqual(len(_started), 0)
         self.assertEqual(restrict.app.environ, environ)
 
-class MakePredicateRestrictionTests(unittest.TestCase):
+class MakePredicateRestrictionTests(_Base):
 
     def _getFUT(self):
         from repoze.who.restrict import make_predicate_restriction

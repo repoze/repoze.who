@@ -1,6 +1,14 @@
 import unittest
 
-class Test_get_api(unittest.TestCase):
+class _Base(unittest.TestCase):
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
+
+class Test_get_api(_Base):
 
     def _callFUT(self, environ):
         from repoze.who.api import get_api
@@ -17,7 +25,7 @@ class Test_get_api(unittest.TestCase):
         api = self._callFUT(environ)
         self.failUnless(api is expected)
 
-class APIFactoryTests(unittest.TestCase):
+class APIFactoryTests(_Base):
 
     def _getTargetClass(self):
         from repoze.who.api import APIFactory
@@ -90,7 +98,7 @@ class APIFactoryTests(unittest.TestCase):
         self.failUnless(api is expected)
 
 
-class TestMakeRegistries(unittest.TestCase):
+class TestMakeRegistries(_Base):
 
     def _callFUT(self, identifiers, authenticators, challengers, mdproviders):
         from repoze.who.api import make_registries
@@ -134,7 +142,7 @@ class TestMakeRegistries(unittest.TestCase):
         self.assertEqual(name_reg['challenger'], dummy_challenger)
         self.assertEqual(name_reg['mdprovider'], dummy_mdprovider)
 
-class TestMatchClassification(unittest.TestCase):
+class TestMatchClassification(_Base):
 
     def _getFUT(self):
         from repoze.who.api import match_classification
@@ -161,7 +169,7 @@ class TestMatchClassification(unittest.TestCase):
         # any for either
         self.assertEqual(f(IAuthenticator, plugins, 'buz'), [multi1, multi2])
 
-class APITests(unittest.TestCase):
+class APITests(_Base):
 
     def _getTargetClass(self):
         from repoze.who.api import API
@@ -1123,7 +1131,7 @@ class APITests(unittest.TestCase):
         self.assertEqual(identity.get('fuz'), None)
 
 
-class TestIdentityDict(unittest.TestCase):
+class TestIdentityDict(_Base):
 
     def _getTargetClass(self):
         from repoze.who.api import Identity

@@ -1,6 +1,14 @@
 import unittest
 
-class TestSQLAuthenticatorPlugin(unittest.TestCase):
+class _Base(unittest.TestCase):
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
+
+class TestSQLAuthenticatorPlugin(_Base):
 
     def _getTargetClass(self):
         from repoze.who.plugins.sql import SQLAuthenticatorPlugin
@@ -67,7 +75,7 @@ class TestSQLAuthenticatorPlugin(unittest.TestCase):
         self.assertEqual(dummy_factory.query, None)
         self.assertEqual(dummy_factory.closed, False)
 
-class TestDefaultPasswordCompare(unittest.TestCase):
+class TestDefaultPasswordCompare(_Base):
 
     def _getFUT(self):
         from repoze.who.plugins.sql import default_password_compare
@@ -113,7 +121,7 @@ class TestDefaultPasswordCompare(unittest.TestCase):
         result = compare('notpassword', stored)
         self.assertEqual(result, False)
 
-class TestSQLMetadataProviderPlugin(unittest.TestCase):
+class TestSQLMetadataProviderPlugin(_Base):
 
     def _getTargetClass(self):
         from repoze.who.plugins.sql import SQLMetadataProviderPlugin
@@ -143,7 +151,7 @@ class TestSQLMetadataProviderPlugin(unittest.TestCase):
         self.assertEqual(dummy_factory.query, 'select foo from bar')
         self.failIf('__userid' in identity)
 
-class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
+class TestMakeSQLAuthenticatorPlugin(_Base):
 
     def _getFUT(self):
         from repoze.who.plugins.sql import make_authenticator_plugin
@@ -180,7 +188,7 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
         self.assertEqual(plugin.conn_factory, DummyConnFactory)
         self.assertEqual(plugin.compare_fn, make_dummy_connfactory)
 
-class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
+class TestMakeSQLMetadataProviderPlugin(_Base):
 
     def _getFUT(self):
         from repoze.who.plugins.sql import make_metadata_plugin

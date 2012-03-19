@@ -26,6 +26,14 @@ else: #pragma NO COVER Python < 3.0
     encodestring = base64.encodestring
 
 try:
+    from urllib.parse import parse_qs
+except ImportError: #pragma NO COVER Python < 3.0
+    from cgi import parse_qs
+    from cgi import parse_qsl
+else: #pragma NO COVER Python >= 3.0
+    from urllib.parse import parse_qsl
+
+try:
     from ConfigParser import ConfigParser
 except ImportError: #pragma NO COVER Python >= 3.0
     from configparser import ConfigParser

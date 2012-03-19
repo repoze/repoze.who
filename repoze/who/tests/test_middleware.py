@@ -1,6 +1,14 @@
 import unittest
 
-class TestMiddleware(unittest.TestCase):
+class _Base(unittest.TestCase):
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
+
+class TestMiddleware(_Base):
 
     def _getTargetClass(self):
         from repoze.who.middleware import PluggableAuthenticationMiddleware
@@ -470,7 +478,7 @@ class TestMiddleware(unittest.TestCase):
     # XXX need more call tests:
     #  - auth_id sorting
 
-class TestStartResponseWrapper(unittest.TestCase):
+class TestStartResponseWrapper(_Base):
 
     def _getTargetClass(self):
         from repoze.who.middleware import StartResponseWrapper
@@ -515,7 +523,7 @@ class TestStartResponseWrapper(unittest.TestCase):
         self.assertEqual(datases[0], 'written')
         self.assertEqual(closededs[0], True)
 
-class WrapGeneratorTests(unittest.TestCase):
+class WrapGeneratorTests(_Base):
 
     def _callFUT(self, iterable):
         from repoze.who.middleware import wrap_generator
@@ -541,7 +549,7 @@ class WrapGeneratorTests(unittest.TestCase):
         self.assertEqual(list(newgen), ['a', 'b'])
         self.failUnless(iterable._closed)
 
-class TestMakeTestMiddleware(unittest.TestCase):
+class TestMakeTestMiddleware(_Base):
 
     def setUp(self):
         import os

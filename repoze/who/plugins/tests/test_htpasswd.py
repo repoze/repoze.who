@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestHTPasswdPlugin(unittest.TestCase):
 
     def _getTargetClass(self):
@@ -16,6 +17,12 @@ class TestHTPasswdPlugin(unittest.TestCase):
         if kw is not None:
             environ.update(kw)
         return environ
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
 
     def test_implements(self):
         from zope.interface.verify import verifyClass

@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestAuthTktCookiePlugin(unittest.TestCase):
     tempdir = None
     _now_testing = None
@@ -13,6 +14,12 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
             shutil.rmtree(self.tempdir)
         if self._now_testing is not None:
             self._setNowTesting(self._now_testing)
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
 
     def _getTargetClass(self):
         from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin

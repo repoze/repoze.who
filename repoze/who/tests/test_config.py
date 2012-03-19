@@ -1,6 +1,14 @@
 import unittest
 
-class TestWhoConfig(unittest.TestCase):
+class _Base(unittest.TestCase):
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
+
+class TestWhoConfig(_Base):
 
     def _getTargetClass(self):
         from repoze.who.config import WhoConfig
@@ -342,7 +350,7 @@ name = name
 iface = iface
 """
 
-class TestConfigMiddleware(unittest.TestCase):
+class TestConfigMiddleware(_Base):
     _tempdir = None
 
     def setUp(self):
@@ -425,7 +433,7 @@ class TestConfigMiddleware(unittest.TestCase):
         self.failUnless(isinstance(handlers[0], NullHandler))
         logging.shutdown()
 
-class NullHandlerTests(unittest.TestCase):
+class NullHandlerTests(_Base):
 
     def _getTargetClass(self):
         from repoze.who.config import NullHandler
@@ -443,7 +451,7 @@ class NullHandlerTests(unittest.TestCase):
         handler = self._makeOne()
         handler.emit(object())
 
-class Test_make_api_factory_with_config(unittest.TestCase):
+class Test_make_api_factory_with_config(_Base):
     _tempdir = None
     _warning_filters = None
 

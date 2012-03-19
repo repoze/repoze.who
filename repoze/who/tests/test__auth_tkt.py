@@ -1,6 +1,14 @@
 import unittest
 
-class AuthTicketTests(unittest.TestCase):
+class _Base(unittest.TestCase):
+
+    def failUnless(self, predicate, message=''):
+        self.assertTrue(predicate, message) # Nannies go home!
+
+    def failIf(self, predicate, message=''):
+        self.assertFalse(predicate, message) # Nannies go home!
+
+class AuthTicketTests(_Base):
 
     def _getTargetClass(self):
         from .._auth_tkt import AuthTicket
@@ -89,7 +97,7 @@ class AuthTicketTests(unittest.TestCase):
         self.assertEqual(cookie['oatmeal']['secure'], 'true')
  
 
-class BadTicketTests(unittest.TestCase):
+class BadTicketTests(_Base):
 
     def _getTargetClass(self):
         from .._auth_tkt import BadTicket
@@ -109,7 +117,7 @@ class BadTicketTests(unittest.TestCase):
         self.assertEqual(exc.expected, 'foo')
 
 
-class Test_parse_ticket(unittest.TestCase):
+class Test_parse_ticket(_Base):
 
     def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4'):
         from .._auth_tkt import parse_ticket
@@ -168,7 +176,7 @@ class Test_parse_ticket(unittest.TestCase):
         self.assertEqual(user_data, 'DATA')
 
 
-class Test_helpers(unittest.TestCase):
+class Test_helpers(_Base):
 
     # calculate_digest is not very testable, and fully exercised throug callers.
 
