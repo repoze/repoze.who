@@ -39,6 +39,7 @@ non-Python code run under Apache.
 from hashlib import md5
 import time as time_mod
 
+from repoze.who._compat import encodestring
 from repoze.who._compat import get_cookies
 from repoze.who._compat import SimpleCookie
 from repoze.who._compat import STRING_TYPES
@@ -112,7 +113,8 @@ class AuthTicket(object):
 
     def cookie(self):
         c = SimpleCookie()
-        c_val = self.cookie_value().encode('base64').strip().replace('\n', '')
+        c_val = encodestring(self.cookie_value())
+        c_val = c_val.strip().replace('\n', '')
         c[self.cookie_name] = c_val
         c[self.cookie_name]['path'] = '/'
         if self.secure:
@@ -246,13 +248,14 @@ class AuthTKTMiddleware(object):
 
     This also adds two functions to the request:
 
-    ``environ['paste.auth_tkt.set_user'](userid, tokens='', user_data='')``
+    ``environ['repoze.who._auth_tkt.set_user'](userid, tokens='',
+                                               user_data='')``
 
         This sets a cookie that logs the user in.  ``tokens`` is a
         string (comma-separated groups) or a list of strings.
         ``user_data`` is a string for your own use.
 
-    ``environ['paste.auth_tkt.logout_user']()``
+    ``environ['repoze.who._auth_tkt.logout_user']()``
 
         Logs out the user.
     """
@@ -312,8 +315,8 @@ class AuthTKTMiddleware(object):
         def logout_user():
             set_cookies.extend(self.logout_user_cookie(environ))
 
-        environ['paste.auth_tkt.set_user'] = set_user
-        environ['paste.auth_tkt.logout_user'] = logout_user
+        environ['repoze.who._auth_tkt.set_user'] = set_user
+        environ['repoze.who._auth_tkt.logout_user'] = logout_user
         if self.logout_path and environ.get('PATH_INFO') == self.logout_path:
             logout_user()
 
