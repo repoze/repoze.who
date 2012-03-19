@@ -1,6 +1,16 @@
 repoze.who Changelog
 ====================
 
+2.1 (unreleased)
+----------------
+
+- Ported to Py3k using the "compatible subset" mode.
+  - Dropped support for Python < 2.6.x.
+  - Dropped dependency on Paste (forking some code from it).
+  - Added dependency on WebOb instead.
+  Thanks to Atsushi Odagiri (aodag) for the initial effort.
+
+
 2.0 (2011-09-28)
 ----------------
 
