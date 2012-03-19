@@ -89,6 +89,116 @@ class AuthTicketTests(unittest.TestCase):
         self.assertEqual(cookie['oatmeal']['secure'], 'true')
  
 
+class BadTicketTests(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from .._auth_tkt import BadTicket
+        return BadTicket
+
+    def _makeOne(self, *args, **kw):
+        return self._getTargetClass()(*args, **kw)
+
+    def test_wo_expected(self):
+        exc = self._makeOne('message')
+        self.assertEqual(exc.args, ('message',))
+        self.assertEqual(exc.expected, None)
+
+    def test_w_expected(self):
+        exc = self._makeOne('message', 'foo')
+        self.assertEqual(exc.args, ('message',))
+        self.assertEqual(exc.expected, 'foo')
+
+
+class Test_parse_ticket(unittest.TestCase):
+
+    def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4'):
+        from .._auth_tkt import parse_ticket
+        return parse_ticket(secret, ticket, ip)
+
+    def test_bad_timestamp(self):
+        from .._auth_tkt import BadTicket
+        TICKET = '12345678901234567890123456789012XXXXXXXXuserid!'
+        try:
+            self._callFUT(ticket=TICKET)
+        except BadTicket as e:
+            self.failUnless(e.args[0].startswith(
+                            'Timestamp is not a hex integer:'))
+        else:
+            self.fail('Did not raise')
+
+    def test_no_bang_after_userid(self):
+        from .._auth_tkt import BadTicket
+        TICKET = '1234567890123456789012345678901201020304userid'
+        try:
+            self._callFUT(ticket=TICKET)
+        except BadTicket as e:
+            self.assertEqual(e.args[0], 'userid is not followed by !')
+        else:
+            self.fail('Did not raise')
+
+    def test_wo_tokens_or_data_bad_digest(self):
+        from .._auth_tkt import BadTicket
+        TICKET = '1234567890123456789012345678901201020304userid!'
+        try:
+            self._callFUT(ticket=TICKET)
+        except BadTicket as e:
+            self.assertEqual(e.args[0], 'Digest signature is not correct')
+        else:
+            self.fail('Did not raise')
+
+    def test_wo_tokens_or_data_ok_digest(self):
+        from .._auth_tkt import calculate_digest
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '')
+        TICKET = '%s%08xUSERID!' % (digest, _WHEN)
+        timestamp, userid, tokens, user_data = self._callFUT(ticket=TICKET)
+        self.assertEqual(timestamp, _WHEN)
+        self.assertEqual(userid, 'USERID')
+        self.assertEqual(tokens, [''])
+        self.assertEqual(user_data, '')
+
+    def test_w_tokens_and_data_ok_digest(self):
+        from .._auth_tkt import calculate_digest
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
+                                  'a,b', 'DATA')
+        TICKET = '%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
+        timestamp, userid, tokens, user_data = self._callFUT(ticket=TICKET)
+        self.assertEqual(timestamp, _WHEN)
+        self.assertEqual(userid, 'USERID')
+        self.assertEqual(tokens, ['a', 'b'])
+        self.assertEqual(user_data, 'DATA')
+
+
+class Test_helpers(unittest.TestCase):
+
+    # calculate_digest is not very testable, and fully exercised throug callers.
+
+    def test_ints_to_bytes(self):
+        from struct import pack
+        from .._auth_tkt import ints2bytes
+        self.assertEqual(ints2bytes([1, 2, 3, 4]), pack('>BBBB', 1, 2, 3, 4))
+        
+    def test_encode_ip_timestamp(self):
+        from struct import pack
+        from .._auth_tkt import encode_ip_timestamp
+        self.assertEqual(encode_ip_timestamp('1.2.3.4', _WHEN),
+                         pack('>BBBBL', 1, 2, 3, 4, _WHEN))
+
+    def test_maybe_encode_bytes(self):
+        from .._auth_tkt import maybe_encode
+        foo = b'foo'
+        self.failUnless(maybe_encode(foo) is foo)
+
+    def test_maybe_encode_native_string(self):
+        from .._auth_tkt import maybe_encode
+        foo = 'foo'
+        self.assertEqual(maybe_encode(foo), b'foo')
+
+    def test_maybe_encode_unicode(self):
+        from .._auth_tkt import maybe_encode
+        from .._compat import u
+        foo = u('foo')
+        self.assertEqual(maybe_encode(foo), b'foo')
+
 
 _WHEN = 1234567
 class _Timemod(object):
