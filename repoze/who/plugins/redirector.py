@@ -1,12 +1,10 @@
-import urllib
-import cgi
-
 from webob.exc import HTTPFound
 from zope.interface import implementer
 
 from repoze.who.interfaces import IChallenger
 from repoze.who._compat import construct_url
 from repoze.who._compat import header_value
+from repoze.who._compat import parse_qs
 from repoze.who._compat import u
 from repoze.who._compat import urlencode
 from repoze.who._compat import urlparse
@@ -43,7 +41,7 @@ class RedirectorPlugin(object):
         if self.reason_param is not None or self.came_from_param is not None:
             url_parts = self._login_url_parts[:]
             query = url_parts[4]
-            query_elements = cgi.parse_qs(query)
+            query_elements = parse_qs(query)
             if self.reason_param is not None:
                 reason = header_value(app_headers, self.reason_header)
                 if reason:
