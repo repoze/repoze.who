@@ -72,7 +72,10 @@ class WhoConfig:
         if getattr(text, 'readline', None) is None:
             text = StringIO(text)
         cp = ConfigParser(defaults={'here': self.here})
-        cp.readfp(text)
+        try:
+            cp.read_file(text)
+        except AttributeError: #pragma NO COVER Python < 3.0
+            cp.readfp(text)
 
         for s_id in [x for x in cp.sections() if x.startswith('plugin:')]:
             plugin_id = s_id[len('plugin:'):]
@@ -156,17 +159,20 @@ def make_api_factory_with_config(global_conf,
                       stacklevel=2)
     else:
         try:
-            parser.parse(opened)
-        except ParsingError:
-            warnings.warn('Invalid who config file: %s' % config_file,
-                          stacklevel=2)
-        else:
-            identifiers = parser.identifiers
-            authenticators = parser.authenticators
-            challengers = parser.challengers
-            mdproviders = parser.mdproviders
-            request_classifier = parser.request_classifier
-            challenge_decider = parser.challenge_decider
+            try:
+                parser.parse(opened)
+            except ParsingError:
+                warnings.warn('Invalid who config file: %s' % config_file,
+                            stacklevel=2)
+            else:
+                identifiers = parser.identifiers
+                authenticators = parser.authenticators
+                challengers = parser.challengers
+                mdproviders = parser.mdproviders
+                request_classifier = parser.request_classifier
+                challenge_decider = parser.challenge_decider
+        finally:
+            opened.close()
 
     return APIFactory(identifiers,
                       authenticators,
@@ -181,7 +187,8 @@ def make_api_factory_with_config(global_conf,
 def make_middleware_with_config(app, global_conf, config_file,
                                 log_file=None, log_level=None):
     parser = WhoConfig(global_conf['here'])
-    parser.parse(open(config_file))
+    with open(config_file) as f:
+        parser.parse(f)
     log_stream = None
 
     if log_level is None:

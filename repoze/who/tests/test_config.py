@@ -418,6 +418,7 @@ class TestConfigMiddleware(_Base):
         self.failUnless(isinstance(handlers[0], logging.StreamHandler))
         self.assertEqual(handlers[0].stream.name, logfile)
         logging.shutdown()
+        handlers[0].stream.close()
 
     def test_sample_config_wo_log_file(self):
         import logging

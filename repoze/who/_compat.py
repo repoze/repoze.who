@@ -16,9 +16,9 @@ if 'decodebytes' in base64.__dict__: #pragma NO COVER Python >= 3.0
     decodebytes = base64.decodebytes
     encodebytes = base64.encodebytes
     def decodestring(value):
-        return base64.decodestring(bytes(value, 'ascii')).decode('ascii')
+        return base64.decodebytes(bytes(value, 'ascii')).decode('ascii')
     def encodestring(value):
-        return base64.encodestring(bytes(value, 'ascii')).decode('ascii')
+        return base64.encodebytes(bytes(value, 'ascii')).decode('ascii')
 else: #pragma NO COVER Python < 3.0
     decodebytes = base64.decodestring
     encodebytes = base64.encodestring
