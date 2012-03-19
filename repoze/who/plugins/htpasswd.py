@@ -38,9 +38,11 @@ class HTPasswdPlugin(object):
             # assumed to have a readline
             self.filename.seek(0)
             f = self.filename
+            must_close = False
         else:
             try:
                 f = open(self.filename, 'r')
+                must_close = True
             except IOError:
                 environ['repoze.who.logger'].warn('could not open htpasswd '
                                                   'file %s' % self.filename)
@@ -62,6 +64,9 @@ class HTPasswdPlugin(object):
                 # Don't bail early:  leaks information!!
                 maybe_user = username
                 to_check = hashed
+
+        if must_close:
+            f.close()
 
         # Check *something* here, to mitigate a timing attack.
         password_ok = self.check(password, to_check)
