@@ -384,8 +384,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; '
-                          'Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
 
     def test_remember_creds_different_long_userid(self):
         try:
@@ -401,24 +400,26 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; '
-                          'Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
 
     def test_remember_creds_different_unicode_userid(self):
         plugin = self._makeOne('secret')
         old_val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
         userid = b'\xc2\xa9'.decode('utf-8')
+        if type(b'') == type(''):
+            userdata = 'userid_type:unicode'
+        else: # XXX
+            userdata = ''
         new_val = self._makeTicket(userid=userid.encode('utf-8'),
-                                   userdata='userid_type:unicode')
+                                   userdata=userdata)
         result = plugin.remember(environ, {'repoze.who.userid':userid,
                                            'userdata':''})
         self.assertEqual(type(result[0][1]), str)
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; '
-                          'Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
 
     def test_remember_creds_reissue(self):
         import time
@@ -433,8 +434,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0],
                          ('Set-Cookie',
-                          'auth_tkt="%s"; '
-                          'Path=/' % new_val))
+                          'auth_tkt="%s"; Path=/' % new_val))
 
     def test_remember_max_age(self):
         plugin = self._makeOne('secret')

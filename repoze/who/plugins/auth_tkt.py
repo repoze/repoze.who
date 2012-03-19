@@ -11,6 +11,7 @@ from repoze.who.interfaces import IAuthenticator
 from repoze.who._compat import get_cookies
 import repoze.who._auth_tkt as auth_tkt
 from repoze.who._compat import STRING_TYPES
+from repoze.who._compat import u
 
 _NOW_TESTING = None  # unit tests can replace
 def _now():  #pragma NO COVERAGE
@@ -22,14 +23,12 @@ def _now():  #pragma NO COVERAGE
 @implementer(IIdentifier, IAuthenticator)
 class AuthTktCookiePlugin(object):
 
-    userid_type_decoders = {'int':int}
-    try:
-        userid_type_decoders[unicode] = ('unicode',
-                                         lambda x: utf_8_decode(x)[0])
-    except NameError: #pragma NO COVER Python >= 3.0
-        pass
+    userid_type_decoders = {'int': int,
+                            'unicode': lambda x: utf_8_decode(x)[0],
+                           }
 
-    userid_type_encoders = {int: ('int', str)}
+    userid_type_encoders = {int: ('int', str),
+                           }
     try:
         userid_type_encoders[long] = ('int', str)
     except NameError: #pragma NO COVER Python >= 3.0
