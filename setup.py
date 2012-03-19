@@ -19,6 +19,8 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.txt')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+tests_require = ['WebOb', 'zope.interface']
+testing_extras = tests_require + ['nose', 'coverage']
 
 setup(name='repoze.who',
       version='2.1dev',
@@ -44,7 +46,7 @@ setup(name='repoze.who',
       include_package_data=True,
       namespace_packages=['repoze', 'repoze.who', 'repoze.who.plugins'],
       zip_safe=False,
-      tests_require = ['WebOb', 'zope.interface'],
+      tests_require = tests_require,
       install_requires=['WebOb', 'zope.interface', 'setuptools'],
       test_suite="repoze.who",
       entry_points = """\
@@ -53,6 +55,8 @@ setup(name='repoze.who',
       config = repoze.who.config:make_middleware_with_config
       predicate = repoze.who.restrict:make_predicate_restriction
       authenticated = repoze.who.restrict:make_authenticated_restriction
-      """
+      """,
+      extras_require = {
+        'testing': testing_extras,
+      },
 )
-
