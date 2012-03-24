@@ -467,16 +467,6 @@ class Test_make_api_factory_with_config(_Base):
             import warnings
             warnings.filters[:] = self._warning_filters
 
-    def _filterWarnings(self):
-        global __warningregistry__
-        try:
-            del __warningregistry__
-        except NameError:
-            pass
-        import warnings
-        self._warning_filters = warnings.filters[:]
-        warnings.filterwarnings("ignore")
-
     def _getFactory(self):
         from repoze.who.config import make_api_factory_with_config
         return make_api_factory_with_config
@@ -493,34 +483,34 @@ class Test_make_api_factory_with_config(_Base):
         return path
 
     def test_bad_config_filename(self):
-        global __warningregistry__
-        self._filterWarnings()
-        factory = self._getFactory()
-        path = '/nonesuch/file/should/exist'
-        global_conf = {'here': '/'}
-        api_factory = factory(global_conf, config_file=path)
-        self.assertEqual(len(api_factory.identifiers), 0)
-        self.assertEqual(len(api_factory.authenticators), 0)
-        self.assertEqual(len(api_factory.challengers), 0)
-        self.assertEqual(len(api_factory.mdproviders), 0)
-        self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
-        self.failUnless(api_factory.logger is None)
-        self.failUnless(__warningregistry__)
+        import warnings
+        with warnings.catch_warnings(record=True) as warned:
+            factory = self._getFactory()
+            path = '/nonesuch/file/should/exist'
+            global_conf = {'here': '/'}
+            api_factory = factory(global_conf, config_file=path)
+            self.assertEqual(len(api_factory.identifiers), 0)
+            self.assertEqual(len(api_factory.authenticators), 0)
+            self.assertEqual(len(api_factory.challengers), 0)
+            self.assertEqual(len(api_factory.mdproviders), 0)
+            self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
+            self.failUnless(api_factory.logger is None)
+            self.failUnless(warned)
 
     def test_bad_config_content(self):
-        global __warningregistry__
-        self._filterWarnings()
-        factory = self._getFactory()
-        path = self._getTempfile('this is not an INI file')
-        global_conf = {'here': '/'}
-        api_factory = factory(global_conf, config_file=path)
-        self.assertEqual(len(api_factory.identifiers), 0)
-        self.assertEqual(len(api_factory.authenticators), 0)
-        self.assertEqual(len(api_factory.challengers), 0)
-        self.assertEqual(len(api_factory.mdproviders), 0)
-        self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
-        self.failUnless(api_factory.logger is None)
-        self.failUnless(__warningregistry__)
+        import warnings
+        with warnings.catch_warnings(record=True) as warned:
+            factory = self._getFactory()
+            path = self._getTempfile('this is not an INI file')
+            global_conf = {'here': '/'}
+            api_factory = factory(global_conf, config_file=path)
+            self.assertEqual(len(api_factory.identifiers), 0)
+            self.assertEqual(len(api_factory.authenticators), 0)
+            self.assertEqual(len(api_factory.challengers), 0)
+            self.assertEqual(len(api_factory.mdproviders), 0)
+            self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
+            self.failUnless(api_factory.logger is None)
+            self.failUnless(warned)
 
     def test_sample_config_no_logger(self):
         factory = self._getFactory()
