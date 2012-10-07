@@ -104,7 +104,7 @@ An example configuration which uses the default plugins follows::
     htpasswd = HTPasswdPlugin(io, cleartext_check)
     basicauth = BasicAuthPlugin('repoze.who')
     auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
-    redirector = FormPlugin('/login.html')
+    redirector = RedirectorPlugin('/login.html')
     redirector.classifications = {IChallenger:['browser'],} # only for browser
     identifiers = [('auth_tkt', auth_tkt),
                    ('basicauth', basicauth)]
