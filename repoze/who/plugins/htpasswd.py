@@ -100,7 +100,7 @@ def sha1_check(password, hashed):
     from hashlib import sha1
     import base64
     encrypted_string = base64.standard_b64encode(sha1(password).digest())
-    return _same_string(hashed, "%s%s" % ("{SHA}",encrypted_string))
+    return _same_string(hashed, "%s%s" % ("{SHA}", encrypted_string))
 
 def plain_check(password, hashed):
     return _same_string(password, hashed)
