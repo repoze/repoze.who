@@ -137,7 +137,7 @@ authentication, identification, challenge and metadata provision.
   *reason_header* is an optional parameter overriding the default response
   header name (``X-Authorization-Failure-Reason``) which
   the plugin checks to find the application-supplied reason for the challenge.
-  *reason_header* cannot be set unless *reason_header* is also set.
+  *reason_header* cannot be set unless *reason_param* is also set.
 
 .. module:: repoze.who.plugins.sql
 
