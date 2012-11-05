@@ -23,7 +23,7 @@ tests_require = ['WebOb', 'zope.interface']
 testing_extras = tests_require + ['nose', 'coverage']
 
 setup(name='repoze.who',
-      version='2.1b1',
+      version='2.1dev',
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
       long_description='\n\n'.join([README, CHANGES]),

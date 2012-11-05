@@ -1,6 +1,11 @@
 repoze.who Changelog
 ====================
 
+2.1 (unreleased)
+----------------
+
+- Documentation typo fixes from Carlos de la Guardia and Atsushi Odagiri.
+
 
 2.1b1 (2012-11-05)
 ------------------
