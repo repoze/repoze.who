@@ -1,8 +1,9 @@
 repoze.who Changelog
 ====================
 
-2.1 (unreleased)
-----------------
+
+2.1b1 (2012-11-05)
+------------------
 
 - Ported to Py3k using the "compatible subset" mode.
   - Dropped support for Python < 2.6.x.
