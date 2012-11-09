@@ -98,8 +98,9 @@ def crypt_check(password, hashed):
 
 def sha1_check(password, hashed):
     from hashlib import sha1
-    import base64
-    encrypted_string = base64.standard_b64encode(sha1(password).digest())
+    from base64 import standard_b64encode
+    from repoze.who._compat import must_encode
+    encrypted_string = standard_b64encode(sha1(must_encode(password)).digest())
     return _same_string(hashed, "%s%s" % ("{SHA}", encrypted_string))
 
 def plain_check(password, hashed):

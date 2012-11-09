@@ -129,13 +129,15 @@ class TestHTPasswdPlugin(unittest.TestCase):
         self.assertEqual(crypt_check('notpassword', hashed), False)
 
     def test_sha1_check(self):
-        import base64
+        from base64 import standard_b64encode
         from hashlib import sha1
+        from repoze.who._compat import must_encode
         from repoze.who.plugins.htpasswd import sha1_check
 
-        encrypted_string = base64.standard_b64encode(sha1("password").digest())
+        encrypted_string = standard_b64encode(sha1(
+                                must_encode("password")).digest())
         self.assertEqual(sha1_check('password',
-                         "%s%s" % ("{SHA}",encrypted_string)), True)
+                         "%s%s" % ("{SHA}", encrypted_string)), True)
         self.assertEqual(sha1_check('notpassword',
                          "%s%s" % ("{SHA}", encrypted_string)), False)
 

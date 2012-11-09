@@ -126,3 +126,8 @@ def must_decode(value):
         except UnicodeDecodeError:
             return value.decode('latin1')
     return value
+
+def must_encode(value):
+    if type(value) is u:
+        return value.encode('utf-8')
+    return value
