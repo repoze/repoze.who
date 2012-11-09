@@ -1,8 +1,13 @@
 repoze.who Changelog
 ====================
 
+
 2.1 (unreleased)
 ----------------
+
+- ``htpasswd`` plugin:  add a ``sha1_check`` checker function (the ``crypt``
+  module is not available on Windows).  Thanks to Chandrashekar Jayaraman
+  for the patch.
 
 - Documentation typo fixes from Carlos de la Guardia and Atsushi Odagiri.
 
