@@ -18,7 +18,7 @@ class CompatTests(unittest.TestCase):
 
     def test_CONTENT_TYPE_miss(self):
         from .._compat import CONTENT_TYPE
-        self.assertRaises(KeyError, CONTENT_TYPE, {})
+        self.assertEqual(CONTENT_TYPE({}), '')
 
     def test_CONTENT_TYPE_hit(self):
         from .._compat import CONTENT_TYPE

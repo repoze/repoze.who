@@ -84,7 +84,7 @@ def REQUEST_METHOD(environ):
     return environ['REQUEST_METHOD']
 
 def CONTENT_TYPE(environ):
-    return environ['CONTENT_TYPE']
+    return environ.get('CONTENT_TYPE', '')
 
 def USER_AGENT(environ):
     return environ.get('HTTP_USER_AGENT')
