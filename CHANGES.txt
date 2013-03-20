@@ -1,6 +1,11 @@
 repoze.who Changelog
 ====================
 
+2.2 (unreleased)
+----------------
+
+- Added support for Python 3.3, PyPy.
+
 
 2.1 (2013-03-20)
 ----------------
