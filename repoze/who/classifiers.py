@@ -1,4 +1,6 @@
-from repoze.who._compat import REQUEST_METHOD, CONTENT_TYPE, USER_AGENT
+from repoze.who._compat import CONTENT_TYPE
+from repoze.who._compat import REQUEST_METHOD
+from repoze.who._compat import USER_AGENT
 
 from zope.interface import directlyProvides
 from repoze.who.interfaces import IRequestClassifier
@@ -30,8 +32,14 @@ _DAV_USERAGENTS = (
     )
 
 def default_request_classifier(environ):
-    """ Returns one of the classifiers 'dav', 'xmlpost', or 'browser',
-    depending on the imperative logic below"""
+    """Return one of the following classifiers:
+
+    'dav':  the request comes from a WebDAV agent.
+
+    'xmlpost':  the request is a POST of XML data.
+
+    'browser':  the request comes from a normal browser (default).
+    """
     request_method = REQUEST_METHOD(environ)
     if request_method in _DAV_METHODS:
         return 'dav'
