@@ -111,3 +111,24 @@ class CompatTests(unittest.TestCase):
         foo = b'b\xe2tard'
         self.assertEqual(must_decode(foo), foo.decode('latin1'))
 
+    def test_must_encode_non_string(self):
+        from .._compat import must_encode
+        foo = object()
+        self.failUnless(must_encode(foo) is foo)
+
+    def test_must_encode_unicode(self):
+        from .._compat import must_encode
+        from .._compat import u
+        foo = u('foo')
+        self.assertEqual(must_encode(foo), foo.encode('utf-8'))
+
+    def test_must_encode_utf8(self):
+        from .._compat import must_encode
+        foo = b'b\xc3\xa2tard'
+        self.failUnless(must_encode(foo) is foo)
+
+    def test_must_encode_latin1(self):
+        from .._compat import must_encode
+        foo = b'b\xe2tard'
+        self.failUnless(must_encode(foo) is foo)
+
