@@ -2,7 +2,7 @@ repoze.who Changelog
 ====================
 
 
-2.1 (unreleased)
+2.1 (2013-03-20)
 ----------------
 
 - ``_compat`` module:  tolerate missing ``CONTENT_TYPE`` key in the WSGI
