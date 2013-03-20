@@ -9,6 +9,7 @@ class CompatTests(unittest.TestCase):
         self.assertFalse(predicate, message) # Nannies go home!
 
     def test_REQUEST_METHOD_miss(self):
+        # PEP 3333 says CONTENT_TYPE is mandatory
         from .._compat import REQUEST_METHOD
         self.assertRaises(KeyError, REQUEST_METHOD, {})
 
@@ -17,6 +18,7 @@ class CompatTests(unittest.TestCase):
         self.assertEqual(REQUEST_METHOD({'REQUEST_METHOD': 'FOO'}), 'FOO')
 
     def test_CONTENT_TYPE_miss(self):
+        # PEP 3333 says CONTENT_TYPE is optional
         from .._compat import CONTENT_TYPE
         self.assertEqual(CONTENT_TYPE({}), '')
 
