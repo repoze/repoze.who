@@ -34,9 +34,9 @@ else: #pragma NO COVER Python >= 3.0
     from urllib.parse import parse_qsl
 
 try:
-    from ConfigParser import RawConfigParser
+    from ConfigParser import RawConfigParser as ConfigParser
 except ImportError: #pragma NO COVER Python >= 3.0
-    from configparser import RawConfigParser
+    from configparser import RawConfigParser as ConfigParser
     from configparser import ParsingError
 else: #pragma NO COVER Python < 3.0
     from ConfigParser import ParsingError
