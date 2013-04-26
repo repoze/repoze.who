@@ -230,14 +230,20 @@ nominated to act as authenticator plugins. ::
     [plugin:sqlusers]
     # authentication
     use = repoze.who.plugins.sql:make_authenticator_plugin
-    query = "SELECT userid, password FROM users where login = %(login)s;"
+    # Note the double %%:  we have to escape it from the config parser in
+    # order to preserve it as a template for the psycopg2, whose 'paramstyle'
+    # is 'pyformat'.
+    query = SELECT userid, password FROM users where login = %%(login)s
     conn_factory = repoze.who.plugins.sql:make_psycopg_conn_factory
     compare_fn = repoze.who.plugins.sql:default_password_compare
 
     [plugin:sqlproperties]
     name = properties
     use = repoze.who.plugins.sql:make_metadata_plugin
-    query = "SELECT firstname, lastname FROM users where userid = %(__userid)s;"
+    # Note the double %%:  we have to escape it from the config parser in
+    # order to preserve it as a template for the psycopg2, whose 'paramstyle'
+    # is 'pyformat'.
+    query = SELECT firstname, lastname FROM users where userid = %%(__userid)s
     filter = my.package:filter_propmd
     conn_factory = repoze.who.plugins.sql:make_psycopg_conn_factory
 

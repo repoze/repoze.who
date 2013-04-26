@@ -230,6 +230,9 @@ class TestWhoConfig(_Base):
         self.failUnless(isinstance(foo, DummyPlugin))
         self.assertEqual(foo.iface, 'iface')
         self.assertEqual(foo.name, 'name')
+        self.assertEqual(foo.template, '%(template)s')
+        self.assertEqual(foo.template_with_eq,
+                         'template_with_eq = %(template_with_eq)s')
 
 class DummyPlugin:
     def __init__(self, **kw):
@@ -348,6 +351,8 @@ MAKE_PLUGIN_ARG_NAMES = """\
 use = repoze.who.tests.test_config:DummyPlugin
 name = name
 iface = iface
+template = %%(template)s
+template_with_eq = template_with_eq = %%(template_with_eq)s
 """
 
 class TestConfigMiddleware(_Base):

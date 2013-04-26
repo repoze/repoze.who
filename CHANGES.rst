@@ -4,6 +4,10 @@ repoze.who Changelog
 2.2 (unreleased)
 ----------------
 
+- Parse INI-file configuration using ``SafeConfigParser``:  allows
+  escaping the ``'%'`` so that e.g. a query template using for a DB-API
+  connection using ``pyformat`` preserves the template.
+
 - Added support for Python 3.3, PyPy.
 
 
