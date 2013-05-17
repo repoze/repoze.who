@@ -24,7 +24,7 @@ testing_extras = tests_require + ['nose', 'coverage']
 docs_extras = tests_require + ['Sphinx', 'repoze.sphinx.autointerface']
 
 setup(name='repoze.who',
-      version='2.2dev',
+      version='2.2',
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
       long_description='\n\n'.join([README, CHANGES]),

@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-2.2 (unreleased)
+2.2 (2013-05-17)
 ----------------
 
 - Parse INI-file configuration using ``SafeConfigParser``:  allows
