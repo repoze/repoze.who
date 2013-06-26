@@ -49,14 +49,14 @@ master_doc = 'index'
 
 # General substitutions.
 project = 'repoze.who'
-copyright = '2008, Agendaless Consulting'
+copyright = '2008 - 2013, Agendaless Consulting'
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
 #
 # The short X.Y version.
 
-version = '2.0a4'
+version = '2.2'
 # The full version, including alpha/beta/rc tags.
 release = version
 
