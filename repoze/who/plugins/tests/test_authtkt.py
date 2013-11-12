@@ -443,14 +443,43 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                          ('Set-Cookie',
                           'auth_tkt="%s"; Path=/' % new_val))
 
-    def test_remember_max_age(self):
+    def test_l10n_sane_cookie_date(self):
+        from datetime import datetime
+        now = datetime(2009, 11, 8, 16, 15, 22)
+        self._setNowTesting(now)
+
+
         plugin = self._makeOne('secret')
         environ = {'HTTP_HOST':'example.com'}
         
         tkt = self._makeTicket(userid='chris', userdata='')
+
+        import locale
+        orig_locale = locale.getlocale()
+        locale.setlocale(locale.LC_ALL, ('nb_NO', 'UTF-8'))
+
         result = plugin.remember(environ, {'repoze.who.userid':'chris',
                                            'max_age':'500'})
         
+        name,value = result.pop(0)
+        locale.setlocale(locale.LC_ALL, orig_locale)
+
+        self.assertEqual('Set-Cookie', name)
+        self.failUnless(
+            value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
+
+    def test_remember_max_age(self):
+        from datetime import datetime
+        now = datetime(2009, 11, 8, 16, 15, 22)
+        self._setNowTesting(now)
+
+        plugin = self._makeOne('secret')
+        environ = {'HTTP_HOST':'example.com'}
+
+        tkt = self._makeTicket(userid='chris', userdata='')
+        result = plugin.remember(environ, {'repoze.who.userid':'chris',
+                                           'max_age':'500'})
+
         name,value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
         self.failUnless(
