@@ -456,15 +456,17 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.failUnless(
             value.startswith('auth_tkt="%s"; Path=/; Max-Age=500' % tkt),
             value)
-        self.failUnless('; Expires=' in value)
-        
+        self.failUnless(
+            value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
+
         name,value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
         self.failUnless(
             value.startswith(
             'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
             % tkt), value)
-        self.failUnless('; Expires=' in value)
+        self.failUnless(
+            value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
         name,value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
@@ -472,7 +474,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
             value.startswith(
             'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
             value)
-        self.failUnless('; Expires=' in value)
+        self.failUnless(
+            value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
     def test_forget(self):
         from datetime import datetime
@@ -487,21 +490,21 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(name, 'Set-Cookie')
         self.assertEqual(value,
                          'auth_tkt="INVALID"; Path=/; '
-                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22'
+                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22 GMT'
                          )
         header = headers[1]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
         self.assertEqual(value,
                          'auth_tkt="INVALID"; Path=/; Domain=localhost; '
-                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22'
+                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22 GMT'
                          )
         header = headers[2]
         name, value = header
         self.assertEqual(name, 'Set-Cookie')
         self.assertEqual(value,
                          'auth_tkt="INVALID"; Path=/; Domain=.localhost; '
-                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22'
+                         'Max-Age=0; Expires=Thu, 05 Nov 2009 16:15:22 GMT'
                         )
 
     def test_authenticate_non_auth_tkt_credentials(self):
