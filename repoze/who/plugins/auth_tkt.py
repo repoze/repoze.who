@@ -1,4 +1,6 @@
 import datetime
+from calendar import timegm
+from email.utils import formatdate
 from codecs import utf_8_decode
 from codecs import utf_8_encode
 import os
@@ -168,7 +170,7 @@ class AuthTktCookiePlugin(object):
             max_age = int(max_age)
             later = _now() + datetime.timedelta(seconds=max_age)
             # Wdy, DD-Mon-YY HH:MM:SS GMT
-            expires = later.strftime('%a, %d %b %Y %H:%M:%S')
+            expires = formatdate(timegm(later.timetuple()), usegmt=True)
             # the Expires header is *required* at least for IE7 (IE7 does
             # not respect Max-Age)
             max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
