@@ -1,6 +1,12 @@
 repoze.who Changelog
 ====================
 
+Unreleased
+----------
+
+- Make cookie expiration date RFC-2616 compliant (independent of locale,
+  including 'GMT' zone). See https://github.com/repoze/repoze.who/pull/11
+
 2.2 (2013-05-17)
 ----------------
 

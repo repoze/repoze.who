@@ -1,8 +1,12 @@
 import datetime
+from calendar import timegm
+from email.utils import formatdate
 from codecs import utf_8_decode
 from codecs import utf_8_encode
 import os
 import time
+from wsgiref.handlers import _monthname     # Locale-independent, RFC-2616
+from wsgiref.handlers import _weekdayname   # Locale-independent, RFC-2616
 
 from zope.interface import implementer
 
@@ -13,11 +17,11 @@ import repoze.who._auth_tkt as auth_tkt
 from repoze.who._compat import STRING_TYPES
 from repoze.who._compat import u
 
-_NOW_TESTING = None  # unit tests can replace
-def _now():  #pragma NO COVERAGE
-    if _NOW_TESTING is not None:
-        return _NOW_TESTING
-    return datetime.datetime.now()
+_UTCNOW = None  # unit tests can replace
+def _utcnow():  #pragma NO COVERAGE
+    if _UTCNOW is not None:
+        return _UTCNOW
+    return datetime.datetime.utcnow()
 
 
 @implementer(IIdentifier, IAuthenticator)
@@ -166,9 +170,17 @@ class AuthTktCookiePlugin(object):
     def _get_cookies(self, environ, value, max_age=None):
         if max_age is not None:
             max_age = int(max_age)
-            later = _now() + datetime.timedelta(seconds=max_age)
+            later = _utcnow() + datetime.timedelta(seconds=max_age)
             # Wdy, DD-Mon-YY HH:MM:SS GMT
-            expires = later.strftime('%a, %d %b %Y %H:%M:%S')
+            expires = "%s, %02d %3s %4d %02d:%02d:%02d GMT" % (
+                _weekdayname[later.weekday()],
+                later.day,
+                _monthname[later.month],
+                later.year,
+                later.hour,
+                later.minute,
+                later.second,
+            )
             # the Expires header is *required* at least for IE7 (IE7 does
             # not respect Max-Age)
             max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
