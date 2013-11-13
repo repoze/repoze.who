@@ -444,43 +444,45 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                           'auth_tkt="%s"; Path=/' % new_val))
 
     def test_l10n_sane_cookie_date(self):
-        from datetime import datetime
-        now = datetime(2009, 11, 8, 16, 15, 22)
-        self._setNowTesting(now)
-
-
-        plugin = self._makeOne('secret')
-        environ = {'HTTP_HOST':'example.com'}
-        
-        tkt = self._makeTicket(userid='chris', userdata='')
-
         import locale
-        orig_locale = locale.getlocale()
-        locale.setlocale(locale.LC_ALL, ('nb_NO', 'UTF-8'))
+        from datetime import datetime
 
-        result = plugin.remember(environ, {'repoze.who.userid':'chris',
-                                           'max_age':'500'})
-        
-        name,value = result.pop(0)
-        locale.setlocale(locale.LC_ALL, orig_locale)
+        try:
+            locale.setlocale(locale.LC_ALL, ('nb_NO', 'UTF-8'))
 
-        self.assertEqual('Set-Cookie', name)
-        self.failUnless(
-            value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
+            now = datetime(2009, 11, 8, 16, 15, 22)
+            self._setNowTesting(now)
+
+            plugin = self._makeOne('secret')
+            environ = {'HTTP_HOST': 'example.com'}
+
+            tkt = self._makeTicket(userid='chris', userdata='')
+
+
+            result = plugin.remember(environ, {'repoze.who.userid': 'chris',
+                                               'max_age': '500'})
+            name, value = result.pop(0)
+
+            self.assertEqual('Set-Cookie', name)
+            self.failUnless(
+                value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
+        finally:
+            locale.resetlocale(locale.LC_ALL)
 
     def test_remember_max_age(self):
         from datetime import datetime
+
         now = datetime(2009, 11, 8, 16, 15, 22)
         self._setNowTesting(now)
 
         plugin = self._makeOne('secret')
-        environ = {'HTTP_HOST':'example.com'}
+        environ = {'HTTP_HOST': 'example.com'}
 
         tkt = self._makeTicket(userid='chris', userdata='')
-        result = plugin.remember(environ, {'repoze.who.userid':'chris',
-                                           'max_age':'500'})
+        result = plugin.remember(environ, {'repoze.who.userid': 'chris',
+                                           'max_age': '500'})
 
-        name,value = result.pop(0)
+        name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
         self.failUnless(
             value.startswith('auth_tkt="%s"; Path=/; Max-Age=500' % tkt),
@@ -488,20 +490,20 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.failUnless(
             value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
-        name,value = result.pop(0)
+        name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
         self.failUnless(
             value.startswith(
-            'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
-            % tkt), value)
+                'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
+                % tkt), value)
         self.failUnless(
             value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
-        name,value = result.pop(0)
+        name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
         self.failUnless(
             value.startswith(
-            'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
+                'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
             value)
         self.failUnless(
             value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
