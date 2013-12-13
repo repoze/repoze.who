@@ -58,11 +58,15 @@ contact the `Repoze-dev maillist
 IRC channel <irc://irc.freenode.net/#repoze>`_.
 
 Browse and check out tagged and trunk versions of :mod:`repoze.who`
-via the `Repoze Subversion repository
-<http://http://svn.repoze.org/repoze.who/>`_.  To check out the trunk
-via Subversion, use this command::
+via the `Repoze github repository
+<https://github.com/repoze/repoze.who/>`_.  To check out the trunk
+via git, use this command::
 
-  svn co http://svn.repoze.org/repoze.who/trunk repoze.who
+  git clone https://github.com:repoze/repoze.who.git
+
+Or, if you are logged in:
+
+  git clone git@github.com:repoze/repoze.who.git
 
 To find out how to become a contributor to :mod:`repoze.who`, please
 see the `contributor's page <http://repoze.org/contributing.html>`_.
