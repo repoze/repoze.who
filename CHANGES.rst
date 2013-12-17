@@ -4,6 +4,9 @@ repoze.who Changelog
 Unreleased
 ----------
 
+- middleware:  avoid UnboundLocalError when wrapped generater yields no
+  items.  See:  http://bugs.repoze.org/issue184
+
 - Make cookie expiration date RFC-2616 compliant (independent of locale,
   including 'GMT' zone). See https://github.com/repoze/repoze.who/pull/11
 

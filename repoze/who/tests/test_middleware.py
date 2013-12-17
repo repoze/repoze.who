@@ -539,6 +539,13 @@ class WrapGeneratorTests(_Base):
         self.assertEqual(L, ['yo!'])
         self.assertEqual(list(newgen), ['a', 'b'])
 
+    def test_w_empty_generator(self):
+        def gen():
+            if False:
+                yield 'a'
+        newgen = self._callFUT(gen())
+        self.assertEqual(list(newgen), [])
+
     def test_w_iterator_having_close(self):
         def gen():
             yield 'a'
