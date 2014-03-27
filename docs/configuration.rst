@@ -178,10 +178,15 @@ configuration.
 To configure :mod:`repoze.who` in Python, using an .INI file, call
 the `make_middleware_with_config` entry point, passing the right-hand
 application, the global configuration dictionary, and the path to the
-config file ::
+config file. The global configuration dictionary is a dictonary passed 
+by PasteDeploy. The only key 'make_middleware_with_config' needs is 
+'here' pointing to the config file directory. For debugging people
+might find it useful to enable logging by adding the log_file argument,
+e.g. log_file="repoze_who.log" ::
 
     from repoze.who.config import make_middleware_with_config
-    who = make_middleware_with_config(app, global_conf, '/path/to/who.ini')
+    global_conf = {"here": "."}  # if this is not defined elsewhere
+    who = make_middleware_with_config(app, global_conf, 'who.ini')
 
 :mod:`repoze.who`'s configuration file can be pointed to within a PasteDeploy
 configuration file ::
