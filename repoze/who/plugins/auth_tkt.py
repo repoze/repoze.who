@@ -135,9 +135,12 @@ class AuthTktCookiePlugin(object):
         if encoding_data:
             encoding, encoder = encoding_data
             who_userid = encoder(who_userid)
-            # XXX we are discarding the userdata passed in the identity?
-            who_userdata = 'userid_type:%s' % encoding
-        
+            encoding = 'userid_type:%s' % encoding
+            if who_userdata == '':
+                who_userdata = encoding
+            else:
+                who_userdata = encoding + '|' + who_userdata
+
         old_data = (userid, tokens, userdata)
         new_data = (who_userid, who_tokens, who_userdata)
 
