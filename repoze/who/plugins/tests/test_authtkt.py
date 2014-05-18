@@ -428,6 +428,22 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                          ('Set-Cookie',
                           'auth_tkt="%s"; Path=/' % new_val))
 
+    def test_remember_creds_with_userdata(self):
+        plugin = self._makeOne('secret')
+        old_val = self._makeTicket(userid='userid')
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
+        userid = b'\xc2\xa9'.decode('utf-8')
+        if type(b'') == type(''):
+            userdata = 'userid_type:unicode'
+        else: # XXX
+            userdata = ''
+        new_val = self._makeTicket(userid=userid.encode('utf-8'),
+                                   userdata=userdata)
+        identity = {'repoze.who.userid':userid,
+                    'userdata':'extradata'}
+        result = plugin.remember(environ, identity)
+        self.assertIn('|extradata', result[0][1])
+
     def test_remember_creds_reissue(self):
         import time
         plugin = self._makeOne('secret', reissue_time=1)
