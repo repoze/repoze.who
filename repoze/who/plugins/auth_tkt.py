@@ -7,6 +7,8 @@ import os
 import time
 from wsgiref.handlers import _monthname     # Locale-independent, RFC-2616
 from wsgiref.handlers import _weekdayname   # Locale-independent, RFC-2616
+from urllib import urlencode
+from urlparse import parse_qsl
 
 from zope.interface import implementer
 
@@ -27,6 +29,7 @@ def _utcnow():  #pragma NO COVERAGE
 @implementer(IIdentifier, IAuthenticator)
 class AuthTktCookiePlugin(object):
 
+    userid_typename = 'userid_type'
     userid_type_decoders = {'int': int,
                             'unicode': lambda x: utf_8_decode(x)[0],
                            }
@@ -79,14 +82,12 @@ class AuthTktCookiePlugin(object):
         if self.timeout and ( (timestamp + self.timeout) < time.time() ):
             return None
 
-        userid_typename = 'userid_type:'
-        user_data_info = user_data.split('|')
-        for datum in filter(None, user_data_info):
-            if datum.startswith(userid_typename):
-                userid_type = datum[len(userid_typename):]
-                decoder = self.userid_type_decoders.get(userid_type)
-                if decoder:
-                    userid = decoder(userid)
+        user_data_dict = dict(parse_qsl(user_data))
+        userid_type = user_data_dict.get(self.userid_typename)
+        if userid_type:
+            decoder = self.userid_type_decoders.get(userid_type)
+            if decoder:
+                userid = decoder(userid)
             
         environ['REMOTE_USER_TOKENS'] = tokens
         environ['REMOTE_USER_DATA'] = user_data
@@ -96,7 +97,7 @@ class AuthTktCookiePlugin(object):
         identity['timestamp'] = timestamp
         identity['repoze.who.plugins.auth_tkt.userid'] = userid
         identity['tokens'] = tokens
-        identity['userdata'] = user_data
+        identity['userdata'] = user_data_dict
         return identity
 
     # IIdentifier
@@ -129,15 +130,16 @@ class AuthTktCookiePlugin(object):
 
         who_userid = identity['repoze.who.userid']
         who_tokens = tuple(identity.get('tokens', ()))
-        who_userdata = identity.get('userdata', '')
+        who_userdata_dict = identity.get('userdata', {})
 
         encoding_data = self.userid_type_encoders.get(type(who_userid))
         if encoding_data:
             encoding, encoder = encoding_data
             who_userid = encoder(who_userid)
-            # XXX we are discarding the userdata passed in the identity?
-            who_userdata = 'userid_type:%s' % encoding
-        
+            who_userdata_dict[self.userid_typename] = encoding
+
+        who_userdata = urlencode(who_userdata_dict)
+
         old_data = (userid, tokens, userdata)
         new_data = (who_userid, who_tokens, who_userdata)
 
