@@ -5,7 +5,7 @@
         :target: https://travis-ci.org/repoze/repoze.who
 
 .. image:: https://readthedocs.org/projects/repozewho/badge/?version=latest
-        :target:http://repozewho.readthedocs.org/en/latest/
+        :target: http://repozewho.readthedocs.org/en/latest/
         :alt: Documentation Status
 
 Overview
