@@ -5,9 +5,6 @@ class _Base(unittest.TestCase):
     def failUnless(self, predicate, message=''):
         self.assertTrue(predicate, message) # Nannies go home!
 
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
 class TestWhoConfig(_Base):
 
     def _getTargetClass(self):
@@ -459,7 +456,6 @@ class NullHandlerTests(_Base):
 
 class Test_make_api_factory_with_config(_Base):
     _tempdir = None
-    _warning_filters = None
 
     def setUp(self):
         pass
@@ -468,9 +464,6 @@ class Test_make_api_factory_with_config(_Base):
         if self._tempdir is not None:
             import shutil
             shutil.rmtree(self._tempdir)
-        if self._warning_filters is not None:
-            import warnings
-            warnings.filters[:] = self._warning_filters
 
     def _getFactory(self):
         from repoze.who.config import make_api_factory_with_config
@@ -598,8 +591,3 @@ plugins =
 
 class DummyApp:
     environ = None
-    def __call__(self, environ, start_response):
-        self.environ = environ
-        return []
-
-

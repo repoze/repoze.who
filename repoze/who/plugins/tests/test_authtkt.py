@@ -18,9 +18,6 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
     def failUnless(self, predicate, message=''):
         self.assertTrue(predicate, message) # Nannies go home!
 
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
     def _getTargetClass(self):
         from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
         return AuthTktCookiePlugin
@@ -416,7 +413,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         userid = b'\xc2\xa9'.decode('utf-8')
         if type(b'') == type(''):
             userdata = 'userid_type:unicode'
-        else: # XXX
+        else: # pragma: no cover Py3k
             userdata = ''
         new_val = self._makeTicket(userid=userid.encode('utf-8'),
                                    userdata=userdata)

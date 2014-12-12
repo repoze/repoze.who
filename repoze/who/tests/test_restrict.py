@@ -36,7 +36,6 @@ class MakeAuthenticatedRestrictionTests(_Base):
         return make_authenticated_restriction
 
     def test_enabled(self):
-        from repoze.who.restrict import authenticated_predicate
         fut = self._getFUT()
         app = DummyApp()
 
@@ -62,21 +61,18 @@ class PredicateRestrictionTests(_Base):
     def test___call___disabled_predicate_false_calls_app_not_predicate(self):
         _tested = []
         def _factory():
-            def _predicate(env):
-                _tested.append(env)
-                return False
+            def _predicate(env):  # pragma: no cover
+                assert False
             return _predicate
 
-        _started = []
         def _start_response(status, headers):
-            _started.append((status, headers))
+            assert False  # pragma: no cover
         environ = {'testing': True}
 
         restrict = self._makeOne(predicate=_factory, enabled=False)
         restrict(environ, _start_response)
 
         self.assertEqual(len(_tested), 0)
-        self.assertEqual(len(_started), 0)
         self.assertEqual(restrict.app.environ, environ)
 
     def test___call___enabled_predicate_false_returns_401(self):
@@ -108,16 +104,14 @@ class PredicateRestrictionTests(_Base):
                 return True
             return _predicate
 
-        _started = []
         def _start_response(status, headers):
-            _started.append((status, headers))
+            assert False  # pragma: no cover
         environ = {'testing': True, 'REMOTE_USER': 'fred'}
 
         restrict = self._makeOne(predicate=_factory)
         restrict(environ, _start_response)
 
         self.assertEqual(len(_tested), 1)
-        self.assertEqual(len(_started), 0)
         self.assertEqual(restrict.app.environ, environ)
 
 class MakePredicateRestrictionTests(_Base):
@@ -130,7 +124,7 @@ class MakePredicateRestrictionTests(_Base):
         fut = self._getFUT()
         app = DummyApp()
         def _predicate(env):
-            return True
+            return True  # pragma: no cover
         def _factory():
             return _predicate
 
@@ -166,14 +160,12 @@ class MakePredicateRestrictionTests(_Base):
         self.failUnless(filter.enabled)
 
 
-class DummyApp:
+class DummyApp(object):
     environ = None
     def __call__(self, environ, start_response):
         self.environ = environ
         return []
 
-class DummyPredicate:
+class DummyPredicate(object):
     def __init__(self, **kw):
         self.__dict__.update(kw)
-    def __call__(self, env):
-        return True

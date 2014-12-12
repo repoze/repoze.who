@@ -5,9 +5,6 @@ class _Base(unittest.TestCase):
     def failUnless(self, predicate, message=''):
         self.assertTrue(predicate, message) # Nannies go home!
 
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
 class TestMiddleware(_Base):
 
     def _getTargetClass(self):
@@ -542,7 +539,7 @@ class WrapGeneratorTests(_Base):
     def test_w_empty_generator(self):
         def gen():
             if False:
-                yield 'a'
+                yield 'a'  # pragma: no cover
         newgen = self._callFUT(gen())
         self.assertEqual(list(newgen), [])
 
@@ -560,15 +557,17 @@ class TestMakeTestMiddleware(_Base):
 
     def setUp(self):
         import os
-        self._old_WHO_LOG = os.environ.get('WHO_LOG')
+        try:
+            del os.environ['WHO_LOG']
+        except KeyError:
+            pass
 
     def tearDown(self):
         import os
-        if self._old_WHO_LOG is not None:
-            os.environ['WHO_LOG'] = self._old_WHO_LOG
-        else:
-            if 'WHO_LOG' in os.environ:
-                del os.environ['WHO_LOG']
+        try:
+            del os.environ['WHO_LOG']
+        except KeyError:
+            pass
 
     def _getFactory(self):
         from repoze.who.middleware import make_test_middleware
@@ -596,13 +595,13 @@ class TestMakeTestMiddleware(_Base):
         middleware = factory(app, global_conf)
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.DEBUG)
 
-class DummyApp:
+class DummyApp(object):
     environ = None
     def __call__(self, environ, start_response):
         self.environ = environ
         return []
 
-class DummyWorkingApp:
+class DummyWorkingApp(object):
     def __init__(self, status, headers):
         self.status = status
         self.headers = headers
@@ -612,7 +611,7 @@ class DummyWorkingApp:
         start_response(self.status, self.headers)
         return ['body']
 
-class DummyGeneratorApp:
+class DummyGeneratorApp(object):
     def __init__(self, status, headers):
         self.status = status
         self.headers = headers
@@ -624,7 +623,7 @@ class DummyGeneratorApp:
             yield 'body'
         return gen()
 
-class DummyIterableWithClose:
+class DummyIterableWithClose(object):
     _closed = False
     def __init__(self, iterable):
         self._iterable = iterable
@@ -633,7 +632,7 @@ class DummyIterableWithClose:
     def close(self):
         self._closed = True
 
-class DummyIterableWithCloseApp:
+class DummyIterableWithCloseApp(object):
     def __init__(self, status, headers):
         self.status = status
         self.headers = headers
@@ -644,7 +643,7 @@ class DummyIterableWithCloseApp:
         start_response(self.status, self.headers)
         return self._iterable
 
-class DummyIdentityResetApp:
+class DummyIdentityResetApp(object):
     def __init__(self, status, headers, new_identity):
         self.status = status
         self.headers = headers
@@ -657,7 +656,7 @@ class DummyIdentityResetApp:
         start_response(self.status, self.headers)
         return ['body']
 
-class DummyChallenger:
+class DummyChallenger(object):
     def __init__(self, app=None):
         self.app = app
 
@@ -665,7 +664,7 @@ class DummyChallenger:
         environ['challenged'] = self.app
         return self.app
 
-class DummyIdentifier:
+class DummyIdentifier(object):
     forgotten = False
     remembered = False
 
@@ -689,51 +688,29 @@ class DummyIdentifier:
         self.remembered = identity
         return self.remember_headers
 
-class DummyAuthenticator:
-    def __init__(self, userid=None):
-        self.userid = userid
-
+class DummyAuthenticator(object):
     def authenticate(self, environ, credentials):
-        if self.userid is None:
-            return credentials['login']
-        return self.userid
+        return credentials['login']
 
-class DummyFailAuthenticator:
-    def authenticate(self, environ, credentials):
-        return None
-
-class DummyRequestClassifier:
+class DummyRequestClassifier(object):
     def __call__(self, environ):
         return 'browser'
 
-class DummyChallengeDecider:
+class DummyChallengeDecider(object):
     def __call__(self, environ, status, headers):
         if status.startswith('401 '):
             return True
 
-class DummyNoResultsIdentifier:
-    def identify(self, environ):
-        return None
-
-    def remember(self, *arg, **kw):
-        pass
-
-    def forget(self, *arg, **kw):
-        pass
-
-class DummyStartResponse:
+class DummyStartResponse(object):
     def __call__(self, status, headers, exc_info=None):
         self.status = status
         self.headers = headers
         self.exc_info = exc_info
         return []
 
-class DummyMDProvider:
+class DummyMDProvider(object):
     def __init__(self, metadata=None):
         self._metadata = metadata
 
     def add_metadata(self, environ, identity):
         return identity.update(self._metadata)
-
-class DummyMultiPlugin:
-    pass

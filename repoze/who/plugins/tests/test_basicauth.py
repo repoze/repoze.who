@@ -13,9 +13,6 @@ class TestBasicAuthPlugin(unittest.TestCase):
     def failUnless(self, predicate, message=''):
         self.assertTrue(predicate, message) # Nannies go home!
 
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
     def _makeEnviron(self, kw=None):
         from wsgiref.util import setup_testing_defaults
         environ = {}

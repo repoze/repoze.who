@@ -356,9 +356,10 @@ class APITests(_Base):
         self.assertEqual(result, None)
         self.assertEqual(environ['challenged'], None)
         self.assertEqual(identifier.forgotten, identity)
-        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(len(logger._info), 3)
         self.assertEqual(logger._info[0], 'request classification: match')
-        self.assertEqual(logger._info[1], 'no challenge app returned')
+        self.failUnless(logger._info[1].startswith('forgetting via headers '))
+        self.assertEqual(logger._info[2], 'no challenge app returned')
         self.assertEqual(len(logger._debug), 2)
         self.failUnless(logger._debug[0].startswith(
                                         'challengers registered: ['))
@@ -387,10 +388,11 @@ class APITests(_Base):
         self.assertEqual(result, app)
         self.assertEqual(environ['challenged'], app)
         self.assertEqual(identifier.forgotten, identity)
-        self.assertEqual(len(logger._info), 2)
+        self.assertEqual(len(logger._info), 3)
         self.assertEqual(logger._info[0], 'request classification: match')
-        self.failUnless(logger._info[1].startswith('challenger plugin '))
-        self.failUnless(logger._info[1].endswith(
+        self.failUnless(logger._info[1].startswith('forgetting via headers '))
+        self.failUnless(logger._info[2].startswith('challenger plugin '))
+        self.failUnless(logger._info[2].endswith(
                          '"challenge" returned an app'))
         self.assertEqual(len(logger._debug), 2)
         self.failUnless(logger._debug[0].startswith(
@@ -504,14 +506,7 @@ class APITests(_Base):
         self.assertEqual(identifier.forgotten, identity)
 
     def test_remember_identifier_plugin_returns_none(self):
-        class _Identifier:
-            def identify(self, environ):
-                return None
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return ()
-        identity = {'identifier': _Identifier()}
+        identity = {'identifier': DummyNoResultsIdentifier()}
         api = self._makeOne()
         headers = api.remember(identity=identity)
         self.assertEqual(tuple(headers), ())
@@ -527,11 +522,9 @@ class APITests(_Base):
     def test_remember_no_identity_passed_but_in_environ(self):
         HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         logger = DummyLogger()
-        class _Identifier:
-            def remember(self, environ, identity):
-                return HEADERS
         environ = self._makeEnviron()
-        environ['repoze.who.identity'] = {'identifier': _Identifier()}
+        environ['repoze.who.identity'] = {
+            'identifier': DummyIdentifier(remember_headers=HEADERS)}
         api = self._makeOne(environ=environ, logger=logger)
         self.assertEqual(api.remember(), HEADERS)
         self.assertEqual(len(logger._info), 2)
@@ -554,12 +547,9 @@ class APITests(_Base):
     def test_remember_w_identity_passed_w_identifier(self):
         HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         logger = DummyLogger()
-        class _Identifier:
-            def remember(self, environ, identity):
-                return HEADERS
         environ = self._makeEnviron()
         api = self._makeOne(environ=environ, logger=logger)
-        identity = {'identifier': _Identifier()}
+        identity = {'identifier': DummyIdentifier(remember_headers=HEADERS)}
         self.assertEqual(api.remember(identity), HEADERS)
         self.assertEqual(len(logger._info), 2)
         self.assertEqual(logger._info[0], 'request classification: browser')
@@ -569,14 +559,7 @@ class APITests(_Base):
         self.assertEqual(len(logger._debug), 0)
 
     def test_forget_identifier_plugin_returns_none(self):
-        class _Identifier:
-            def identify(self, environ):
-                return None
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return ()
-        identity = {'identifier': _Identifier()}
+        identity = {'identifier': DummyNoResultsIdentifier()}
         api = self._makeOne()
         headers = api.forget(identity=identity)
         self.assertEqual(tuple(headers), ())
@@ -593,11 +576,9 @@ class APITests(_Base):
     def test_forget_no_identity_passed_but_in_environ(self):
         HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         logger = DummyLogger()
-        class _Identifier:
-            def forget(self, environ, identity):
-                return HEADERS
         environ = self._makeEnviron()
-        environ['repoze.who.identity'] = {'identifier': _Identifier()}
+        environ['repoze.who.identity'] = {
+            'identifier': DummyIdentifier(forget_headers=HEADERS)}
         api = self._makeOne(environ=environ, logger=logger)
         self.assertEqual(api.forget(), HEADERS)
         self.assertEqual(len(logger._info), 2)
@@ -620,12 +601,9 @@ class APITests(_Base):
     def test_forget_w_identity_passed_w_identifier(self):
         HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         logger = DummyLogger()
-        class _Identifier:
-            def forget(self, environ, identity):
-                return HEADERS
         environ = self._makeEnviron()
         api = self._makeOne(environ=environ, logger=logger)
-        identity = {'identifier': _Identifier()}
+        identity = {'identifier': DummyIdentifier(forget_headers=HEADERS)}
         self.assertEqual(api.forget(identity), HEADERS)
         self.assertEqual(len(logger._info), 2)
         self.assertEqual(logger._info[0], 'request classification: browser')
@@ -637,53 +615,28 @@ class APITests(_Base):
     def test_login_w_identifier_name_hit(self):
         REMEMBER_HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         FORGET_HEADERS = [('Spam', 'Blah')]
-        class _Identifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return REMEMBER_HEADERS[1:]
-            def forget(self, environ, identity):
-                return FORGET_HEADERS
-        class _BogusIdentifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return REMEMBER_HEADERS[:1]
-            def forget(self, environ, identity):
-                pass
         authenticator = DummyAuthenticator('chrisid')
         environ = self._makeEnviron()
-        identifiers = [('bogus', _BogusIdentifier()),
-                       ('valid', _Identifier()),
+        identifiers = [('bogus', DummyNoResultsIdentifier()),
+                       ('valid', DummyIdentifier(
+                                    remember_headers=REMEMBER_HEADERS)),
                       ]
         api = self._makeOne(identifiers=identifiers,
                             authenticators=[('authentic', authenticator)],
                             environ=environ)
         identity, headers = api.login({'login': 'chrisid'}, 'valid')
         self.assertEqual(identity['repoze.who.userid'], 'chrisid')
-        self.assertEqual(headers, REMEMBER_HEADERS[1:])
+        self.assertEqual(headers, REMEMBER_HEADERS)
 
     def test_login_wo_identifier_name_hit(self):
         REMEMBER_HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         FORGET_HEADERS = [('Spam', 'Blah')]
-        class _Identifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return REMEMBER_HEADERS[1:]
-            def forget(self, environ, identity):
-                return FORGET_HEADERS
-        class _BogusIdentifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return REMEMBER_HEADERS[:1]
-            def forget(self, environ, identity):
-                pass
         authenticator = DummyAuthenticator('chrisid')
         environ = self._makeEnviron()
-        identifiers = [('bogus', _BogusIdentifier()),
-                       ('valid', _Identifier()),
+        identifiers = [('bogus', DummyIdentifier(
+                                    remember_headers=REMEMBER_HEADERS[:1])),
+                       ('valid', DummyIdentifier(
+                                    remember_headers=REMEMBER_HEADERS[1:])),
                       ]
         api = self._makeOne(identifiers=identifiers,
                             authenticators=[('authentic', authenticator)],
@@ -695,24 +648,12 @@ class APITests(_Base):
     def test_login_w_identifier_name_miss(self):
         REMEMBER_HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         FORGET_HEADERS = [('Spam', 'Blah')]
-        class _Identifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return REMEMBER_HEADERS
-            def forget(self, environ, identity):
-                return FORGET_HEADERS
-        class _BogusIdentifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return ()
         authenticator = DummyFailAuthenticator()
         environ = self._makeEnviron()
-        identifiers = [('bogus', _BogusIdentifier()),
-                       ('valid', _Identifier()),
+        identifiers = [('bogus', DummyNoResultsIdentifier()),
+                       ('valid', DummyIdentifier(
+                                    remember_headers=REMEMBER_HEADERS,
+                                    forget_headers=FORGET_HEADERS)),
                       ]
         api = self._makeOne(identifiers=identifiers,
                             authenticators=[('authentic', authenticator)],
@@ -723,23 +664,11 @@ class APITests(_Base):
 
     def test_logout_wo_identifier_name_miss(self):
         FORGET_HEADERS = [('Spam', 'Blah')]
-        class _Identifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return FORGET_HEADERS[:1]
-        class _BogusIdentifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return FORGET_HEADERS[1:]
         environ = self._makeEnviron()
-        identifiers = [('valid', _Identifier()),
-                       ('bogus', _BogusIdentifier()),
+        identifiers = [('valid', DummyIdentifier(
+                                    forget_headers=FORGET_HEADERS[:1])),
+                       ('bogus', DummyIdentifier(
+                                    forget_headers=FORGET_HEADERS[1:])),
                       ]
         api = self._makeOne(identifiers=identifiers,
                             environ=environ)
@@ -748,23 +677,10 @@ class APITests(_Base):
 
     def test_logout_w_identifier_name(self):
         FORGET_HEADERS = [('Spam', 'Blah')]
-        class _Identifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return FORGET_HEADERS
-        class _BogusIdentifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return ()
         environ = self._makeEnviron()
-        identifiers = [('bogus', _BogusIdentifier()),
-                       ('valid', _Identifier()),
+        identifiers = [('bogus', DummyNoResultsIdentifier()),
+                       ('valid', DummyIdentifier(
+                                    forget_headers=FORGET_HEADERS)),
                       ]
         api = self._makeOne(identifiers=identifiers,
                             environ=environ)
@@ -774,24 +690,11 @@ class APITests(_Base):
     def test_logout_wo_identifier_name(self):
         REMEMBER_HEADERS = [('Foo', 'Bar'), ('Baz', 'Qux')]
         FORGET_HEADERS = [('Spam', 'Blah')]
-        class _Identifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return REMEMBER_HEADERS
-            def forget(self, environ, identity):
-                return FORGET_HEADERS
-        class _BogusIdentifier:
-            def identify(self, environ):
-                pass
-            def remember(self, environ, identity):
-                return ()
-            def forget(self, environ, identity):
-                return ()
         authenticator = DummyFailAuthenticator()
         environ = self._makeEnviron()
-        identifiers = [('valid', _Identifier()),
-                       ('bogus', _BogusIdentifier()),
+        identifiers = [('bogus', DummyNoResultsIdentifier()),
+                       ('valid', DummyIdentifier(
+                                    forget_headers=FORGET_HEADERS)),
                       ]
         api = self._makeOne(identifiers=identifiers,
                             authenticators=[('authentic', authenticator)],
@@ -800,17 +703,10 @@ class APITests(_Base):
         self.assertEqual(headers, FORGET_HEADERS)
 
     def test_logout_removes_repoze_who_identity(self):
-        class _Identifier:
-            def identify(self, environ):
-                pass
-            def forget(self, environ, identity):
-                return ()
-            def remember(self, environ, identity):
-                return ()
         authenticator = DummyFailAuthenticator()
         environ = self._makeEnviron()
         environ['repoze.who.identity'] = 'identity'
-        identifiers = [('valid', _Identifier())]
+        identifiers = [('valid', DummyNoResultsIdentifier())]
         api = self._makeOne(identifiers=identifiers,
                             authenticators=[('authentic', authenticator)],
                             environ=environ)
@@ -1153,20 +1049,17 @@ class TestIdentityDict(_Base):
 
 
 
-class DummyIdentifier:
+class DummyIdentifier(object):
     forgotten = False
     remembered = False
 
-    def __init__(self, credentials=None, remember_headers=None,
-                 forget_headers=None, replace_app=None):
+    def __init__(self, credentials=None,
+                 remember_headers=(), forget_headers=()):
         self.credentials = credentials
         self.remember_headers = remember_headers
         self.forget_headers = forget_headers
-        self.replace_app = replace_app
 
     def identify(self, environ):
-        if self.replace_app:
-            environ['repoze.who.application'] = self.replace_app
         return self.credentials
 
     def forget(self, environ, identity):
@@ -1178,19 +1071,19 @@ class DummyIdentifier:
         return self.remember_headers
 
 
-class DummyNoResultsIdentifier:
+class DummyNoResultsIdentifier(object):
 
     def identify(self, environ):
         return None
 
     def remember(self, *arg, **kw):
-        pass
+        return ()
 
     def forget(self, *arg, **kw):
-        pass
+        return ()
 
 
-class DummyAuthenticator:
+class DummyAuthenticator(object):
     def __init__(self, userid=None):
         self.userid = userid
 
@@ -1200,12 +1093,12 @@ class DummyAuthenticator:
         return self.userid
 
 
-class DummyFailAuthenticator:
+class DummyFailAuthenticator(object):
     def authenticate(self, environ, credentials):
         return None
 
 
-class DummyChallenger:
+class DummyChallenger(object):
     _challenged_with = None
     def __init__(self, app=None):
         self.app = app
@@ -1216,7 +1109,7 @@ class DummyChallenger:
         return self.app
 
 
-class DummyMDProvider:
+class DummyMDProvider(object):
     def __init__(self, metadata=None):
         self._metadata = metadata
 
@@ -1224,30 +1117,25 @@ class DummyMDProvider:
         return identity.update(self._metadata)
 
 
-class DummyMultiPlugin:
+class DummyMultiPlugin(object):
     pass
 
 
-class DummyRequestClassifier:
+class DummyRequestClassifier(object):
     def __call__(self, environ):
         return 'browser'
 
 
-class DummyChallengeDecider:
-    def __call__(self, environ, status, headers):
-        if status.startswith('401 '):
-            return True
+class DummyChallengeDecider(object):
+    pass
 
 
-class DummyLogger:
+class DummyLogger(object):
     _info = _debug = ()
     def info(self, msg):
         self._info += (msg,)
     def debug(self, msg):
         self._debug += (msg,)
 
-class DummyApp:
+class DummyApp(object):
     environ = None
-    def __call__(self, environ, start_response):
-        self.environ = environ
-        return []

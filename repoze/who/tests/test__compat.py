@@ -5,9 +5,6 @@ class CompatTests(unittest.TestCase):
     def failUnless(self, predicate, message=''):
         self.assertTrue(predicate, message) # Nannies go home!
 
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
     def test_REQUEST_METHOD_miss(self):
         # PEP 3333 says CONTENT_TYPE is mandatory
         from .._compat import REQUEST_METHOD

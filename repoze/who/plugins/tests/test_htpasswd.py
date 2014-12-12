@@ -11,11 +11,9 @@ class TestHTPasswdPlugin(unittest.TestCase):
         plugin = self._getTargetClass()(*arg, **kw)
         return plugin
 
-    def _makeEnviron(self, kw=None):
+    def _makeEnviron(self):
         environ = {}
         environ['wsgi.version'] = (1,0)
-        if kw is not None:
-            environ.update(kw)
         return environ
 
     def failUnless(self, predicate, message=''):
@@ -99,7 +97,7 @@ class TestHTPasswdPlugin(unittest.TestCase):
         import os
         here = os.path.abspath(os.path.dirname(__file__))
         htpasswd = os.path.join(here, 'fixtures', 'test.htpasswd.nonesuch')
-        def check(password, hashed):
+        def check(password, hashed): # pragma: no cover
             return True
         plugin = self._makeOne(htpasswd, check)
         environ = self._makeEnviron()
@@ -118,7 +116,7 @@ class TestHTPasswdPlugin(unittest.TestCase):
         import sys
         # win32 does not have a crypt library, don't
         # fail here
-        if "win32" == sys.platform:
+        if "win32" == sys.platform: # pragma: no cover
             return
 
         from crypt import crypt

@@ -2,9 +2,6 @@ import unittest
 
 class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
     def failIf(self, predicate, message=''):
         self.assertFalse(predicate, message) # Nannies go home!
 
@@ -18,11 +15,9 @@ class TestSQLAuthenticatorPlugin(_Base):
         plugin = self._getTargetClass()(*arg, **kw)
         return plugin
 
-    def _makeEnviron(self, kw=None):
+    def _makeEnviron(self):
         environ = {}
         environ['wsgi.version'] = (1,0)
-        if kw is not None:
-            environ.update(kw)
         return environ
 
     def test_implements(self):
@@ -84,9 +79,9 @@ class TestDefaultPasswordCompare(_Base):
     def _get_sha_hex_digest(self, clear='password'):
         try:
             from hashlib import sha1
-        except ImportError:
+        except ImportError:  # pragma: no cover Py3k
             from sha import new as sha1
-        if not isinstance(clear, type(b'')):
+        if not isinstance(clear, type(b'')):  # pragma: no cover Py3k
             clear = clear.encode('utf-8')
         return sha1(clear).hexdigest()
 

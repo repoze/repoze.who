@@ -5,9 +5,6 @@ class _Base(unittest.TestCase):
     def failUnless(self, predicate, message=''):
         self.assertTrue(predicate, message) # Nannies go home!
 
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
 class AuthTicketTests(_Base):
 
     def _getTargetClass(self):
@@ -131,7 +128,7 @@ class Test_parse_ticket(_Base):
         except BadTicket as e:
             self.failUnless(e.args[0].startswith(
                             'Timestamp is not a hex integer:'))
-        else:
+        else:  # pragma: no cover
             self.fail('Did not raise')
 
     def test_no_bang_after_userid(self):
@@ -141,7 +138,7 @@ class Test_parse_ticket(_Base):
             self._callFUT(ticket=TICKET)
         except BadTicket as e:
             self.assertEqual(e.args[0], 'userid is not followed by !')
-        else:
+        else:  # pragma: no cover
             self.fail('Did not raise')
 
     def test_wo_tokens_or_data_bad_digest(self):
@@ -151,7 +148,7 @@ class Test_parse_ticket(_Base):
             self._callFUT(ticket=TICKET)
         except BadTicket as e:
             self.assertEqual(e.args[0], 'Digest signature is not correct')
-        else:
+        else:  # pragma: no cover
             self.fail('Did not raise')
 
     def test_wo_tokens_or_data_ok_digest(self):

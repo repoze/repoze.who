@@ -77,13 +77,6 @@ class TestDefaultChallengeDecider(_Base):
         from repoze.who.classifiers import default_challenge_decider
         return default_challenge_decider
 
-    def _makeEnviron(self, kw=None):
-        environ = {}
-        environ['wsgi.version'] = (1,0)
-        if kw is not None:
-            environ.update(kw)
-        return environ
-
     def test_conforms_to_IChallengeDecider(self):
         from repoze.who.interfaces import IChallengeDecider
         self.failUnless(IChallengeDecider.providedBy(self._getFUT()))
@@ -101,13 +94,6 @@ class TestPassthroughChallengeDecider(_Base):
     def _getFUT(self):
         from repoze.who.classifiers import passthrough_challenge_decider
         return passthrough_challenge_decider
-
-    def _makeEnviron(self, kw=None):
-        environ = {}
-        environ['wsgi.version'] = (1,0)
-        if kw is not None:
-            environ.update(kw)
-        return environ
 
     def test_conforms_to_IChallengeDecider(self):
         from repoze.who.interfaces import IChallengeDecider
