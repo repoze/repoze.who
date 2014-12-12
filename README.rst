@@ -1,6 +1,13 @@
 ``repoze.who`` -- WSGI Authentication Middleware / API
 ======================================================
 
+.. image:: https://travis-ci.org/repoze/repoze.who.png?branch=master
+        :target: https://travis-ci.org/repoze/repoze.who
+
+.. image:: https://readthedocs.org/projects/repozewho/badge/?version=latest
+        :target:http://repozewho.readthedocs.org/en/latest/
+        :alt: Documentation Status
+
 Overview
 --------
 
