@@ -4,6 +4,8 @@ repoze.who Changelog
 Unreleased
 ----------
 
+- Add support for Python 3.4, PyPy3.
+
 - middleware:  avoid UnboundLocalError when wrapped generater yields no
   items.  See:  http://bugs.repoze.org/issue184
 
