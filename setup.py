@@ -17,8 +17,15 @@ import os
 from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
+def _read_file(filename):
+    try:
+        with open(os.path.join(here, filename)) as f:
+            return f.read()
+    except IOError:  # Travis???
+        return ''
+
+README = _read_file('README.rst')
+CHANGES = _read_file('CHANGES.rst')
 tests_require = ['WebOb', 'zope.interface']
 testing_extras = tests_require + ['nose', 'coverage']
 docs_extras = tests_require + ['Sphinx', 'repoze.sphinx.autointerface']
