@@ -1,11 +1,7 @@
 import unittest
 
-class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-class TestWhoConfig(_Base):
+class TestWhoConfig(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.config import WhoConfig
@@ -60,10 +56,10 @@ class TestWhoConfig(_Base):
         config = self._makeOne()
         config.parse(PLUGINS_ONLY)
         self.assertEqual(len(config.plugins), 2)
-        self.failUnless(isinstance(config.plugins['foo'],
+        self.assertTrue(isinstance(config.plugins['foo'],
                                    DummyPlugin))
         bar = config.plugins['bar']
-        self.failUnless(isinstance(bar, DummyPlugin))
+        self.assertTrue(isinstance(bar, DummyPlugin))
         self.assertEqual(bar.credentials, 'qux')
 
     def test_parse_general_empty(self):
@@ -82,8 +78,8 @@ class TestWhoConfig(_Base):
         PLUGIN_CLASS = self._getDummyPluginClass(IDummy)
         config = self._makeOne()
         config.parse(GENERAL_ONLY)
-        self.failUnless(isinstance(config.request_classifier, PLUGIN_CLASS))
-        self.failUnless(isinstance(config.challenge_decider, PLUGIN_CLASS))
+        self.assertTrue(isinstance(config.request_classifier, PLUGIN_CLASS))
+        self.assertTrue(isinstance(config.challenge_decider, PLUGIN_CLASS))
         self.assertEqual(config.remote_user_key, 'ANOTHER_REMOTE_USER')
         self.assertEqual(len(config.plugins), 0)
 
@@ -95,8 +91,8 @@ class TestWhoConfig(_Base):
         PLUGIN_CLASS = self._getDummyPluginClass(IDummy)
         config = self._makeOne()
         config.parse(GENERAL_WITH_PLUGINS)
-        self.failUnless(isinstance(config.request_classifier, PLUGIN_CLASS))
-        self.failUnless(isinstance(config.challenge_decider, PLUGIN_CLASS))
+        self.assertTrue(isinstance(config.request_classifier, PLUGIN_CLASS))
+        self.assertTrue(isinstance(config.challenge_decider, PLUGIN_CLASS))
 
     def test_parse_identifiers_only(self):
         from repoze.who.interfaces import IIdentifier
@@ -107,11 +103,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(identifiers), 2)
         first, second = identifiers
         self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IIdentifier], 'klass1')
         self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_identifiers_with_plugins(self):
         from repoze.who.interfaces import IIdentifier
@@ -122,11 +118,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(identifiers), 2)
         first, second = identifiers
         self.assertEqual(first[0], 'foo')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IIdentifier], 'klass1')
         self.assertEqual(second[0], 'bar')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_authenticators_only(self):
         from repoze.who.interfaces import IAuthenticator
@@ -137,11 +133,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(authenticators), 2)
         first, second = authenticators
         self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IAuthenticator], 'klass1')
         self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_authenticators_with_plugins(self):
         from repoze.who.interfaces import IAuthenticator
@@ -152,11 +148,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(authenticators), 2)
         first, second = authenticators
         self.assertEqual(first[0], 'foo')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IAuthenticator], 'klass1')
         self.assertEqual(second[0], 'bar')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_challengers_only(self):
         from repoze.who.interfaces import IChallenger
@@ -167,11 +163,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(challengers), 2)
         first, second = challengers
         self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IChallenger], 'klass1')
         self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_challengers_with_plugins(self):
         from repoze.who.interfaces import IChallenger
@@ -182,11 +178,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(challengers), 2)
         first, second = challengers
         self.assertEqual(first[0], 'foo')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IChallenger], 'klass1')
         self.assertEqual(second[0], 'bar')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_mdproviders_only(self):
         from repoze.who.interfaces import IMetadataProvider
@@ -197,11 +193,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(mdproviders), 2)
         first, second = mdproviders
         self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IMetadataProvider], 'klass1')
         self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_mdproviders_with_plugins(self):
         from repoze.who.interfaces import IMetadataProvider
@@ -212,11 +208,11 @@ class TestWhoConfig(_Base):
         self.assertEqual(len(mdproviders), 2)
         first, second = mdproviders
         self.assertEqual(first[0], 'foo')
-        self.failUnless(isinstance(first[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
         self.assertEqual(first[1].classifications[IMetadataProvider], 'klass1')
         self.assertEqual(second[0], 'bar')
-        self.failUnless(isinstance(second[1], PLUGIN_CLASS))
+        self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_make_plugin_names(self):
         # see http://bugs.repoze.org/issue92
@@ -224,7 +220,7 @@ class TestWhoConfig(_Base):
         config.parse(MAKE_PLUGIN_ARG_NAMES)
         self.assertEqual(len(config.plugins), 1)
         foo = config.plugins['foo']
-        self.failUnless(isinstance(foo, DummyPlugin))
+        self.assertTrue(isinstance(foo, DummyPlugin))
         self.assertEqual(foo.iface, 'iface')
         self.assertEqual(foo.name, 'name')
         self.assertEqual(foo.template, '%(template)s')
@@ -352,7 +348,7 @@ template = %%(template)s
 template_with_eq = template_with_eq = %%(template_with_eq)s
 """
 
-class TestConfigMiddleware(_Base):
+class TestConfigMiddleware(unittest.TestCase):
     _tempdir = None
 
     def setUp(self):
@@ -391,7 +387,7 @@ class TestConfigMiddleware(_Base):
         self.assertEqual(len(api_factory.authenticators), 1)
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)
-        self.failUnless(middleware.logger, middleware.logger)
+        self.assertTrue(middleware.logger, middleware.logger)
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.DEBUG)
 
     def test_sample_config_no_log_level(self):
@@ -417,7 +413,7 @@ class TestConfigMiddleware(_Base):
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.WARN)
         handlers = middleware.logger.handlers
         self.assertEqual(len(handlers), 1)
-        self.failUnless(isinstance(handlers[0], logging.StreamHandler))
+        self.assertTrue(isinstance(handlers[0], logging.StreamHandler))
         self.assertEqual(handlers[0].stream.name, logfile)
         logging.shutdown()
         handlers[0].stream.close()
@@ -433,10 +429,10 @@ class TestConfigMiddleware(_Base):
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
         handlers = middleware.logger.handlers
         self.assertEqual(len(handlers), 1)
-        self.failUnless(isinstance(handlers[0], NullHandler))
+        self.assertTrue(isinstance(handlers[0], NullHandler))
         logging.shutdown()
 
-class NullHandlerTests(_Base):
+class NullHandlerTests(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.config import NullHandler
@@ -448,13 +444,13 @@ class NullHandlerTests(_Base):
     def test_inheritance(self):
         import logging
         handler = self._makeOne()
-        self.failUnless(isinstance(handler, logging.Handler))
+        self.assertTrue(isinstance(handler, logging.Handler))
 
     def test_emit_doesnt_raise_NotImplementedError(self):
         handler = self._makeOne()
         handler.emit(object())
 
-class Test_make_api_factory_with_config(_Base):
+class Test_make_api_factory_with_config(unittest.TestCase):
     _tempdir = None
 
     def setUp(self):
@@ -492,8 +488,8 @@ class Test_make_api_factory_with_config(_Base):
             self.assertEqual(len(api_factory.challengers), 0)
             self.assertEqual(len(api_factory.mdproviders), 0)
             self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
-            self.failUnless(api_factory.logger is None)
-            self.failUnless(warned)
+            self.assertTrue(api_factory.logger is None)
+            self.assertTrue(warned)
 
     def test_bad_config_content(self):
         import warnings
@@ -507,8 +503,8 @@ class Test_make_api_factory_with_config(_Base):
             self.assertEqual(len(api_factory.challengers), 0)
             self.assertEqual(len(api_factory.mdproviders), 0)
             self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
-            self.failUnless(api_factory.logger is None)
-            self.failUnless(warned)
+            self.assertTrue(api_factory.logger is None)
+            self.assertTrue(warned)
 
     def test_sample_config_no_logger(self):
         factory = self._getFactory()
@@ -520,7 +516,7 @@ class Test_make_api_factory_with_config(_Base):
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)
         self.assertEqual(api_factory.remote_user_key, 'REMOTE_USER')
-        self.failUnless(api_factory.logger is None)
+        self.assertTrue(api_factory.logger is None)
 
     def test_sample_config_w_remote_user_key(self):
         factory = self._getFactory()
@@ -544,7 +540,7 @@ class Test_make_api_factory_with_config(_Base):
         self.assertEqual(len(api_factory.authenticators), 1)
         self.assertEqual(len(api_factory.challengers), 2)
         self.assertEqual(len(api_factory.mdproviders), 0)
-        self.failUnless(api_factory.logger is logger)
+        self.assertTrue(api_factory.logger is logger)
 
 SAMPLE_CONFIG = """\
 [plugin:redirector]

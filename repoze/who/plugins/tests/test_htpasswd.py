@@ -16,12 +16,6 @@ class TestHTPasswdPlugin(unittest.TestCase):
         environ['wsgi.version'] = (1,0)
         return environ
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
     def test_implements(self):
         from zope.interface.verify import verifyClass
         from repoze.who.interfaces import IAuthenticator
@@ -110,7 +104,7 @@ class TestHTPasswdPlugin(unittest.TestCase):
         result = plugin.authenticate(environ, creds)
         self.assertEqual(result, None)
         self.assertEqual(len(logger.warnings), 1)
-        self.failUnless('could not open htpasswd' in logger.warnings[0])
+        self.assertTrue('could not open htpasswd' in logger.warnings[0])
 
     def test_crypt_check(self):
         import sys
@@ -141,8 +135,8 @@ class TestHTPasswdPlugin(unittest.TestCase):
 
     def test_plain_check(self):
         from repoze.who.plugins.htpasswd import plain_check
-        self.failUnless(plain_check('password', 'password'))
-        self.failIf(plain_check('notpassword', 'password'))
+        self.assertTrue(plain_check('password', 'password'))
+        self.assertFalse(plain_check('notpassword', 'password'))
 
     def test_factory_no_filename_raises(self):
         from repoze.who.plugins.htpasswd import make_plugin

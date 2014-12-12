@@ -1,11 +1,7 @@
 import unittest
 
-class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-class TestMiddleware(_Base):
+class TestMiddleware(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.middleware import PluggableAuthenticationMiddleware
@@ -240,7 +236,7 @@ class TestMiddleware(_Base):
         start_response = DummyStartResponse()
         result = b''.join(mw(environ, start_response)).decode('ascii')
         self.assertEqual(environ['challenged'], challenge_app)
-        self.failUnless(result.startswith('401 Unauthorized'))
+        self.assertTrue(result.startswith('401 Unauthorized'))
 
     def test_call_401_challenger_and_identifier_no_authenticator(self):
         from webob.exc import HTTPUnauthorized
@@ -259,7 +255,7 @@ class TestMiddleware(_Base):
 
         result = b''.join(mw(environ, start_response)).decode('ascii')
         self.assertEqual(environ['challenged'], challenge_app)
-        self.failUnless(result.startswith('401 Unauthorized'))
+        self.assertTrue(result.startswith('401 Unauthorized'))
         self.assertEqual(identifier.forgotten, False)
         self.assertEqual(environ.get('REMOTE_USER'), None)
 
@@ -282,7 +278,7 @@ class TestMiddleware(_Base):
         start_response = DummyStartResponse()
         result = b''.join(mw(environ, start_response)).decode('ascii')
         self.assertEqual(environ['challenged'], challenge_app)
-        self.failUnless(result.startswith('401 Unauthorized'))
+        self.assertTrue(result.startswith('401 Unauthorized'))
         # @@ unfuck
 ##         self.assertEqual(identifier.forgotten, identifier.credentials)
         self.assertEqual(environ['REMOTE_USER'], 'chris')
@@ -391,7 +387,7 @@ class TestMiddleware(_Base):
                            mdproviders=mdproviders)
         start_response = DummyStartResponse()
         result = b''.join(mw(environ, start_response)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(start_response.status, '302 Found')
         headers = start_response.headers
         #self.assertEqual(len(headers), 3, headers)
@@ -402,7 +398,7 @@ class TestMiddleware(_Base):
         self.assertEqual(headers[3],
                          ('a', '1'))
         self.assertEqual(start_response.exc_info, None)
-        self.failIf('repoze.who.application' in environ)
+        self.assertFalse('repoze.who.application' in environ)
 
     def test_call_app_doesnt_call_start_response(self):
         from webob.exc import HTTPUnauthorized
@@ -449,8 +445,8 @@ class TestMiddleware(_Base):
                            mdproviders=mdproviders)
         start_response = DummyStartResponse()
         result = b''.join(mw(environ, start_response)).decode('ascii')
-        self.failUnless(result.startswith('401 Unauthorized'))
-        self.failUnless(app._iterable._closed)
+        self.assertTrue(result.startswith('401 Unauthorized'))
+        self.assertTrue(app._iterable._closed)
 
     def test_call_w_challenge_but_no_challenger_still_closes_iterable(self):
         environ = self._makeEnviron()
@@ -470,12 +466,12 @@ class TestMiddleware(_Base):
                            mdproviders=mdproviders)
         start_response = DummyStartResponse()
         self.assertRaises(RuntimeError, mw, environ, start_response)
-        self.failUnless(app._iterable._closed)
+        self.assertTrue(app._iterable._closed)
 
     # XXX need more call tests:
     #  - auth_id sorting
 
-class TestStartResponseWrapper(_Base):
+class TestStartResponseWrapper(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.middleware import StartResponseWrapper
@@ -489,7 +485,7 @@ class TestStartResponseWrapper(_Base):
         wrapper = self._makeOne(None)
         self.assertEqual(wrapper.start_response, None)
         self.assertEqual(wrapper.headers, [])
-        self.failUnless(wrapper.buffer)
+        self.assertTrue(wrapper.buffer)
 
     def test_finish_response(self):
         from repoze.who._compat import StringIO
@@ -520,7 +516,7 @@ class TestStartResponseWrapper(_Base):
         self.assertEqual(datases[0], 'written')
         self.assertEqual(closededs[0], True)
 
-class WrapGeneratorTests(_Base):
+class WrapGeneratorTests(unittest.TestCase):
 
     def _callFUT(self, iterable):
         from repoze.who.middleware import wrap_generator
@@ -549,11 +545,11 @@ class WrapGeneratorTests(_Base):
             yield 'b'
         iterable = DummyIterableWithClose(gen())
         newgen = self._callFUT(iterable)
-        self.failIf(iterable._closed)
+        self.assertFalse(iterable._closed)
         self.assertEqual(list(newgen), ['a', 'b'])
-        self.failUnless(iterable._closed)
+        self.assertTrue(iterable._closed)
 
-class TestMakeTestMiddleware(_Base):
+class TestMakeTestMiddleware(unittest.TestCase):
 
     def setUp(self):
         import os

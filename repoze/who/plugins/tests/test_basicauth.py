@@ -1,5 +1,6 @@
 import unittest
 
+
 class TestBasicAuthPlugin(unittest.TestCase):
 
     def _getTargetClass(self):
@@ -9,9 +10,6 @@ class TestBasicAuthPlugin(unittest.TestCase):
     def _makeOne(self, *arg, **kw):
         plugin = self._getTargetClass()(*arg, **kw)
         return plugin
-
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
 
     def _makeEnviron(self, kw=None):
         from wsgiref.util import setup_testing_defaults
@@ -39,7 +37,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         for item in app_iter:
             items.append(item)
         response = b''.join(items).decode('utf-8')
-        self.failUnless(response.startswith('401 Unauthorized'))
+        self.assertTrue(response.startswith('401 Unauthorized'))
 
     def test_identify_noauthinfo(self):
         plugin = self._makeOne('realm')

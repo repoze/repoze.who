@@ -1,12 +1,7 @@
 import unittest
 
-class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-
-class TestRedirectorPlugin(_Base):
+class TestRedirectorPlugin(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.plugins.redirector import RedirectorPlugin
@@ -75,7 +70,7 @@ class TestRedirectorPlugin(_Base):
                                [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], 'forget')
         self.assertEqual(sr.headers[0][1], '1')
         self.assertEqual(sr.headers[1][0], 'Location')
@@ -111,7 +106,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -144,7 +139,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -169,7 +164,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], "forget")
         self.assertEqual(sr.headers[0][1], "1")
         self.assertEqual(sr.headers[1][0], 'Location')
@@ -195,7 +190,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -224,7 +219,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -253,7 +248,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -280,13 +275,13 @@ class TestRedirectorPlugin(_Base):
             [])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], 'set-cookie')
         self.assertEqual(sr.headers[0][1], 'a')
         self.assertEqual(sr.headers[1][0], 'set-cookie')
         self.assertEqual(sr.headers[1][1], 'b')
 
-class Test_make_redirecting_plugin(_Base):
+class Test_make_redirecting_plugin(unittest.TestCase):
 
     def _callFUT(self, *args, **kw):
         from repoze.who.plugins.redirector import make_plugin

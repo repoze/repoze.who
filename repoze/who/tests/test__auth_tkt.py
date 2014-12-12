@@ -1,11 +1,7 @@
 import unittest
 
-class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-class AuthTicketTests(_Base):
+class AuthTicketTests(unittest.TestCase):
 
     def _getTargetClass(self):
         from .._auth_tkt import AuthTicket
@@ -94,7 +90,7 @@ class AuthTicketTests(_Base):
         self.assertEqual(cookie['oatmeal']['secure'], 'true')
  
 
-class BadTicketTests(_Base):
+class BadTicketTests(unittest.TestCase):
 
     def _getTargetClass(self):
         from .._auth_tkt import BadTicket
@@ -114,7 +110,7 @@ class BadTicketTests(_Base):
         self.assertEqual(exc.expected, 'foo')
 
 
-class Test_parse_ticket(_Base):
+class Test_parse_ticket(unittest.TestCase):
 
     def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4'):
         from .._auth_tkt import parse_ticket
@@ -126,7 +122,7 @@ class Test_parse_ticket(_Base):
         try:
             self._callFUT(ticket=TICKET)
         except BadTicket as e:
-            self.failUnless(e.args[0].startswith(
+            self.assertTrue(e.args[0].startswith(
                             'Timestamp is not a hex integer:'))
         else:  # pragma: no cover
             self.fail('Did not raise')
@@ -173,7 +169,7 @@ class Test_parse_ticket(_Base):
         self.assertEqual(user_data, 'DATA')
 
 
-class Test_helpers(_Base):
+class Test_helpers(unittest.TestCase):
 
     # calculate_digest is not very testable, and fully exercised throug callers.
 
@@ -191,7 +187,7 @@ class Test_helpers(_Base):
     def test_maybe_encode_bytes(self):
         from .._auth_tkt import maybe_encode
         foo = b'foo'
-        self.failUnless(maybe_encode(foo) is foo)
+        self.assertTrue(maybe_encode(foo) is foo)
 
     def test_maybe_encode_native_string(self):
         from .._auth_tkt import maybe_encode

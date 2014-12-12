@@ -1,14 +1,7 @@
 import unittest
 
-class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
-class Test_get_api(_Base):
+class Test_get_api(unittest.TestCase):
 
     def _callFUT(self, environ):
         from repoze.who.api import get_api
@@ -17,15 +10,15 @@ class Test_get_api(_Base):
     def test___call___empty_environ(self):
         environ = {}
         api = self._callFUT(environ)
-        self.failUnless(api is None)
+        self.assertTrue(api is None)
 
     def test___call___w_api_in_environ(self):
         expected = object()
         environ = {'repoze.who.api': expected}
         api = self._callFUT(environ)
-        self.failUnless(api is expected)
+        self.assertTrue(api is expected)
 
-class APIFactoryTests(_Base):
+class APIFactoryTests(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.api import APIFactory
@@ -87,18 +80,18 @@ class APIFactoryTests(_Base):
         environ = {}
         factory = self._makeOne()
         api = factory(environ)
-        self.failUnless(isinstance(api, API))
-        self.failUnless(environ['repoze.who.api'] is api)
+        self.assertTrue(isinstance(api, API))
+        self.assertTrue(environ['repoze.who.api'] is api)
 
     def test___call___w_api_in_environ(self):
         expected = object()
         environ = {'repoze.who.api': expected}
         factory = self._makeOne()
         api = factory(environ)
-        self.failUnless(api is expected)
+        self.assertTrue(api is expected)
 
 
-class TestMakeRegistries(_Base):
+class TestMakeRegistries(unittest.TestCase):
 
     def _callFUT(self, identifiers, authenticators, challengers, mdproviders):
         from repoze.who.api import make_registries
@@ -142,7 +135,7 @@ class TestMakeRegistries(_Base):
         self.assertEqual(name_reg['challenger'], dummy_challenger)
         self.assertEqual(name_reg['mdprovider'], dummy_mdprovider)
 
-class TestMatchClassification(_Base):
+class TestMatchClassification(unittest.TestCase):
 
     def _getFUT(self):
         from repoze.who.api import match_classification
@@ -169,7 +162,7 @@ class TestMatchClassification(_Base):
         # any for either
         self.assertEqual(f(IAuthenticator, plugins, 'buz'), [multi1, multi2])
 
-class APITests(_Base):
+class APITests(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.api import API
@@ -277,8 +270,8 @@ class APITests(_Base):
                             logger=logger)
         identity = api.authenticate()
         self.assertEqual(identity['repoze.who.userid'], 'chrisid')
-        self.failUnless(identity['identifier'] is identifier)
-        self.failUnless(identity['authenticator'] is authenticator)
+        self.assertTrue(identity['identifier'] is identifier)
+        self.assertTrue(identity['authenticator'] is authenticator)
 
         self.assertEqual(len(logger._info), 1)
         self.assertEqual(logger._info[0], 'request classification: browser')
@@ -302,9 +295,9 @@ class APITests(_Base):
         self.assertEqual(logger._info[0], 'request classification: match')
         self.assertEqual(logger._info[1], 'no challenge app returned')
         self.assertEqual(len(logger._debug), 2)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'challengers registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'challengers matched for '
                                         'classification "match": ['))
 
@@ -326,13 +319,13 @@ class APITests(_Base):
         self.assertEqual(environ['challenged'], app)
         self.assertEqual(len(logger._info), 2)
         self.assertEqual(logger._info[0], 'request classification: match')
-        self.failUnless(logger._info[1].startswith('challenger plugin '))
-        self.failUnless(logger._info[1].endswith(
+        self.assertTrue(logger._info[1].startswith('challenger plugin '))
+        self.assertTrue(logger._info[1].endswith(
                          '"challenge" returned an app'))
         self.assertEqual(len(logger._debug), 2)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'challengers registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'challengers matched for '
                                         'classification "match": ['))
 
@@ -358,12 +351,12 @@ class APITests(_Base):
         self.assertEqual(identifier.forgotten, identity)
         self.assertEqual(len(logger._info), 3)
         self.assertEqual(logger._info[0], 'request classification: match')
-        self.failUnless(logger._info[1].startswith('forgetting via headers '))
+        self.assertTrue(logger._info[1].startswith('forgetting via headers '))
         self.assertEqual(logger._info[2], 'no challenge app returned')
         self.assertEqual(len(logger._debug), 2)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'challengers registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'challengers matched for '
                                         'classification "match": ['))
 
@@ -390,14 +383,14 @@ class APITests(_Base):
         self.assertEqual(identifier.forgotten, identity)
         self.assertEqual(len(logger._info), 3)
         self.assertEqual(logger._info[0], 'request classification: match')
-        self.failUnless(logger._info[1].startswith('forgetting via headers '))
-        self.failUnless(logger._info[2].startswith('challenger plugin '))
-        self.failUnless(logger._info[2].endswith(
+        self.assertTrue(logger._info[1].startswith('forgetting via headers '))
+        self.assertTrue(logger._info[2].startswith('challenger plugin '))
+        self.assertTrue(logger._info[2].endswith(
                          '"challenge" returned an app'))
         self.assertEqual(len(logger._debug), 2)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'challengers registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'challengers matched for '
                                         'classification "match": ['))
 
@@ -426,16 +419,16 @@ class APITests(_Base):
         self.assertEqual(challenger._challenged_with[3], FORGET_HEADERS)
         self.assertEqual(len(logger._info), 3)
         self.assertEqual(logger._info[0], 'request classification: match')
-        self.failUnless(logger._info[1].startswith(
+        self.assertTrue(logger._info[1].startswith(
                                         'forgetting via headers from'))
-        self.failUnless(logger._info[1].endswith(repr(FORGET_HEADERS)))
-        self.failUnless(logger._info[2].startswith('challenger plugin '))
-        self.failUnless(logger._info[2].endswith(
+        self.assertTrue(logger._info[1].endswith(repr(FORGET_HEADERS)))
+        self.assertTrue(logger._info[2].startswith('challenger plugin '))
+        self.assertTrue(logger._info[2].endswith(
                          '"challenge" returned an app'))
         self.assertEqual(len(logger._debug), 2)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'challengers registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'challengers matched for '
                                         'classification "match": ['))
 
@@ -529,9 +522,9 @@ class APITests(_Base):
         self.assertEqual(api.remember(), HEADERS)
         self.assertEqual(len(logger._info), 2)
         self.assertEqual(logger._info[0], 'request classification: browser')
-        self.failUnless(logger._info[1].startswith(
+        self.assertTrue(logger._info[1].startswith(
                                         'remembering via headers from'))
-        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertTrue(logger._info[1].endswith(repr(HEADERS)))
         self.assertEqual(len(logger._debug), 0)
 
     def test_remember_w_identity_passed_no_identifier(self):
@@ -553,9 +546,9 @@ class APITests(_Base):
         self.assertEqual(api.remember(identity), HEADERS)
         self.assertEqual(len(logger._info), 2)
         self.assertEqual(logger._info[0], 'request classification: browser')
-        self.failUnless(logger._info[1].startswith(
+        self.assertTrue(logger._info[1].startswith(
                                         'remembering via headers from'))
-        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertTrue(logger._info[1].endswith(repr(HEADERS)))
         self.assertEqual(len(logger._debug), 0)
 
     def test_forget_identifier_plugin_returns_none(self):
@@ -583,9 +576,9 @@ class APITests(_Base):
         self.assertEqual(api.forget(), HEADERS)
         self.assertEqual(len(logger._info), 2)
         self.assertEqual(logger._info[0], 'request classification: browser')
-        self.failUnless(logger._info[1].startswith(
+        self.assertTrue(logger._info[1].startswith(
                                         'forgetting via headers from'))
-        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertTrue(logger._info[1].endswith(repr(HEADERS)))
         self.assertEqual(len(logger._debug), 0)
 
     def test_forget_w_identity_passed_no_identifier(self):
@@ -607,9 +600,9 @@ class APITests(_Base):
         self.assertEqual(api.forget(identity), HEADERS)
         self.assertEqual(len(logger._info), 2)
         self.assertEqual(logger._info[0], 'request classification: browser')
-        self.failUnless(logger._info[1].startswith(
+        self.assertTrue(logger._info[1].startswith(
                                         'forgetting via headers from'))
-        self.failUnless(logger._info[1].endswith(repr(HEADERS)))
+        self.assertTrue(logger._info[1].endswith(repr(HEADERS)))
         self.assertEqual(len(logger._debug), 0)
 
     def test_login_w_identifier_name_hit(self):
@@ -711,7 +704,7 @@ class APITests(_Base):
                             authenticators=[('authentic', authenticator)],
                             environ=environ)
         api.logout()
-        self.failIf('repoze.who.identity' in environ)
+        self.assertFalse('repoze.who.identity' in environ)
 
     def test__identify_success(self):
         environ = self._makeEnviron()
@@ -750,14 +743,14 @@ class APITests(_Base):
         self.assertEqual(len(logger._info), 1)
         self.assertEqual(logger._info[0], 'request classification: browser')
         self.assertEqual(len(logger._debug), 4)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'identifier plugins registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'identifier plugins matched for '
                                         'classification "browser": ['))
-        self.failUnless(logger._debug[2].startswith(
+        self.assertTrue(logger._debug[2].startswith(
                                         'no identity returned from <'))
-        self.failUnless(logger._debug[2].endswith('> (None)'))
+        self.assertTrue(logger._debug[2].endswith('> (None)'))
         self.assertEqual(logger._debug[3], 'identities found: []')
 
     def test__identify_success_skip_noresults(self):
@@ -884,15 +877,15 @@ class APITests(_Base):
         self.assertEqual(len(logger._info), 1)
         self.assertEqual(logger._info[0], 'request classification: browser')
         self.assertEqual(len(logger._debug), 5)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'authenticator plugins registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'authenticator plugins matched for '
                                         'classification "browser": ['))
-        self.failUnless(logger._debug[2].startswith('no userid returned from'))
-        self.failUnless(logger._debug[3].startswith('userid returned from'))
-        self.failUnless(logger._debug[3].endswith('"chris"'))
-        self.failUnless(logger._debug[4].startswith(
+        self.assertTrue(logger._debug[2].startswith('no userid returned from'))
+        self.assertTrue(logger._debug[3].startswith('userid returned from'))
+        self.assertTrue(logger._debug[3].endswith('"chris"'))
+        self.assertTrue(logger._debug[4].startswith(
                                          'identities authenticated: [((1, 0),'))
 
     def test__authenticate_success_multiresult(self):
@@ -927,16 +920,16 @@ class APITests(_Base):
         self.assertEqual(len(logger._info), 1)
         self.assertEqual(logger._info[0], 'request classification: browser')
         self.assertEqual(len(logger._debug), 5)
-        self.failUnless(logger._debug[0].startswith(
+        self.assertTrue(logger._debug[0].startswith(
                                         'authenticator plugins registered: ['))
-        self.failUnless(logger._debug[1].startswith(
+        self.assertTrue(logger._debug[1].startswith(
                                         'authenticator plugins matched for '
                                         'classification "browser": ['))
-        self.failUnless(logger._debug[2].startswith('userid returned from'))
-        self.failUnless(logger._debug[2].endswith('"chris_id1"'))
-        self.failUnless(logger._debug[3].startswith('userid returned from'))
-        self.failUnless(logger._debug[3].endswith('"chris_id2"'))
-        self.failUnless(logger._debug[4].startswith(
+        self.assertTrue(logger._debug[2].startswith('userid returned from'))
+        self.assertTrue(logger._debug[2].endswith('"chris_id1"'))
+        self.assertTrue(logger._debug[3].startswith('userid returned from'))
+        self.assertTrue(logger._debug[3].endswith('"chris_id2"'))
+        self.assertTrue(logger._debug[4].startswith(
                                          'identities authenticated: [((0, 0),')
                                          )
 
@@ -1027,7 +1020,7 @@ class APITests(_Base):
         self.assertEqual(identity.get('fuz'), None)
 
 
-class TestIdentityDict(_Base):
+class TestIdentityDict(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.api import Identity
@@ -1039,12 +1032,12 @@ class TestIdentityDict(_Base):
 
     def test_str(self):
         identity = self._makeOne(foo=1)
-        self.failUnless(str(identity).startswith('<repoze.who identity'))
+        self.assertTrue(str(identity).startswith('<repoze.who identity'))
         self.assertEqual(identity['foo'], 1)
 
     def test_repr(self):
         identity = self._makeOne(foo=1)
-        self.failUnless(str(identity).startswith('<repoze.who identity'))
+        self.assertTrue(str(identity).startswith('<repoze.who identity'))
         self.assertEqual(identity['foo'], 1)
 
 

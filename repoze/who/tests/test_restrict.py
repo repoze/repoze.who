@@ -1,14 +1,6 @@
 import unittest
 
-class _Base(unittest.TestCase):
-
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
-class AuthenticatedPredicateTests(_Base):
+class AuthenticatedPredicateTests(unittest.TestCase):
 
     def _getFUT(self):
         from repoze.who.restrict import authenticated_predicate
@@ -17,19 +9,19 @@ class AuthenticatedPredicateTests(_Base):
     def test___call___no_identity_returns_False(self):
         predicate = self._getFUT()
         environ = {}
-        self.failIf(predicate(environ))
+        self.assertFalse(predicate(environ))
 
     def test___call___w_REMOTE_AUTH_returns_True(self):
         predicate = self._getFUT()
         environ = {'REMOTE_USER': 'fred'}
-        self.failUnless(predicate(environ))
+        self.assertTrue(predicate(environ))
 
     def test___call___w_repoze_who_identity_returns_True(self):
         predicate = self._getFUT()
         environ = {'repoze.who.identity': {'login': 'fred'}}
-        self.failUnless(predicate(environ))
+        self.assertTrue(predicate(environ))
 
-class MakeAuthenticatedRestrictionTests(_Base):
+class MakeAuthenticatedRestrictionTests(unittest.TestCase):
 
     def _getFUT(self):
         from repoze.who.restrict import make_authenticated_restriction
@@ -41,13 +33,13 @@ class MakeAuthenticatedRestrictionTests(_Base):
 
         filter = fut(app, {}, enabled=True)
 
-        self.failUnless(filter.app is app)
-        self.failUnless(filter.enabled)
+        self.assertTrue(filter.app is app)
+        self.assertTrue(filter.enabled)
         predicate = filter.predicate
-        self.failUnless(predicate({'REMOTE_USER': 'fred'}))
-        self.failUnless(predicate({'repoze.who.identity': {'login': 'fred'}}))
+        self.assertTrue(predicate({'REMOTE_USER': 'fred'}))
+        self.assertTrue(predicate({'repoze.who.identity': {'login': 'fred'}}))
 
-class PredicateRestrictionTests(_Base):
+class PredicateRestrictionTests(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.restrict import PredicateRestriction
@@ -114,7 +106,7 @@ class PredicateRestrictionTests(_Base):
         self.assertEqual(len(_tested), 1)
         self.assertEqual(restrict.app.environ, environ)
 
-class MakePredicateRestrictionTests(_Base):
+class MakePredicateRestrictionTests(unittest.TestCase):
 
     def _getFUT(self):
         from repoze.who.restrict import make_predicate_restriction
@@ -130,9 +122,9 @@ class MakePredicateRestrictionTests(_Base):
 
         filter = fut(app, {}, predicate=_factory)
 
-        self.failUnless(filter.app is app)
-        self.failUnless(filter.predicate is _predicate)
-        self.failUnless(filter.enabled)
+        self.assertTrue(filter.app is app)
+        self.assertTrue(filter.predicate is _predicate)
+        self.assertTrue(filter.enabled)
 
     def test_disabled_non_string_predicate_w_args(self):
         fut = self._getFUT()
@@ -141,10 +133,10 @@ class MakePredicateRestrictionTests(_Base):
         filter = fut(app, {}, predicate=DummyPredicate, enabled=False,
                      foo='Foo')
 
-        self.failUnless(filter.app is app)
-        self.failUnless(isinstance(filter.predicate, DummyPredicate))
+        self.assertTrue(filter.app is app)
+        self.assertTrue(isinstance(filter.predicate, DummyPredicate))
         self.assertEqual(filter.predicate.foo, 'Foo')
-        self.failIf(filter.enabled)
+        self.assertFalse(filter.enabled)
 
     def test_enabled_string_predicate_w_args(self):
         fut = self._getFUT()
@@ -154,10 +146,10 @@ class MakePredicateRestrictionTests(_Base):
                      predicate='repoze.who.tests.test_restrict:DummyPredicate',
                      enabled=True, foo='Foo')
 
-        self.failUnless(filter.app is app)
-        self.failUnless(isinstance(filter.predicate, DummyPredicate))
+        self.assertTrue(filter.app is app)
+        self.assertTrue(isinstance(filter.predicate, DummyPredicate))
         self.assertEqual(filter.predicate.foo, 'Foo')
-        self.failUnless(filter.enabled)
+        self.assertTrue(filter.enabled)
 
 
 class DummyApp(object):
