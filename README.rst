@@ -1,5 +1,5 @@
-``repoze.who`` -- WSGI Authentication Middleware / API
-======================================================
+``repoze.who``
+==============
 
 .. image:: https://travis-ci.org/repoze/repoze.who.png?branch=master
         :target: https://travis-ci.org/repoze/repoze.who
