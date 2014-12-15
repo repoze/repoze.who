@@ -7,8 +7,11 @@ import os
 import time
 from wsgiref.handlers import _monthname     # Locale-independent, RFC-2616
 from wsgiref.handlers import _weekdayname   # Locale-independent, RFC-2616
-from urllib import urlencode
-from urlparse import parse_qsl
+try:
+    from urllib.parse import urlencode, parse_qsl
+except ImportError:
+    from urllib import urlencode
+    from urlparse import parse_qsl
 
 from zope.interface import implementer
 

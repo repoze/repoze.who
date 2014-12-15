@@ -1,5 +1,12 @@
-``repoze.who`` -- WSGI Authentication Middleware / API
-======================================================
+``repoze.who``
+==============
+
+.. image:: https://travis-ci.org/repoze/repoze.who.png?branch=master
+        :target: https://travis-ci.org/repoze/repoze.who
+
+.. image:: https://readthedocs.org/projects/repozewho/badge/?version=latest
+        :target: http://repozewho.readthedocs.org/en/latest/
+        :alt: Documentation Status
 
 Overview
 --------
@@ -14,7 +21,3 @@ way; it is useful for any WSGI application).  It provides no facility
 for authorization (ensuring whether a user can or cannot perform the
 operation implied by the request).  This is considered to be the
 domain of the WSGI application.
- 
-See the ``docs`` subdirectory of this package (also available at least
-provisionally at http://static.repoze.org/whodocs) for more
-information.

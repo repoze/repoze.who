@@ -11,18 +11,10 @@ class TestHTPasswdPlugin(unittest.TestCase):
         plugin = self._getTargetClass()(*arg, **kw)
         return plugin
 
-    def _makeEnviron(self, kw=None):
+    def _makeEnviron(self):
         environ = {}
         environ['wsgi.version'] = (1,0)
-        if kw is not None:
-            environ.update(kw)
         return environ
-
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
 
     def test_implements(self):
         from zope.interface.verify import verifyClass
@@ -99,7 +91,7 @@ class TestHTPasswdPlugin(unittest.TestCase):
         import os
         here = os.path.abspath(os.path.dirname(__file__))
         htpasswd = os.path.join(here, 'fixtures', 'test.htpasswd.nonesuch')
-        def check(password, hashed):
+        def check(password, hashed): # pragma: no cover
             return True
         plugin = self._makeOne(htpasswd, check)
         environ = self._makeEnviron()
@@ -112,13 +104,13 @@ class TestHTPasswdPlugin(unittest.TestCase):
         result = plugin.authenticate(environ, creds)
         self.assertEqual(result, None)
         self.assertEqual(len(logger.warnings), 1)
-        self.failUnless('could not open htpasswd' in logger.warnings[0])
+        self.assertTrue('could not open htpasswd' in logger.warnings[0])
 
     def test_crypt_check(self):
         import sys
         # win32 does not have a crypt library, don't
         # fail here
-        if "win32" == sys.platform:
+        if "win32" == sys.platform: # pragma: no cover
             return
 
         from crypt import crypt
@@ -143,8 +135,8 @@ class TestHTPasswdPlugin(unittest.TestCase):
 
     def test_plain_check(self):
         from repoze.who.plugins.htpasswd import plain_check
-        self.failUnless(plain_check('password', 'password'))
-        self.failIf(plain_check('notpassword', 'password'))
+        self.assertTrue(plain_check('password', 'password'))
+        self.assertFalse(plain_check('notpassword', 'password'))
 
     def test_factory_no_filename_raises(self):
         from repoze.who.plugins.htpasswd import make_plugin

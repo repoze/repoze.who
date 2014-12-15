@@ -1,15 +1,7 @@
 import unittest
 
-class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
-
-class TestRedirectorPlugin(_Base):
+class TestRedirectorPlugin(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.plugins.redirector import RedirectorPlugin
@@ -26,22 +18,12 @@ class TestRedirectorPlugin(_Base):
                                       reason_param=reason_param,
                                       reason_header=reason_header)
 
-    def _makeEnviron(self, login=None, password=None, came_from=None,
-                         path_info='/', identifier=None, max_age=None):
+    def _makeEnviron(self, path_info='/', identifier=None):
         from repoze.who._compat import StringIO
-        fields = []
-        if login:
-            fields.append(('login', login))
-        if password:
-            fields.append(('password', password))
-        if came_from:
-            fields.append(('came_from', came_from))
-        if max_age:
-            fields.append(('max_age', max_age))
         if identifier is None:
             credentials = {'login':'chris', 'password':'password'}
             identifier = DummyIdentifier(credentials)
-        content_type, body = encode_multipart_formdata(fields)
+        content_type, body = encode_multipart_formdata()
         environ = {'wsgi.version': (1,0),
                    'wsgi.input': StringIO(body),
                    'wsgi.url_scheme':'http',
@@ -88,7 +70,7 @@ class TestRedirectorPlugin(_Base):
                                [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], 'forget')
         self.assertEqual(sr.headers[0][1], '1')
         self.assertEqual(sr.headers[1][0], 'Location')
@@ -124,7 +106,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -157,7 +139,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -182,7 +164,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], "forget")
         self.assertEqual(sr.headers[0][1], "1")
         self.assertEqual(sr.headers[1][0], 'Location')
@@ -208,7 +190,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -237,7 +219,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -266,7 +248,7 @@ class TestRedirectorPlugin(_Base):
             [('forget', '1')])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[1][0], 'Location')
         url = sr.headers[1][1]
         parts = urlparse(url)
@@ -293,13 +275,13 @@ class TestRedirectorPlugin(_Base):
             [])
         sr = DummyStartResponse()
         result = b''.join(app(environ, sr)).decode('ascii')
-        self.failUnless(result.startswith('302 Found'))
+        self.assertTrue(result.startswith('302 Found'))
         self.assertEqual(sr.headers[0][0], 'set-cookie')
         self.assertEqual(sr.headers[0][1], 'a')
         self.assertEqual(sr.headers[1][0], 'set-cookie')
         self.assertEqual(sr.headers[1][1], 'b')
 
-class Test_make_redirecting_plugin(_Base):
+class Test_make_redirecting_plugin(unittest.TestCase):
 
     def _callFUT(self, *args, **kw):
         from repoze.who.plugins.redirector import make_plugin
@@ -341,7 +323,7 @@ class Test_make_redirecting_plugin(_Base):
         self.assertEqual(plugin.reason_param, 'why')
         self.assertEqual(plugin.reason_header, 'X-Reason')
 
-class DummyIdentifier:
+class DummyIdentifier(object):
     forgotten = False
     remembered = False
 
@@ -352,19 +334,6 @@ class DummyIdentifier:
         self.forget_headers = forget_headers
         self.replace_app = replace_app
 
-    def identify(self, environ):
-        if self.replace_app:
-            environ['repoze.who.application'] = self.replace_app
-        return self.credentials
-
-    def forget(self, environ, identity):
-        self.forgotten = identity
-        return self.forget_headers
-
-    def remember(self, environ, identity):
-        self.remembered = identity
-        return self.remember_headers
-
 class DummyStartResponse:
     def __call__(self, status, headers, exc_info=None):
         self.status = status
@@ -372,15 +341,10 @@ class DummyStartResponse:
         self.exc_info = exc_info
         return []
 
-def encode_multipart_formdata(fields):
+def encode_multipart_formdata():
     BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
     CRLF = '\r\n'
     L = []
-    for (key, value) in fields:
-        L.append('--' + BOUNDARY)
-        L.append('Content-Disposition: form-data; name="%s"' % key)
-        L.append('')
-        L.append(value)
     L.append('--' + BOUNDARY + '--')
     L.append('')
     body = CRLF.join(L)

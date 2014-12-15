@@ -15,12 +15,6 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         if self._now_testing is not None:
             self._setNowTesting(self._now_testing)
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
     def _getTargetClass(self):
         from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
         return AuthTktCookiePlugin
@@ -40,7 +34,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         return plugin
 
     def _makeTicket(self, userid='userid', remote_addr='0.0.0.0',
-                    tokens = [], userdata='',
+                    tokens = [], userdata='userdata',
                     cookie_name='auth_tkt', secure=False,
                     time=None):
         #from paste.auth import auth_tkt
@@ -96,7 +90,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         environ = self._makeEnviron()
         result = plugin.identify(environ)
         self.assertEqual(result, None)
-
+        
     def test_identify_good_cookie_include_ip(self):
         plugin = self._makeOne('secret', include_ip=True)
         val = self._makeTicket(remote_addr='1.1.1.1', userdata='foo=123')
@@ -158,7 +152,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=bogus'})
         result = plugin.identify(environ)
         self.assertEqual(result, None)
-
+    
     def test_identify_bad_cookie_expired(self):
         import time
         plugin = self._makeOne('secret', timeout=2, reissue_time=1)
@@ -414,8 +408,12 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         old_val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
         userid = b'\xc2\xa9'.decode('utf-8')
+        if type(b'') == type(''):
+            userdata = 'userid_type=unicode'
+        else: # pragma: no cover Py3k
+            userdata = ''
         new_val = self._makeTicket(userid=userid.encode('utf-8'),
-                                   userdata='userid_type=unicode')
+                                   userdata=userdata)
         result = plugin.remember(environ, {'repoze.who.userid':userid,
                                            'userdata':{}})
         self.assertEqual(type(result[0][1]), str)
@@ -456,7 +454,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         name, value = result.pop(0)
 
         self.assertEqual('Set-Cookie', name)
-        self.failUnless(
+        self.assertTrue(
             value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
     def test_remember_max_age(self):
@@ -474,28 +472,28 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
 
         name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
-        self.failUnless(
+        self.assertTrue(
             value.startswith('auth_tkt="%s"; Path=/; Max-Age=500' % tkt),
             value)
-        self.failUnless(
+        self.assertTrue(
             value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
         name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
-        self.failUnless(
+        self.assertTrue(
             value.startswith(
                 'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
                 % tkt), value)
-        self.failUnless(
+        self.assertTrue(
             value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
         name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
-        self.failUnless(
+        self.assertTrue(
             value.startswith(
                 'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
             value)
-        self.failUnless(
+        self.assertTrue(
             value.endswith('; Expires=Sun, 08 Nov 2009 16:23:42 GMT'))
 
     def test_forget(self):
@@ -531,17 +529,17 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
     def test_authenticate_non_auth_tkt_credentials(self):
         plugin = self._makeOne()
         self.assertEqual(plugin.authenticate(environ={}, identity={}), None)
-
+    
     def test_authenticate_without_checker(self):
         plugin = self._makeOne()
         identity = {'repoze.who.plugins.auth_tkt.userid': 'phred'}
         self.assertEqual(plugin.authenticate({}, identity), 'phred')
-
+    
     def test_authenticate_with_checker_and_non_existing_account(self):
         plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
         identity = {'repoze.who.plugins.auth_tkt.userid': 'phred'}
         self.assertEqual(plugin.authenticate({}, identity), None)
-
+    
     def test_authenticate_with_checker_and_existing_account(self):
         plugin = self._makeOne('secret', userid_checker=dummy_userid_checker)
         identity = {'repoze.who.plugins.auth_tkt.userid': 'existing'}
@@ -602,27 +600,27 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                                            'max_age': u('500')})
         name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
-        self.failUnless(isinstance(value, str))
-        self.failUnless(
+        self.assertTrue(isinstance(value, str))
+        self.assertTrue(
             value.startswith('auth_tkt="%s"; Path=/; Max-Age=500' % tkt),
             (value, tkt))
-        self.failUnless('; Expires=' in value)
-
+        self.assertTrue('; Expires=' in value)
+        
         name,value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
-        self.failUnless(
+        self.assertTrue(
             value.startswith(
             'auth_tkt="%s"; Path=/; Domain=example.com; Max-Age=500'
             % tkt), value)
-        self.failUnless('; Expires=' in value)
+        self.assertTrue('; Expires=' in value)
 
         name,value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
-        self.failUnless(
+        self.assertTrue(
             value.startswith(
             'auth_tkt="%s"; Path=/; Domain=.example.com; Max-Age=500' % tkt),
             value)
-        self.failUnless('; Expires=' in value)
+        self.assertTrue('; Expires=' in value)
 
 
 def dummy_userid_checker(userid):

@@ -1,12 +1,7 @@
 import unittest
 
+
 class CompatTests(unittest.TestCase):
-
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
 
     def test_REQUEST_METHOD_miss(self):
         # PEP 3333 says CONTENT_TYPE is mandatory
@@ -48,7 +43,7 @@ class CompatTests(unittest.TestCase):
         from .._compat import SimpleCookie
         environ = {'HTTP_COOKIE': 'qux=spam'}
         cookies = get_cookies(environ)
-        self.failUnless(isinstance(cookies, SimpleCookie))
+        self.assertTrue(isinstance(cookies, SimpleCookie))
         self.assertEqual(len(cookies), 1)
         self.assertEqual(cookies['qux'].value, 'spam')
         self.assertEqual(environ['paste.cookies'], (cookies, 'qux=spam'))
@@ -60,7 +55,7 @@ class CompatTests(unittest.TestCase):
                    'paste.cookies': (object(), 'foo=bar'),
                   }
         cookies = get_cookies(environ)
-        self.failUnless(isinstance(cookies, SimpleCookie))
+        self.assertTrue(isinstance(cookies, SimpleCookie))
         self.assertEqual(len(cookies), 1)
         self.assertEqual(cookies['qux'].value, 'spam')
         self.assertEqual(environ['paste.cookies'], (cookies, 'qux=spam'))
@@ -74,7 +69,7 @@ class CompatTests(unittest.TestCase):
                    'paste.cookies': (existing, 'qux=spam'),
                   }
         cookies = get_cookies(environ)
-        self.failUnless(cookies is existing)
+        self.assertTrue(cookies is existing)
 
     def test_construct_url(self):
         from .._compat import construct_url
@@ -95,13 +90,13 @@ class CompatTests(unittest.TestCase):
     def test_must_decode_non_string(self):
         from .._compat import must_decode
         foo = object()
-        self.failUnless(must_decode(foo) is foo)
+        self.assertTrue(must_decode(foo) is foo)
 
     def test_must_decode_unicode(self):
         from .._compat import must_decode
         from .._compat import u
         foo = u('foo')
-        self.failUnless(must_decode(foo) is foo)
+        self.assertTrue(must_decode(foo) is foo)
 
     def test_must_decode_utf8(self):
         from .._compat import must_decode
@@ -116,7 +111,7 @@ class CompatTests(unittest.TestCase):
     def test_must_encode_non_string(self):
         from .._compat import must_encode
         foo = object()
-        self.failUnless(must_encode(foo) is foo)
+        self.assertTrue(must_encode(foo) is foo)
 
     def test_must_encode_unicode(self):
         from .._compat import must_encode
@@ -127,10 +122,10 @@ class CompatTests(unittest.TestCase):
     def test_must_encode_utf8(self):
         from .._compat import must_encode
         foo = b'b\xc3\xa2tard'
-        self.failUnless(must_encode(foo) is foo)
+        self.assertTrue(must_encode(foo) is foo)
 
     def test_must_encode_latin1(self):
         from .._compat import must_encode
         foo = b'b\xe2tard'
-        self.failUnless(must_encode(foo) is foo)
+        self.assertTrue(must_encode(foo) is foo)
 

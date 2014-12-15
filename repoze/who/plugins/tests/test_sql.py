@@ -1,14 +1,7 @@
 import unittest
 
-class _Base(unittest.TestCase):
 
-    def failUnless(self, predicate, message=''):
-        self.assertTrue(predicate, message) # Nannies go home!
-
-    def failIf(self, predicate, message=''):
-        self.assertFalse(predicate, message) # Nannies go home!
-
-class TestSQLAuthenticatorPlugin(_Base):
+class TestSQLAuthenticatorPlugin(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.plugins.sql import SQLAuthenticatorPlugin
@@ -18,11 +11,9 @@ class TestSQLAuthenticatorPlugin(_Base):
         plugin = self._getTargetClass()(*arg, **kw)
         return plugin
 
-    def _makeEnviron(self, kw=None):
+    def _makeEnviron(self):
         environ = {}
         environ['wsgi.version'] = (1,0)
-        if kw is not None:
-            environ.update(kw)
         return environ
 
     def test_implements(self):
@@ -75,7 +66,7 @@ class TestSQLAuthenticatorPlugin(_Base):
         self.assertEqual(dummy_factory.query, None)
         self.assertEqual(dummy_factory.closed, False)
 
-class TestDefaultPasswordCompare(_Base):
+class TestDefaultPasswordCompare(unittest.TestCase):
 
     def _getFUT(self):
         from repoze.who.plugins.sql import default_password_compare
@@ -84,9 +75,9 @@ class TestDefaultPasswordCompare(_Base):
     def _get_sha_hex_digest(self, clear='password'):
         try:
             from hashlib import sha1
-        except ImportError:
+        except ImportError:  # pragma: no cover Py3k
             from sha import new as sha1
-        if not isinstance(clear, type(b'')):
+        if not isinstance(clear, type(b'')):  # pragma: no cover Py3k
             clear = clear.encode('utf-8')
         return sha1(clear).hexdigest()
 
@@ -121,7 +112,7 @@ class TestDefaultPasswordCompare(_Base):
         result = compare('notpassword', stored)
         self.assertEqual(result, False)
 
-class TestSQLMetadataProviderPlugin(_Base):
+class TestSQLMetadataProviderPlugin(unittest.TestCase):
 
     def _getTargetClass(self):
         from repoze.who.plugins.sql import SQLMetadataProviderPlugin
@@ -149,9 +140,9 @@ class TestSQLMetadataProviderPlugin(_Base):
         self.assertEqual(dummy_factory.closed, True)
         self.assertEqual(identity['md'], [ [1,2,3] ])
         self.assertEqual(dummy_factory.query, 'select foo from bar')
-        self.failIf('__userid' in identity)
+        self.assertFalse('__userid' in identity)
 
-class TestMakeSQLAuthenticatorPlugin(_Base):
+class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
 
     def _getFUT(self):
         from repoze.who.plugins.sql import make_authenticator_plugin
@@ -188,7 +179,7 @@ class TestMakeSQLAuthenticatorPlugin(_Base):
         self.assertEqual(plugin.conn_factory, DummyConnFactory)
         self.assertEqual(plugin.compare_fn, make_dummy_connfactory)
 
-class TestMakeSQLMetadataProviderPlugin(_Base):
+class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
 
     def _getFUT(self):
         from repoze.who.plugins.sql import make_metadata_plugin
