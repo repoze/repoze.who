@@ -88,6 +88,13 @@ authentication, identification, challenge and metadata provision.
    <http://westpoint.ltd.uk/advisories/Paul_Johnston_GSEC.pdf>`_ reports
    that as many as 3% of users change their IP addresses legitimately
    during a session.
+   
+.. note::
+   Plugin supports remembering user data in the cookie by saving user dict into ``identity['userdata']``
+   parameter of ``remember`` method. They are sent unencrypted and protected by checksum.
+   Data will then be returned every time by ``identify``. This dict must be compatible with
+   ``urllib.urlencode`` function (``urllib.urlparse.urlencode`` in python 3).
+   Saving keys/values with unicode characters is supported only under python 3.
 
 .. module:: repoze.who.plugins.basicauth
 
