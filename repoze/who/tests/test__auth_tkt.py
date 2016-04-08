@@ -70,7 +70,7 @@ class AuthTicketTests(unittest.TestCase):
         cookie = tkt.cookie()
         self.assertEqual(cookie['oatmeal'].value,
                          encodestring('%s%08xUSERID!' % (digest, _WHEN)
-                                     ).strip())
+                                     ).strip().replace('\n', ''))
         self.assertEqual(cookie['oatmeal']['path'], '/')
         self.assertEqual(cookie['oatmeal']['secure'], '')
 
@@ -85,7 +85,7 @@ class AuthTicketTests(unittest.TestCase):
         cookie = tkt.cookie()
         self.assertEqual(cookie['oatmeal'].value,
                          encodestring('%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
-                                     ).strip())
+                                     ).strip().replace('\n', ''))
         self.assertEqual(cookie['oatmeal']['path'], '/')
         self.assertEqual(cookie['oatmeal']['secure'], 'true')
  
@@ -112,15 +112,17 @@ class BadTicketTests(unittest.TestCase):
 
 class Test_parse_ticket(unittest.TestCase):
 
-    def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4'):
+    def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4',
+                 digest_algorithm=None):
         from .._auth_tkt import parse_ticket
-        return parse_ticket(secret, ticket, ip)
+        return parse_ticket(secret, ticket, ip,
+                            digest_algorithm=digest_algorithm)
 
     def test_bad_timestamp(self):
         from .._auth_tkt import BadTicket
         TICKET = '12345678901234567890123456789012XXXXXXXXuserid!'
         try:
-            self._callFUT(ticket=TICKET)
+            self._callFUT(ticket=TICKET, digest_algorithm='md5')
         except BadTicket as e:
             self.assertTrue(e.args[0].startswith(
                             'Timestamp is not a hex integer:'))
@@ -131,7 +133,7 @@ class Test_parse_ticket(unittest.TestCase):
         from .._auth_tkt import BadTicket
         TICKET = '1234567890123456789012345678901201020304userid'
         try:
-            self._callFUT(ticket=TICKET)
+            self._callFUT(ticket=TICKET, digest_algorithm='md5')
         except BadTicket as e:
             self.assertEqual(e.args[0], 'userid is not followed by !')
         else:  # pragma: no cover
@@ -141,7 +143,7 @@ class Test_parse_ticket(unittest.TestCase):
         from .._auth_tkt import BadTicket
         TICKET = '1234567890123456789012345678901201020304userid!'
         try:
-            self._callFUT(ticket=TICKET)
+            self._callFUT(ticket=TICKET, digest_algorithm='md5')
         except BadTicket as e:
             self.assertEqual(e.args[0], 'Digest signature is not correct')
         else:  # pragma: no cover
