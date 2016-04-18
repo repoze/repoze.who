@@ -36,13 +36,19 @@ it's primary benefit is compatibility with mod_auth_tkt, which in turn
 makes it possible to use the same authentication process with
 non-Python code run under Apache.
 """
-from hashlib import md5
 import time as time_mod
+try:
+    import hashlib
+except ImportError:
+    # mimic hashlib (will work for md5, fail for secure hashes)
+    import md5 as hashlib
 
 from repoze.who._compat import encodestring
 from repoze.who._compat import SimpleCookie
 from repoze.who._compat import url_quote
 from repoze.who._compat import url_unquote
+
+DEFAULT_DIGEST = hashlib.md5
 
 
 class AuthTicket(object):
@@ -52,8 +58,9 @@ class AuthTicket(object):
     the shared secret, the userid, and the IP address.  Optionally you
     can include tokens (a list of strings, representing role names),
     'user_data', which is arbitrary data available for your own use in
-    later scripts.  Lastly, you can override the cookie name and
-    timestamp.
+    later scripts.  Lastly, you can override the timestamp, cookie name,
+    whether to secure the cookie and the digest algorithm (for details
+    look at ``AuthTKTMiddleware``).
 
     Once you provide all the arguments, use .cookie_value() to
     generate the appropriate authentication ticket.  .cookie()
@@ -64,10 +71,10 @@ class AuthTicket(object):
 
         token = auth_tkt.AuthTick('sharedsecret', 'username',
             os.environ['REMOTE_ADDR'], tokens=['admin'])
-        print 'Status: 200 OK'
-        print 'Content-type: text/html'
-        print token.cookie()
-        print
+        print('Status: 200 OK')
+        print('Content-type: text/html')
+        print(token.cookie())
+        print("")
         ... redirect HTML ...
 
     Webware usage::
@@ -83,7 +90,7 @@ class AuthTicket(object):
 
     def __init__(self, secret, userid, ip, tokens=(), user_data='',
                  time=None, cookie_name='auth_tkt',
-                 secure=False):
+                 secure=False, digest_algo=DEFAULT_DIGEST):
         self.secret = secret
         self.userid = userid
         self.ip = ip
@@ -95,11 +102,16 @@ class AuthTicket(object):
             self.time = time
         self.cookie_name = cookie_name
         self.secure = secure
+        if isinstance(digest_algo, str):
+            # correct specification of digest from hashlib or fail
+            self.digest_algo = getattr(hashlib, digest_algo)
+        else:
+            self.digest_algo = digest_algo
 
     def digest(self):
         return calculate_digest(
             self.ip, self.time, self.secret, self.userid, self.tokens,
-            self.user_data)
+            self.user_data, self.digest_algo)
 
     def cookie_value(self):
         v = '%s%08x%s!' % (self.digest(), int(self.time),
@@ -132,21 +144,25 @@ class BadTicket(Exception):
         Exception.__init__(self, msg)
 
 
-def parse_ticket(secret, ticket, ip):
+def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
     """
     Parse the ticket, returning (timestamp, userid, tokens, user_data).
 
     If the ticket cannot be parsed, ``BadTicket`` will be raised with
     an explanation.
     """
+    if isinstance(digest_algo, str):
+        # correct specification of digest from hashlib or fail
+        digest_algo = getattr(hashlib, digest_algo)
+    digest_hexa_size = digest_algo().digest_size * 2
     ticket = ticket.strip('"')
-    digest = ticket[:32]
+    digest = ticket[:digest_hexa_size]
     try:
-        timestamp = int(ticket[32:40], 16)
+        timestamp = int(ticket[digest_hexa_size:digest_hexa_size + 8], 16)
     except ValueError as e:
         raise BadTicket('Timestamp is not a hex integer: %s' % e)
     try:
-        userid, data = ticket[40:].split('!', 1)
+        userid, data = ticket[digest_hexa_size + 8:].split('!', 1)
     except ValueError:
         raise BadTicket('userid is not followed by !')
     userid = url_unquote(userid)
@@ -158,7 +174,8 @@ def parse_ticket(secret, ticket, ip):
         user_data = data
 
     expected = calculate_digest(ip, timestamp, secret,
-                                userid, tokens, user_data)
+                                userid, tokens, user_data,
+                                digest_algo)
 
     if expected != digest:
         raise BadTicket('Digest signature is not correct',
@@ -169,15 +186,16 @@ def parse_ticket(secret, ticket, ip):
     return (timestamp, userid, tokens, user_data)
 
 
-def calculate_digest(ip, timestamp, secret, userid, tokens, user_data):
+def calculate_digest(ip, timestamp, secret, userid, tokens, user_data,
+                     digest_algo):
     secret = maybe_encode(secret)
     userid = maybe_encode(userid)
     tokens = maybe_encode(tokens)
     user_data = maybe_encode(user_data)
-    digest0 = md5(
+    digest0 = digest_algo(
         encode_ip_timestamp(ip, timestamp) + secret + userid + b'\0'
         + tokens + b'\0' + user_data).hexdigest()
-    digest = md5(maybe_encode(digest0) + secret).hexdigest()
+    digest = digest_algo(maybe_encode(digest0) + secret).hexdigest()
     return digest
 
 
