@@ -2,6 +2,9 @@
 language: python
 sudo : false
 
+python:
+    - "3.5"
+
 env:
   - TOXENV=py26
   - TOXENV=py27
@@ -13,7 +16,8 @@ env:
   - TOXENV=cover
 
 install:
-  - travis_retry pip install tox
+  # virtualenv >= 14.0.0 has dropped support for Python 3.2
+  - travis_retry pip install "virtualenv<14.0.0" tox
 
 script:
   - travis_retry tox
