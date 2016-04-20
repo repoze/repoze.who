@@ -69,7 +69,8 @@ authentication, identification, challenge and metadata provision.
 
   An :class:`AuthTktCookiePlugin` is an ``IIdentifier`` and ``IAuthenticator``
   plugin which remembers its identity state in a client-side cookie.
-  This plugin uses the ``paste.auth.auth_tkt``"auth ticket" protocol.
+  This plugin uses the ``paste.auth.auth_tkt``"auth ticket" protocol and
+  is compatible with Apache's mod_auth_tkt.
   It should be instantiated passing a *secret*, which is used to encrypt the
   cookie on the client side and decrypt the cookie on the server side.
   The cookie name used to store the cookie value can be specified
@@ -95,6 +96,13 @@ authentication, identification, challenge and metadata provision.
    Data will then be returned every time by ``identify``. This dict must be compatible with
    ``urllib.urlencode`` function (``urllib.urlparse.urlencode`` in python 3).
    Saving keys/values with unicode characters is supported only under python 3.
+
+.. note::
+   Plugin supports multiple digest algorithms. It defaults to md5 to match
+   the default for mod_auth_tkt and paste.auth.auth_tkt. However md5 is not
+   recommended as there are viable attacks against the hash. Any algorithm
+   from the hashlib library can be specified, currently only sha256 and sha512
+   are supported by mod_auth_tkt.
 
 .. module:: repoze.who.plugins.basicauth
 

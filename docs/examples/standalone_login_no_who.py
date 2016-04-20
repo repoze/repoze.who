@@ -75,7 +75,8 @@ def login(environ, start_response):
         if _validate(login_name, password):
             headers = [('Location', came_from)]
             ticket = auth_tkt.AuthTicket(SECRET, login_name, remote_addr,
-                                         cookie_name=COOKIE_NAME, secure=True)
+                                         cookie_name=COOKIE_NAME, secure=True,
+                                         digest_algo="sha512")
             headers = _get_cookies(environ, ticket.cookie_value())
             headers.append(('Location', came_from))
             start_response('302 Found', headers)
