@@ -5,6 +5,10 @@ from codecs import utf_8_decode
 from codecs import utf_8_encode
 import os
 import time
+try:
+    import hashlib
+except ImportError:
+    import md5 as hashlib # Will only support md5 algorithm
 from wsgiref.handlers import _monthname     # Locale-independent, RFC-2616
 from wsgiref.handlers import _weekdayname   # Locale-independent, RFC-2616
 try:
@@ -28,6 +32,7 @@ def _utcnow():  #pragma NO COVERAGE
         return _UTCNOW
     return datetime.datetime.utcnow()
 
+DEFAULT_DIGEST = hashlib.md5
 
 @implementer(IIdentifier, IAuthenticator)
 class AuthTktCookiePlugin(object):
@@ -51,7 +56,8 @@ class AuthTktCookiePlugin(object):
  
     def __init__(self, secret, cookie_name='auth_tkt',
                  secure=False, include_ip=False,
-                 timeout=None, reissue_time=None, userid_checker=None):
+                 timeout=None, reissue_time=None, userid_checker=None,
+                 digest_algo=DEFAULT_DIGEST):
         self.secret = secret
         self.cookie_name = cookie_name
         self.include_ip = include_ip
@@ -62,6 +68,7 @@ class AuthTktCookiePlugin(object):
         self.timeout = timeout
         self.reissue_time = reissue_time
         self.userid_checker = userid_checker
+        self.digest_algo = digest_algo
 
     # IIdentifier
     def identify(self, environ):
@@ -78,7 +85,7 @@ class AuthTktCookiePlugin(object):
         
         try:
             timestamp, userid, tokens, user_data = auth_tkt.parse_ticket(
-                self.secret, cookie.value, remote_addr)
+                self.secret, cookie.value, remote_addr, self.digest_algo)
         except auth_tkt.BadTicket:
             return None
 
@@ -126,7 +133,8 @@ class AuthTktCookiePlugin(object):
         if old_cookie_value:
             try:
                 timestamp,userid,tokens,userdata = auth_tkt.parse_ticket(
-                    self.secret, old_cookie_value, remote_addr)
+                    self.secret, old_cookie_value, remote_addr,
+                    self.digest_algo)
             except auth_tkt.BadTicket:
                 pass
         tokens = tuple(tokens)
@@ -155,7 +163,8 @@ class AuthTktCookiePlugin(object):
                 tokens=who_tokens,
                 user_data=who_userdata,
                 cookie_name=self.cookie_name,
-                secure=self.secure)
+                secure=self.secure,
+                digest_algo=self.digest_algo)
             new_cookie_value = ticket.cookie_value()
             
             if old_cookie_value != new_cookie_value:
@@ -226,6 +235,7 @@ def make_plugin(secret=None,
                 timeout=None,
                 reissue_time=None,
                 userid_checker=None,
+                digest_algo=DEFAULT_DIGEST,
                ):
     from repoze.who.utils import resolveDotted
     if (secret is None and secretfile is None):
@@ -244,6 +254,12 @@ def make_plugin(secret=None,
         reissue_time = int(reissue_time)
     if userid_checker is not None:
         userid_checker = resolveDotted(userid_checker)
+    if isinstance(digest_algo, str):
+        try:
+            digest_algo = getattr(hashlib, digest_algo)
+        except AttributeError:
+            raise ValueError("No such 'digest_algo': %s" % digest_algo)
+
     plugin = AuthTktCookiePlugin(secret,
                                  cookie_name,
                                  _bool(secure),
@@ -251,6 +267,7 @@ def make_plugin(secret=None,
                                  timeout,
                                  reissue_time,
                                  userid_checker,
+                                 digest_algo,
                                  )
     return plugin
 

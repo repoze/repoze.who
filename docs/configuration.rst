@@ -103,7 +103,7 @@ An example configuration which uses the default plugins follows::
         return password == hashed
     htpasswd = HTPasswdPlugin(io, cleartext_check)
     basicauth = BasicAuthPlugin('repoze.who')
-    auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
+    auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt', digest_algo="sha512")
     redirector = RedirectorPlugin('/login.html')
     redirector.classifications = {IChallenger:['browser'],} # only for browser
     identifiers = [('auth_tkt', auth_tkt),
@@ -220,6 +220,7 @@ nominated to act as authenticator plugins. ::
     cookie_name = oatmeal
     secure = False
     include_ip = False
+    digest_algo = sha512
 
     [plugin:basicauth]
     # identification and challenge

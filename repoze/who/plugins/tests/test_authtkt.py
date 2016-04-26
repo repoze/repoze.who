@@ -36,8 +36,7 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
     def _makeTicket(self, userid='userid', remote_addr='0.0.0.0',
                     tokens = [], userdata='userdata',
                     cookie_name='auth_tkt', secure=False,
-                    time=None):
-        #from paste.auth import auth_tkt
+                    time=None, digest_algo="md5"):
         import repoze.who._auth_tkt as auth_tkt
         ticket = auth_tkt.AuthTicket(
             'secret',
@@ -47,7 +46,8 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
             user_data=userdata,
             time=time,
             cookie_name=cookie_name,
-            secure=secure)
+            secure=secure,
+            digest_algo=digest_algo)
         return ticket.cookie_value()
 
     def _setNowTesting(self, value):
@@ -175,6 +175,30 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         self.assertEqual(environ['REMOTE_USER_DATA'],'foo=123')
         self.assertEqual(environ['AUTH_TYPE'],'cookie')
 
+    def test_identify_with_alternate_hash(self):
+        plugin = self._makeOne('secret', include_ip=False, digest_algo="sha256")
+        val = self._makeTicket(userdata='foo=123', digest_algo="sha256")
+        md5_val = self._makeTicket(userdata='foo=123')
+        self.assertNotEqual(val, md5_val)
+        # md5 is 16*2 characters long, sha256 is 32*2
+        self.assertEqual(len(val), len(md5_val)+32)
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        result = plugin.identify(environ)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result['tokens'], [''])
+        self.assertEqual(result['repoze.who.plugins.auth_tkt.userid'], 'userid')
+        self.assertEqual(result['userdata'], {'foo': '123'})
+        self.assertTrue('timestamp' in result)
+        self.assertEqual(environ['REMOTE_USER_TOKENS'], [''])
+        self.assertEqual(environ['REMOTE_USER_DATA'],'foo=123')
+        self.assertEqual(environ['AUTH_TYPE'],'cookie')
+
+    def test_identify_bad_cookie_with_alternate_hash(self):
+        plugin = self._makeOne('secret', include_ip=True, digest_algo="sha256")
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=bogus'})
+        result = plugin.identify(environ)
+        self.assertEqual(result, None)
+    
     def test_remember_creds_same(self):
         plugin = self._makeOne('secret')
         val = self._makeTicket(userid='userid', userdata='foo=123')
@@ -182,6 +206,67 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
         result = plugin.remember(environ, {'repoze.who.userid':'userid',
                                            'userdata':{'foo': '123'}})
         self.assertEqual(result, None)
+
+    def test_remember_creds_same_alternate_hash(self):
+        plugin = self._makeOne('secret', digest_algo="sha1")
+        val = self._makeTicket(userid='userid', userdata='foo=123', digest_algo="sha1")
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % val})
+        result = plugin.remember(environ, {'repoze.who.userid':'userid',
+                                           'userdata':{'foo': '123'}})
+        self.assertEqual(result, None)
+
+    def test_remember_creds_hash_mismatch(self):
+        plugin = self._makeOne('secret', digest_algo="sha1")
+        old_val = self._makeTicket(userid='userid', userdata='foo=123', digest_algo="md5")
+        new_val = self._makeTicket(userid='userid', userdata='foo=123', digest_algo="sha1")
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
+        result = plugin.remember(environ, {'repoze.who.userid':'userid',
+                                           'userdata':{'foo': '123'}})
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt="%s"; '
+                          'Path=/' % new_val))
+        self.assertEqual(result[1],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost'
+                            % new_val))
+        self.assertEqual(result[2],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost'
+                            % new_val))
+
+    def test_remember_creds_secure_alternate_hash(self):
+        plugin = self._makeOne('secret', secure=True, digest_algo="sha512")
+        val = self._makeTicket(userid='userid', secure=True, userdata='foo=123', digest_algo="sha512")
+        environ = self._makeEnviron()
+        result = plugin.remember(environ, {'repoze.who.userid':'userid',
+                                           'userdata':{'foo':'123'}})
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt="%s"; '
+                          'Path=/; '
+                          'secure; '
+                          'HttpOnly' % val))
+        self.assertEqual(result[1],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost; '
+                           'secure; HttpOnly'
+                            % val))
+        self.assertEqual(result[2],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost; '
+                           'secure; HttpOnly'
+                            % val))
 
     def test_remember_creds_secure(self):
         plugin = self._makeOne('secret', secure=True)
@@ -437,6 +522,22 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                          ('Set-Cookie',
                           'auth_tkt="%s"; Path=/' % new_val))
 
+    def test_remember_creds_reissue_alternate_hash(self):
+        import time
+        plugin = self._makeOne('secret', reissue_time=1, digest_algo="sha256")
+        old_val = self._makeTicket(userid='userid', userdata='',
+                                   time=time.time()-2, digest_algo="sha256")
+        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
+        new_val = self._makeTicket(userid='userid', userdata='',
+                                   digest_algo="sha256")
+        result = plugin.remember(environ, {'repoze.who.userid':'userid',
+                                           'userdata':''})
+        self.assertEqual(type(result[0][1]), str)
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt="%s"; Path=/' % new_val))
+
     def test_l10n_sane_cookie_date(self):
         from datetime import datetime
 
@@ -590,6 +691,23 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
             'secret',
             userid_checker='repoze.who.plugins.auth_tkt:make_plugin')
         self.assertEqual(plugin.userid_checker, make_plugin)
+
+    def test_factory_with_alternate_hash(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        import hashlib
+        plugin = make_plugin('secret', digest_algo="sha1")
+        self.assertEqual(plugin.digest_algo, hashlib.sha1)
+
+    def test_factory_with_alternate_hash_func(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        import hashlib
+        plugin = make_plugin('secret', digest_algo=hashlib.sha1)
+        self.assertEqual(plugin.digest_algo, hashlib.sha1)
+
+    def test_factory_with_bogus_hash(self):
+        from repoze.who.plugins.auth_tkt import make_plugin
+        self.assertRaises(ValueError, make_plugin,
+                          secret="fiddly", digest_algo='foo23')
 
     def test_remember_max_age_unicode(self):
         from repoze.who._compat import u

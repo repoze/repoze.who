@@ -11,6 +11,7 @@ class AuthTicketTests(unittest.TestCase):
         return self._getTargetClass()(*args, **kw)
 
     def test_ctor_defaults(self):
+        import hashlib
         from .. import _auth_tkt
         with _Monkey(_auth_tkt, time_mod=_Timemod):
             tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4')
@@ -22,11 +23,14 @@ class AuthTicketTests(unittest.TestCase):
         self.assertEqual(tkt.time, _WHEN)
         self.assertEqual(tkt.cookie_name, 'auth_tkt')
         self.assertEqual(tkt.secure, False)
+        self.assertEqual(tkt.digest_algo, hashlib.md5)
 
     def test_ctor_explicit(self):
+        import hashlib
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=('a', 'b'),
                             user_data='DATA', time=_WHEN,
-                            cookie_name='oatmeal', secure=True)
+                            cookie_name='oatmeal', secure=True,
+                            digest_algo=hashlib.sha512)
         self.assertEqual(tkt.secret, 'SEEKRIT')
         self.assertEqual(tkt.userid, 'USERID')
         self.assertEqual(tkt.ip, '1.2.3.4')
@@ -35,38 +39,55 @@ class AuthTicketTests(unittest.TestCase):
         self.assertEqual(tkt.time, _WHEN)
         self.assertEqual(tkt.cookie_name, 'oatmeal')
         self.assertEqual(tkt.secure, True)
+        self.assertEqual(tkt.digest_algo, hashlib.sha512)
+
+    def test_ctor_string_algorithm(self):
+        import hashlib
+        tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=('a', 'b'),
+                            user_data='DATA', time=_WHEN,
+                            cookie_name='oatmeal', secure=True,
+                            digest_algo='sha1')
+        self.assertEqual(tkt.secret, 'SEEKRIT')
+        self.assertEqual(tkt.userid, 'USERID')
+        self.assertEqual(tkt.ip, '1.2.3.4')
+        self.assertEqual(tkt.tokens, 'a,b')
+        self.assertEqual(tkt.user_data, 'DATA')
+        self.assertEqual(tkt.time, _WHEN)
+        self.assertEqual(tkt.cookie_name, 'oatmeal')
+        self.assertEqual(tkt.secure, True)
+        self.assertEqual(tkt.digest_algo, hashlib.sha1)
 
     def test_digest(self):
-        from .._auth_tkt import calculate_digest
+        from .._auth_tkt import calculate_digest, hashlib
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=('a', 'b'),
                             user_data='DATA', time=_WHEN,
                             cookie_name='oatmeal', secure=True)
         digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
-                                  'a,b', 'DATA')
+                                  'a,b', 'DATA', hashlib.md5)
         self.assertEqual(tkt.digest(), digest)
 
     def test_cookie_value_wo_tokens_or_userdata(self):
-        from .._auth_tkt import calculate_digest
+        from .._auth_tkt import calculate_digest, hashlib
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', time=_WHEN)
-        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '')
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '', hashlib.md5)
         self.assertEqual(tkt.cookie_value(),
                          '%s%08xUSERID!' % (digest, _WHEN))
 
     def test_cookie_value_w_tokens_and_userdata(self):
-        from .._auth_tkt import calculate_digest
+        from .._auth_tkt import calculate_digest, hashlib
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=('a', 'b'),
                             user_data='DATA', time=_WHEN)
         digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
-                                  'a,b', 'DATA')
+                                  'a,b', 'DATA', hashlib.md5)
         self.assertEqual(tkt.cookie_value(),
                          '%s%08xUSERID!a,b!DATA' % (digest, _WHEN))
 
     def test_cookie_not_secure_wo_tokens_or_userdata(self):
-        from .._auth_tkt import calculate_digest
+        from .._auth_tkt import calculate_digest, hashlib
         from .._compat import encodestring
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', time=_WHEN,
                             cookie_name='oatmeal')
-        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '')
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '', hashlib.md5)
         cookie = tkt.cookie()
         self.assertEqual(cookie['oatmeal'].value,
                          encodestring('%s%08xUSERID!' % (digest, _WHEN)
@@ -75,13 +96,13 @@ class AuthTicketTests(unittest.TestCase):
         self.assertEqual(cookie['oatmeal']['secure'], '')
 
     def test_cookie_secure_w_tokens_and_userdata(self):
-        from .._auth_tkt import calculate_digest
+        from .._auth_tkt import calculate_digest, hashlib
         from .._compat import encodestring
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=('a', 'b'),
                             user_data='DATA', time=_WHEN,
                             cookie_name='oatmeal', secure=True)
         digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
-                                  'a,b', 'DATA')
+                                  'a,b', 'DATA', hashlib.md5)
         cookie = tkt.cookie()
         self.assertEqual(cookie['oatmeal'].value,
                          encodestring('%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
@@ -112,9 +133,9 @@ class BadTicketTests(unittest.TestCase):
 
 class Test_parse_ticket(unittest.TestCase):
 
-    def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4'):
+    def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4', digest="md5"):
         from .._auth_tkt import parse_ticket
-        return parse_ticket(secret, ticket, ip)
+        return parse_ticket(secret, ticket, ip, digest)
 
     def test_bad_timestamp(self):
         from .._auth_tkt import BadTicket
@@ -148,8 +169,8 @@ class Test_parse_ticket(unittest.TestCase):
             self.fail('Did not raise')
 
     def test_wo_tokens_or_data_ok_digest(self):
-        from .._auth_tkt import calculate_digest
-        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '')
+        from .._auth_tkt import calculate_digest, hashlib
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '', hashlib.md5)
         TICKET = '%s%08xUSERID!' % (digest, _WHEN)
         timestamp, userid, tokens, user_data = self._callFUT(ticket=TICKET)
         self.assertEqual(timestamp, _WHEN)
@@ -158,11 +179,22 @@ class Test_parse_ticket(unittest.TestCase):
         self.assertEqual(user_data, '')
 
     def test_w_tokens_and_data_ok_digest(self):
-        from .._auth_tkt import calculate_digest
+        from .._auth_tkt import calculate_digest, hashlib
         digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
-                                  'a,b', 'DATA')
+                                  'a,b', 'DATA', hashlib.md5)
         TICKET = '%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
         timestamp, userid, tokens, user_data = self._callFUT(ticket=TICKET)
+        self.assertEqual(timestamp, _WHEN)
+        self.assertEqual(userid, 'USERID')
+        self.assertEqual(tokens, ['a', 'b'])
+        self.assertEqual(user_data, 'DATA')
+
+    def test_w_tokens_and_data_ok_alternate_digest(self):
+        from .._auth_tkt import calculate_digest, hashlib
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
+                                  'a,b', 'DATA', hashlib.sha256)
+        TICKET = '%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
+        timestamp, userid, tokens, user_data = self._callFUT(ticket=TICKET, digest=hashlib.sha256)
         self.assertEqual(timestamp, _WHEN)
         self.assertEqual(userid, 'USERID')
         self.assertEqual(tokens, ['a', 'b'])
@@ -171,7 +203,7 @@ class Test_parse_ticket(unittest.TestCase):
 
 class Test_helpers(unittest.TestCase):
 
-    # calculate_digest is not very testable, and fully exercised throug callers.
+    # calculate_digest is not very testable, and fully exercised through callers.
 
     def test_ints_to_bytes(self):
         from struct import pack

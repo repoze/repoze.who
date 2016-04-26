@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
     ## other plugins
     basicauth = BasicAuthPlugin('repoze.who')
-    auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
+    auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt', digest_algo="sha512")
     redirector = RedirectorPlugin(login_url='/login.html')
     redirector.classifications = {IChallenger:['browser'] } # only for browser
 

@@ -44,6 +44,7 @@ secret = s33kr1t
 cookie_name = auth_cookie
 secure = True
 include_ip = True
+digest_algo = sha512
 
 [general]
 request_classifier = repoze.who.classifiers:default_request_classifier
