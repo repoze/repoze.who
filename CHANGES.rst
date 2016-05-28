@@ -1,14 +1,16 @@
 repoze.who Changelog
 ====================
 
-Unreleased
-----------
+2.3 (unreleased)
+----------------
+
+- Add support for Python 3.4, PyPy3.
+
+- Drop support for Python 2.6 and 3.2.
 
 - ``plugins.auth_tkt``:  Fix storage of "userdata" to save dict.  Fixes
   https://github.com/repoze/repoze.who/issues/14 via
   https://github.com/repoze/repoze.who/pull/18.
-
-- Add support for Python 3.4, PyPy3.
 
 - middleware:  avoid UnboundLocalError when wrapped generater yields no
   items.  See:  http://bugs.repoze.org/issue184
