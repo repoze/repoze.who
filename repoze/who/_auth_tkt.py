@@ -36,13 +36,21 @@ it's primary benefit is compatibility with mod_auth_tkt, which in turn
 makes it possible to use the same authentication process with
 non-Python code run under Apache.
 """
-from hashlib import md5
 import time as time_mod
 
 from repoze.who._compat import encodestring
 from repoze.who._compat import SimpleCookie
 from repoze.who._compat import url_quote
 from repoze.who._compat import url_unquote
+
+try:
+    import hashlib
+    #from hashlib import md5
+except ImportError:
+    import md5 as hashlib
+    DEFAULT_DIGEST = hashlib.new
+else:
+    DEFAULT_DIGEST = hashlib.sha256
 
 
 class AuthTicket(object):
@@ -83,7 +91,7 @@ class AuthTicket(object):
 
     def __init__(self, secret, userid, ip, tokens=(), user_data='',
                  time=None, cookie_name='auth_tkt',
-                 secure=False):
+                 secure=False, digest_algorithm=DEFAULT_DIGEST):
         self.secret = secret
         self.userid = userid
         self.ip = ip
@@ -95,11 +103,15 @@ class AuthTicket(object):
             self.time = time
         self.cookie_name = cookie_name
         self.secure = secure
+        if isinstance(digest_algorithm, str):
+            self.digest_algorithm = getattr(hashlib, digest_algorithm)
+        else:
+            self.digest_algorithm = digest_algorithm
 
     def digest(self):
         return calculate_digest(
             self.ip, self.time, self.secret, self.userid, self.tokens,
-            self.user_data)
+            self.user_data, self.digest_algorithm)
 
     def cookie_value(self):
         v = '%s%08x%s!' % (self.digest(), int(self.time),
@@ -132,7 +144,7 @@ class BadTicket(Exception):
         Exception.__init__(self, msg)
 
 
-def parse_ticket(secret, ticket, ip):
+def parse_ticket(secret, ticket, ip, digest_algorithm=DEFAULT_DIGEST):
     """
     Parse the ticket, returning (timestamp, userid, tokens, user_data).
 
@@ -140,13 +152,23 @@ def parse_ticket(secret, ticket, ip):
     an explanation.
     """
     ticket = ticket.strip('"')
-    digest = ticket[:32]
+    if isinstance(digest_algorithm, str):
+        digest_algorithm = getattr(hashlib, digest_algorithm)
+    if digest_algorithm is None:
+        digest_algorithm = DEFAULT_DIGEST
     try:
-        timestamp = int(ticket[32:40], 16)
+        digest_func = digest_algorithm()
+        digest_size = digest_func.digest_size * 2
+    except:
+        digest_func = digest_algorithm
+        digest_size = digest_func.digest_size * 2
+    digest = ticket[:digest_size]
+    try:
+        timestamp = int(ticket[digest_size:digest_size+8], 16)
     except ValueError as e:
         raise BadTicket('Timestamp is not a hex integer: %s' % e)
     try:
-        userid, data = ticket[40:].split('!', 1)
+        userid, data = ticket[digest_size+8:].split('!', 1)
     except ValueError:
         raise BadTicket('userid is not followed by !')
     userid = url_unquote(userid)
@@ -157,8 +179,12 @@ def parse_ticket(secret, ticket, ip):
         tokens = ''
         user_data = data
 
+    if isinstance(digest_algorithm, str):
+        digest_algorithm = getattr(hashlib, digest_algorithm)
+
     expected = calculate_digest(ip, timestamp, secret,
-                                userid, tokens, user_data)
+                                userid, tokens, user_data,
+                                digest_algorithm)
 
     if expected != digest:
         raise BadTicket('Digest signature is not correct',
@@ -169,15 +195,16 @@ def parse_ticket(secret, ticket, ip):
     return (timestamp, userid, tokens, user_data)
 
 
-def calculate_digest(ip, timestamp, secret, userid, tokens, user_data):
+def calculate_digest(ip, timestamp, secret, userid, tokens, user_data,
+                     digest_algorithm=DEFAULT_DIGEST):
     secret = maybe_encode(secret)
     userid = maybe_encode(userid)
     tokens = maybe_encode(tokens)
     user_data = maybe_encode(user_data)
-    digest0 = md5(
+    digest0 = digest_algorithm(
         encode_ip_timestamp(ip, timestamp) + secret + userid + b'\0'
         + tokens + b'\0' + user_data).hexdigest()
-    digest = md5(maybe_encode(digest0) + secret).hexdigest()
+    digest = digest_algorithm(maybe_encode(digest0) + secret).hexdigest()
     return digest
 
 
