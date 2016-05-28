@@ -20,7 +20,7 @@ from repoze.who._compat import ParsingError
 
 def _resolve(name):
     if name:
-        return EntryPoint.parse('x=%s' % name).load(False)
+        return EntryPoint.parse('x=%s' % name).resolve()
 
 class WhoConfig:
     def __init__(self, here):

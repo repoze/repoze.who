@@ -29,5 +29,5 @@ def make_authenticated_restriction(app, global_config, enabled=True):
 def make_predicate_restriction(app, global_config,
                                predicate, enabled=True, **kw):
     if isinstance(predicate, STRING_TYPES):
-        predicate = EntryPoint.parse('x=%s' % predicate).load(False)
+        predicate = EntryPoint.parse('x=%s' % predicate).resolve()
     return PredicateRestriction(app, predicate, enabled, **kw)
