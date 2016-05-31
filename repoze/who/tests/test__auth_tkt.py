@@ -69,7 +69,8 @@ class AuthTicketTests(unittest.TestCase):
     def test_cookie_value_wo_tokens_or_userdata(self):
         from .._auth_tkt import calculate_digest, hashlib
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', time=_WHEN)
-        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '', hashlib.md5)
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
+                                  '', '', hashlib.md5)
         self.assertEqual(tkt.cookie_value(),
                          '%s%08xUSERID!' % (digest, _WHEN))
 
@@ -87,7 +88,8 @@ class AuthTicketTests(unittest.TestCase):
         from .._compat import encodestring
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', time=_WHEN,
                             cookie_name='oatmeal')
-        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '', hashlib.md5)
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
+                                  '', '', hashlib.md5)
         cookie = tkt.cookie()
         self.assertEqual(cookie['oatmeal'].value,
                          encodestring('%s%08xUSERID!' % (digest, _WHEN)
@@ -133,7 +135,8 @@ class BadTicketTests(unittest.TestCase):
 
 class Test_parse_ticket(unittest.TestCase):
 
-    def _callFUT(self, secret='SEEKRIT', ticket=None, ip='1.2.3.4', digest="md5"):
+    def _callFUT(self, secret='SEEKRIT', ticket=None,
+                 ip='1.2.3.4', digest="md5"):
         from .._auth_tkt import parse_ticket
         return parse_ticket(secret, ticket, ip, digest)
 
@@ -170,7 +173,8 @@ class Test_parse_ticket(unittest.TestCase):
 
     def test_wo_tokens_or_data_ok_digest(self):
         from .._auth_tkt import calculate_digest, hashlib
-        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID', '', '', hashlib.md5)
+        digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
+                                  '', '', hashlib.md5)
         TICKET = '%s%08xUSERID!' % (digest, _WHEN)
         timestamp, userid, tokens, user_data = self._callFUT(ticket=TICKET)
         self.assertEqual(timestamp, _WHEN)
@@ -194,7 +198,8 @@ class Test_parse_ticket(unittest.TestCase):
         digest = calculate_digest('1.2.3.4', _WHEN, 'SEEKRIT', 'USERID',
                                   'a,b', 'DATA', hashlib.sha256)
         TICKET = '%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
-        timestamp, userid, tokens, user_data = self._callFUT(ticket=TICKET, digest=hashlib.sha256)
+        timestamp, userid, tokens, user_data = self._callFUT(
+            ticket=TICKET, digest=hashlib.sha256)
         self.assertEqual(timestamp, _WHEN)
         self.assertEqual(userid, 'USERID')
         self.assertEqual(tokens, ['a', 'b'])
@@ -203,7 +208,7 @@ class Test_parse_ticket(unittest.TestCase):
 
 class Test_helpers(unittest.TestCase):
 
-    # calculate_digest is not very testable, and fully exercised through callers.
+    # calculate_digest is not very testable, fully exercised through callers.
 
     def test_ints_to_bytes(self):
         from struct import pack
