@@ -1,14 +1,9 @@
 import datetime
-from calendar import timegm
-from email.utils import formatdate
 from codecs import utf_8_decode
 from codecs import utf_8_encode
+import hashlib
 import os
 import time
-try:
-    import hashlib
-except ImportError:
-    import md5 as hashlib # Will only support md5 algorithm
 from wsgiref.handlers import _monthname     # Locale-independent, RFC-2616
 from wsgiref.handlers import _weekdayname   # Locale-independent, RFC-2616
 try:
@@ -24,7 +19,6 @@ from repoze.who.interfaces import IAuthenticator
 from repoze.who._compat import get_cookies
 import repoze.who._auth_tkt as auth_tkt
 from repoze.who._compat import STRING_TYPES
-from repoze.who._compat import u
 
 _UTCNOW = None  # unit tests can replace
 def _utcnow():  #pragma NO COVERAGE

@@ -36,12 +36,8 @@ it's primary benefit is compatibility with mod_auth_tkt, which in turn
 makes it possible to use the same authentication process with
 non-Python code run under Apache.
 """
+import hashlib
 import time as time_mod
-try:
-    import hashlib
-except ImportError:
-    # mimic hashlib (will work for md5, fail for secure hashes)
-    import md5 as hashlib
 
 from repoze.who._compat import encodestring
 from repoze.who._compat import SimpleCookie
