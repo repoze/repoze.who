@@ -26,8 +26,6 @@ def _utcnow():  #pragma NO COVERAGE
         return _UTCNOW
     return datetime.datetime.utcnow()
 
-DEFAULT_DIGEST = hashlib.md5
-
 @implementer(IIdentifier, IAuthenticator)
 class AuthTktCookiePlugin(object):
 
@@ -51,7 +49,7 @@ class AuthTktCookiePlugin(object):
     def __init__(self, secret, cookie_name='auth_tkt',
                  secure=False, include_ip=False,
                  timeout=None, reissue_time=None, userid_checker=None,
-                 digest_algo=DEFAULT_DIGEST):
+                 digest_algo=auth_tkt.DEFAULT_DIGEST):
         self.secret = secret
         self.cookie_name = cookie_name
         self.include_ip = include_ip
@@ -229,7 +227,7 @@ def make_plugin(secret=None,
                 timeout=None,
                 reissue_time=None,
                 userid_checker=None,
-                digest_algo=DEFAULT_DIGEST,
+                digest_algo=auth_tkt.DEFAULT_DIGEST,
                ):
     from repoze.who.utils import resolveDotted
     if (secret is None and secretfile is None):
