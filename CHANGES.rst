@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-2.3 (unreleased)
+2.3 (2016-05-31)
 ----------------
 
 - Add support for Python 3.4, Python 3.5, and PyPy3.
