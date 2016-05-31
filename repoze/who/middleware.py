@@ -72,8 +72,7 @@ class PluggableAuthenticationMiddleware(object):
         logger = self.logger
         path_info = environ.get('PATH_INFO', None)
         logger and logger.info(_STARTED % path_info)
-        identity = None
-        identity = api.authenticate()
+        api.authenticate()  # identity saved in environ
 
         # allow identifier plugins to replace the downstream
         # application (to do redirection and unauthorized themselves
@@ -114,7 +113,7 @@ class PluggableAuthenticationMiddleware(object):
                 raise RuntimeError('no challengers found')
         else:
             logger and logger.info('no challenge required')
-            remember_headers = api.remember(identity)
+            remember_headers = api.remember()
             wrapper.finish_response(remember_headers)
 
         logger and logger.info(_ENDED % path_info)

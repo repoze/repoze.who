@@ -224,6 +224,29 @@ class TestMiddleware(unittest.TestCase):
         self.assertEqual(start_response.status, '200 OK')
         self.assertEqual(start_response.headers, headers)
 
+    def test_call_200_no_challengers_app_calls_forget(self):
+        # See https://github.com/repoze/repoze.who/issues/21
+        environ = self._makeEnviron()
+        remember_headers = [('remember', '1')]
+        forget_headers = [('forget', '1')]
+        app = DummyLogoutApp('200 OK')
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(
+            credentials,
+            remember_headers=remember_headers,
+            forget_headers=forget_headers)
+        identifiers = [ ('identifier', identifier) ]
+        authenticator = DummyAuthenticator()
+        authenticators = [ ('authenticator', authenticator) ]
+        mw = self._makeOne(
+            app=app, identifiers=identifiers, authenticators=authenticators)
+        start_response = DummyStartResponse()
+        result = mw(environ, start_response)
+        self.assertEqual(mw.app.environ, environ)
+        self.assertEqual(result, ['body'])
+        self.assertEqual(start_response.status, '200 OK')
+        self.assertEqual(start_response.headers, forget_headers)
+
     def test_call_401_no_identifiers(self):
         from webob.exc import HTTPUnauthorized
         environ = self._makeEnviron()
@@ -605,6 +628,17 @@ class DummyWorkingApp(object):
     def __call__(self, environ, start_response):
         self.environ = environ
         start_response(self.status, self.headers)
+        return ['body']
+
+class DummyLogoutApp(object):
+    def __init__(self, status):
+        self.status = status
+
+    def __call__(self, environ, start_response):
+        self.environ = environ
+        api = environ['repoze.who.api']
+        headers = api.logout()
+        start_response(self.status, headers)
         return ['body']
 
 class DummyGeneratorApp(object):

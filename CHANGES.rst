@@ -8,6 +8,9 @@ repoze.who Changelog
 
 - Drop support for Python 2.6 and 3.2.
 
+- ``middleware``:  avoid passing extracted ``identity`` to ``remember``
+  during egress (the app may have called ``api.forget()``).  See #21.
+
 - ``_auth_tkt`` / ``plugins.auth_tkt``:  add support for any hash algorithm
   supported by the ``hashlib`` module in Python's standard library.
   Fixes #22 via #23.
