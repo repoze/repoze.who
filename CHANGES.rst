@@ -8,15 +8,18 @@ repoze.who Changelog
 
 - Drop support for Python 2.6 and 3.2.
 
+- ``_auth_tkt`` / ``plugins.auth_tkt``:  add support for any hash algorithm
+  supported by the ``hashlib`` module in Python's standard library.
+  Fixes #22 via #23.
+
 - ``plugins.auth_tkt``:  Fix storage of "userdata" to save dict.  Fixes
-  https://github.com/repoze/repoze.who/issues/14 via
-  https://github.com/repoze/repoze.who/pull/18.
+  #14 via #18.
 
 - middleware:  avoid UnboundLocalError when wrapped generater yields no
   items.  See:  http://bugs.repoze.org/issue184
 
 - Make cookie expiration date RFC-2616 compliant (independent of locale,
-  including 'GMT' zone). See https://github.com/repoze/repoze.who/pull/11
+  including 'GMT' zone). See #11.
 
 2.2 (2013-05-17)
 ----------------
