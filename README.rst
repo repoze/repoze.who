@@ -8,6 +8,12 @@
         :target: http://repozewho.readthedocs.org/en/latest/
         :alt: Documentation Status
 
+.. image:: https://img.shields.io/pypi/v/repoze.who.svg
+        :target: https://pypi.python.org/pypi/repoze.who
+
+.. image:: https://img.shields.io/pypi/pyversions/repoze.who.svg
+        :target: https://pypi.python.org/pypi/repoze.who
+
 Overview
 --------
 
