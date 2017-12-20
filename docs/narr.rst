@@ -33,7 +33,7 @@ Some applications might use the :mod:`repoze.who` middleware for most
 authentication purposes, but need to participate more directly in the
 mechanics of identification and authorization for some portions of the
 application.  For example, consider a system which allows users to
-sign up online for membrship in a site: once the user completes
+sign up online for membership in a site: once the user completes
 registration, such an application might wish to log the user in
 transparently, and thus needs to interact with the configured
 :mod:`repoze.who` middleware to generate response headers, ensuring
