@@ -55,7 +55,7 @@ order during middleware ingress:
        A refererence to the "right-hand" application.  The plugins
        consulted during request classification / identification /
        authentication may replace this application with another
-       WSGI application, which will be used for the remainer of the
+       WSGI application, which will be used for the remainder of the
        current request.
 
 #.  Request Classification
@@ -96,14 +96,14 @@ order during middleware ingress:
     record matching any of the extracted credentials.  If it finds one, and
     if the password listed in the record matches the password in the
     identity, the userid of the user would be returned (which would
-    be the same as the login name).  Successfully-authenticated ndenties are
+    be the same as the login name).  Successfully-authenticated identities are
     "weighted", with the highest weight identity governing the remainder of
     the request.
 
 #.  Metadata Assignment
 
     After identifying and authenticating a user, :mod:`repoze.who` consults
-    plugins configured as metadata providers, which may augmented the
+    plugins configured as metadata providers, which may augment the
     authenticated identity with arbitrary metadata.
 
     For example, a metadata provider plugin might add the user's first,
@@ -143,9 +143,9 @@ order during middleware egress:
 
 #.  Challenge
     
-    The plugin then consults each of the set of plugins configured as
+    The plugin then consults each of the plugins configured as
     challengers for the current request classification:  the first plugin
-    which returns a non-None WSGI application will be used perform a
+    which returns a non-None WSGI application will be used to perform a
     challenge.
     
     Challenger plugins may use application-returned headers, the WSGI
