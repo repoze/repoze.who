@@ -49,7 +49,8 @@ class AuthTktCookiePlugin(object):
     def __init__(self, secret, cookie_name='auth_tkt',
                  secure=False, include_ip=False,
                  timeout=None, reissue_time=None, userid_checker=None,
-                 digest_algo=auth_tkt.DEFAULT_DIGEST):
+                 digest_algo=auth_tkt.DEFAULT_DIGEST,
+                 samesite=None):
         self.secret = secret
         self.cookie_name = cookie_name
         self.include_ip = include_ip
@@ -61,6 +62,7 @@ class AuthTktCookiePlugin(object):
         self.reissue_time = reissue_time
         self.userid_checker = userid_checker
         self.digest_algo = digest_algo
+        self.samesite = samesite
 
     # IIdentifier
     def identify(self, environ):
@@ -196,6 +198,9 @@ class AuthTktCookiePlugin(object):
         secure = ''
         if self.secure:
             secure = '; secure; HttpOnly'
+
+        if self.samesite:
+            secure += '; SameSite=%s' % self.samesite
 
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
         cur_domain = cur_domain.split(':')[0] # drop port

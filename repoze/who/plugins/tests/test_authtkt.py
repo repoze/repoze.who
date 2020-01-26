@@ -296,6 +296,35 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                            'secure; HttpOnly'
                             % val))
 
+    def test_remember_creds_samesite(self):
+        plugin = self._makeOne('secret', secure=False, samesite="Strict")
+        val = self._makeTicket(userid='userid', secure=False, userdata='foo=123')
+        environ = self._makeEnviron()
+        result = plugin.remember(environ, {'repoze.who.userid':'userid',
+                                           'userdata':{'foo':'123'}})
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0],
+                         ('Set-Cookie',
+                          'auth_tkt="%s"; '
+                          'Path=/; '
+                          'SameSite=Strict' 
+                          % val))
+        self.assertEqual(result[1],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=localhost; '
+                           'SameSite=Strict'
+                            % val))
+        self.assertEqual(result[2],
+                         ('Set-Cookie',
+                           'auth_tkt="%s"; '
+                           'Path=/; '
+                           'Domain=.localhost; '
+                           'SameSite=Strict'
+                            % val))
+
+
     def test_remember_creds_different(self):
         plugin = self._makeOne('secret')
         old_val = self._makeTicket(userid='userid')

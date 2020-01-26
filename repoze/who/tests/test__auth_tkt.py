@@ -111,7 +111,7 @@ class AuthTicketTests(unittest.TestCase):
                                      ).strip())
         self.assertEqual(cookie['oatmeal']['path'], '/')
         self.assertEqual(cookie['oatmeal']['secure'], 'true')
- 
+
 
 class BadTicketTests(unittest.TestCase):
 
