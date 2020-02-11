@@ -4,7 +4,14 @@ repoze.who Changelog
 2.3.1 (unreleased)
 ------------------
 
-- Fixed travis configuration. 
+- Fixed travis configuration.
+
+- Add ``samesite`` option to AuthTktCookiePlugin constructor.
+  If this is passed, it should be a string, and it will be used
+  to compose the Set-Cookie header's "SameSite" value, e.g.
+  if you pass ``samesite="Strict"`` into the constructor,
+  the cookie value for the auth tkt cooke will contain
+  ``SameSite=Strict``.
 
 2.3 (2016-05-31)
 ----------------
