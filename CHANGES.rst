@@ -4,7 +4,7 @@ repoze.who Changelog
 2.3.1 (unreleased)
 ------------------
 
-- TBD
+- Fixed travis configuration. 
 
 2.3 (2016-05-31)
 ----------------
