@@ -58,7 +58,8 @@ def verify(plugin, iface):
 
  
 def make_registries(identifiers, authenticators, challengers, mdproviders):
-    from zope.interface.verify import BrokenImplementation
+    from zope.interface.exceptions import Invalid
+    from zope.interface.verify import BrokenImplementation  # BBB, z.i < 5.0.x
     interface_registry = {}
     name_registry = {}
 
@@ -70,7 +71,7 @@ def make_registries(identifiers, authenticators, challengers, mdproviders):
         for name, value in supplied:
             try:
                 verify(value, iface)
-            except BrokenImplementation as why:
+            except (Invalid, BrokenImplementation) as why:
                 why = str(why)
                 raise ValueError(str(name) + ': ' + why)
             L = interface_registry.setdefault(iface, [])
