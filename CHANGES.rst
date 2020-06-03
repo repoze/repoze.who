@@ -2,7 +2,7 @@ repoze.who Changelog
 ====================
 
 2.4 (unreleased)
-------------------
+----------------
 
 - Add upport for Python 3.6, 3.7, and 3.8.
 
