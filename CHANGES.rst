@@ -1,10 +1,14 @@
 repoze.who Changelog
 ====================
 
-2.3.1 (unreleased)
-------------------
+2.4 (unreleased)
+----------------
 
-- Fixed travis configuration.
+- Add upport for Python 3.6, 3.7, and 3.8.
+
+- Drop support for Python 3.3.
+
+- Fix travis configuration.
 
 - Add ``samesite`` option to AuthTktCookiePlugin constructor.
   If this is passed, it should be a string, and it will be used

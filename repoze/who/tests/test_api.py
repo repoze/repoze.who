@@ -104,8 +104,10 @@ class TestMakeRegistries(unittest.TestCase):
         self.assertEqual(name_reg, {})
 
     def test_brokenimpl(self):
-        self.assertRaises(ValueError, self._callFUT,
-                          [(None, object())], [], [], [])
+        from zope.interface.exceptions import Invalid
+        expected_exc = (Invalid, ValueError)  # BBB for zope.interface < 5.0.0
+        with self.assertRaises(expected_exc):
+            self._callFUT([(None, object())], [], [], [])
 
     def test_ok(self):
         from repoze.who.interfaces import IIdentifier
