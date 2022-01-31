@@ -4,7 +4,7 @@ repoze.who Changelog
 2.4.1 (unreleased)
 ------------------
 
-- TBD
+- Switch to use ``pytest`` as the testrunner.
 
 2.4 (2020-06-03)
 ----------------
