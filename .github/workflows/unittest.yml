@@ -44,7 +44,7 @@ jobs:
       env:
         COVERAGE_FILE: .coverage-${{matrix.python }}
       run: |
-        tox -s ${{ matrix.toxenv }}
+        tox -e ${{ matrix.toxenv }}
 
     - name: Upload coverage results
       uses: actions/upload-artifact@v2
