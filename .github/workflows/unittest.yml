@@ -16,8 +16,6 @@ jobs:
         include:
           - python: "2.7"
             toxenv: "py27"
-          - python: "3.4"
-            toxenv: "py34"
           - python: "3.5"
             toxenv: "py35"
           - python: "3.6"
