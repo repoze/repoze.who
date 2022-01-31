@@ -4,10 +4,12 @@ repoze.who Changelog
 2.4.1 (unreleased)
 ------------------
 
+- Disallow separators in AuthTicket component values.  Closes #37.
+
 - Handle bytes / string correctly in 'repoze.who.plugins.htpasswd.sha1_check'.
   Closes #28.
 
-- Switch to use ``pytest`` as the testrunner.
+- Switch to use ``pytest`` as the testrunner.  Closes #34.
 
 2.4 (2020-06-03)
 ----------------

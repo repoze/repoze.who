@@ -47,6 +47,15 @@ from repoze.who._compat import url_unquote
 DEFAULT_DIGEST = hashlib.md5
 
 
+def _exclude_separator(separator, value, fieldname):
+    if isinstance(value, bytes):
+        separator = separator.encode("ascii")
+
+    if separator in value:
+        raise ValueError(
+            "{} may not contain '{}'".format(fieldname, separator)
+        )
+
 class AuthTicket(object):
 
     """
@@ -88,14 +97,26 @@ class AuthTicket(object):
                  time=None, cookie_name='auth_tkt',
                  secure=False, digest_algo=DEFAULT_DIGEST):
         self.secret = secret
+
+        _exclude_separator('!', userid, "'userid'")
         self.userid = userid
+
         self.ip = ip
+
+        for token in tokens:
+            _exclude_separator(',', token, "'token' values")
+            _exclude_separator('!', token, "'token' values")
+
         self.tokens = ','.join(tokens)
+
+        _exclude_separator('!', user_data, "'user_data'")
         self.user_data = user_data
+
         if time is None:
             self.time = time_mod.time()
         else:
             self.time = time
+
         self.cookie_name = cookie_name
         self.secure = secure
         if isinstance(digest_algo, str):
