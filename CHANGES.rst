@@ -4,6 +4,9 @@ repoze.who Changelog
 2.4.1 (unreleased)
 ------------------
 
+- Handle bytes / string correctly in 'repoze.who.plugins.htpasswd.sha1_check'.
+  Closes #28.
+
 - Switch to use ``pytest`` as the testrunner.
 
 2.4 (2020-06-03)

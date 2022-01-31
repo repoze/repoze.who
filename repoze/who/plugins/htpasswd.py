@@ -100,8 +100,10 @@ def sha1_check(password, hashed):
     from hashlib import sha1
     from base64 import standard_b64encode
     from repoze.who._compat import must_encode
-    encrypted_string = standard_b64encode(sha1(must_encode(password)).digest())
-    return _same_string(hashed, "%s%s" % ("{SHA}", encrypted_string))
+    b_password = must_encode(password)
+    b_sha1_digest = sha1(b_password).digest()
+    b_b64_sha1_digest = standard_b64encode(b_sha1_digest)
+    return _same_string(hashed, b"{SHA}" + b_b64_sha1_digest)
 
 def plain_check(password, hashed):
     return _same_string(password, hashed)

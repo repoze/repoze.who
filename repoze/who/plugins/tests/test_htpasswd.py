@@ -120,18 +120,30 @@ class TestHTPasswdPlugin(unittest.TestCase):
         self.assertEqual(crypt_check('password', hashed), True)
         self.assertEqual(crypt_check('notpassword', hashed), False)
 
-    def test_sha1_check(self):
+    def test_sha1_check_w_password_str(self):
         from base64 import standard_b64encode
         from hashlib import sha1
-        from repoze.who._compat import must_encode
         from repoze.who.plugins.htpasswd import sha1_check
 
-        encrypted_string = standard_b64encode(sha1(
-                                must_encode("password")).digest())
-        self.assertEqual(sha1_check('password',
-                         "%s%s" % ("{SHA}", encrypted_string)), True)
-        self.assertEqual(sha1_check('notpassword',
-                         "%s%s" % ("{SHA}", encrypted_string)), False)
+        password = u'password'
+        b_password = password.encode("ascii")
+        encrypted_string = standard_b64encode(sha1(b_password).digest())
+        hashed = b"%s%s" % (b"{SHA}", encrypted_string)
+
+        self.assertTrue(sha1_check(password, hashed))
+        self.assertFalse(sha1_check('notpassword', hashed))
+
+    def test_sha1_check_w_password_bytes(self):
+        from base64 import standard_b64encode
+        from hashlib import sha1
+        from repoze.who.plugins.htpasswd import sha1_check
+
+        b_password = b'password'
+        encrypted_string = standard_b64encode(sha1(b_password).digest())
+        hashed = b"%s%s" % (b"{SHA}", encrypted_string)
+
+        self.assertTrue(sha1_check(b_password, hashed))
+        self.assertFalse(sha1_check(b'notpassword', hashed))
 
     def test_plain_check(self):
         from repoze.who.plugins.htpasswd import plain_check
