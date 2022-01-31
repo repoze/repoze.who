@@ -16,6 +16,8 @@ jobs:
         include:
           - python: "2.7"
             toxenv: "py27"
+          - python: "pypy-2.7"
+            toxenv: "pypy"
           - python: "3.5"
             toxenv: "py35"
           - python: "3.6"
@@ -24,6 +26,8 @@ jobs:
             toxenv: "py37"
           - python: "3.8"
             toxenv: "py38"
+          - python: "pypy-3.8"
+            toxenv: "pypy3"
 
     steps:
 
