@@ -19,7 +19,7 @@ class TestRedirectorPlugin(unittest.TestCase):
                                       reason_header=reason_header)
 
     def _makeEnviron(self, path_info='/', identifier=None):
-        from repoze.who._compat import StringIO
+        from io import StringIO
         if identifier is None:
             credentials = {'login':'chris', 'password':'password'}
             identifier = DummyIdentifier(credentials)
@@ -59,8 +59,8 @@ class TestRedirectorPlugin(unittest.TestCase):
                                         reason_header='X-Reason')
 
     def test_challenge(self):
-        from ..._compat import parse_qsl
-        from ..._compat import urlparse
+        from urllib.parse import parse_qsl
+        from urllib.parse import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='reason',
                                reason_header='X-Authorization-Failure-Reason',
@@ -93,8 +93,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(sr.status, '302 Found')
 
     def test_challenge_with_reason_header(self):
-        from ..._compat import parse_qsl
-        from ..._compat import urlparse
+        from urllib.parse import parse_qsl
+        from urllib.parse import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='reason',
                                reason_header='X-Authorization-Failure-Reason',
@@ -125,8 +125,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(reason_value, 'you are ugly')
 
     def test_challenge_with_custom_reason_header(self):
-        from ..._compat import parse_qsl
-        from ..._compat import urlparse
+        from urllib.parse import parse_qsl
+        from urllib.parse import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='reason',
                                reason_header='X-Custom-Auth-Failure',
@@ -154,8 +154,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
 
     def test_challenge_w_reason_no_reason_param_no_came_from_param(self):
-        from ..._compat import parse_qsl
-        from ..._compat import urlparse
+        from urllib.parse import parse_qsl
+        from urllib.parse import urlparse
         plugin = self._makeOne()
         environ = self._makeEnviron()
         app = plugin.challenge(
@@ -178,8 +178,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(parts[3], '')
 
     def test_challenge_w_reason_no_reason_param_w_came_from_param(self):
-        from ..._compat import parse_qsl
-        from ..._compat import urlparse
+        from urllib.parse import parse_qsl
+        from urllib.parse import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                               )
         environ = self._makeEnviron()
@@ -205,8 +205,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
 
     def test_challenge_with_reason_and_custom_reason_param(self):
-        from ..._compat import parse_qsl
-        from ..._compat import urlparse
+        from urllib.parse import parse_qsl
+        from urllib.parse import urlparse
         plugin = self._makeOne(came_from_param='came_from',
                                reason_param='auth_failure',
                                reason_header='X-Custom-Auth-Failure',
@@ -238,8 +238,8 @@ class TestRedirectorPlugin(unittest.TestCase):
         self.assertEqual(reason_value, 'you are ugly')
 
     def test_challenge_wo_reason_w_came_from_param(self):
-        from ..._compat import parse_qsl
-        from ..._compat import urlparse
+        from urllib.parse import parse_qsl
+        from urllib.parse import urlparse
         plugin = self._makeOne(came_from_param='came_from')
         environ = self._makeEnviron()
         app = plugin.challenge(

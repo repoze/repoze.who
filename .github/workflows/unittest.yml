@@ -14,18 +14,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - python: "2.7"
-            toxenv: "py27"
-          - python: "pypy-2.7"
-            toxenv: "pypy"
-          - python: "3.5"
-            toxenv: "py35"
           - python: "3.6"
             toxenv: "py36"
           - python: "3.7"
             toxenv: "py37"
           - python: "3.8"
             toxenv: "py38"
+          - python: "3.9"
+            toxenv: "py39"
+          - python: "3.10"
+            toxenv: "py310"
           - python: "pypy-3.8"
             toxenv: "pypy3"
 
@@ -70,7 +68,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
-        python-version: "3.8"
+        python-version: "3.10"
 
     - name: Install coverage
       run: |

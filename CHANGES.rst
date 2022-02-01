@@ -1,10 +1,12 @@
 repoze.who Changelog
 ====================
 
-2.4.2 (unreleased)
-------------------
+3.0.0b1 (unreleased)
+--------------------
 
-- TBD
+- Drop support for Python 2.7, 3.4, and 3.5.
+
+- Add support for Python 3.9 and 3.10.
 
 2.4.1 (2022-02-01)
 ------------------

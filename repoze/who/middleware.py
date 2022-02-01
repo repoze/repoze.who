@@ -1,9 +1,9 @@
+from io import StringIO
 import logging
 import sys
 
 from repoze.who.api import APIFactory
 from repoze.who.interfaces import IChallenger
-from repoze.who._compat import StringIO
 
 _STARTED = '-- repoze.who request started (%s) --'
 _ENDED = '-- repoze.who request ended (%s) --'

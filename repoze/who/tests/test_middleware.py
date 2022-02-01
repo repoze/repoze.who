@@ -511,7 +511,7 @@ class TestStartResponseWrapper(unittest.TestCase):
         self.assertTrue(wrapper.buffer)
 
     def test_finish_response(self):
-        from repoze.who._compat import StringIO
+        from io import StringIO
         statuses = []
         headerses = []
         datases = []

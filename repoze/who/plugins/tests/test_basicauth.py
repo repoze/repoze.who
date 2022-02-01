@@ -58,7 +58,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         self.assertEqual(creds, None)
 
     def test_identify_basic_badrepr(self):
-        from repoze.who._compat import encodebytes
+        from base64 import encodebytes
         plugin = self._makeOne('realm')
         value = encodebytes(b'foo').decode('ascii')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
@@ -66,7 +66,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         self.assertEqual(creds, None)
 
     def test_identify_basic_ok(self):
-        from repoze.who._compat import encodebytes
+        from base64 import encodebytes
         plugin = self._makeOne('realm')
         value = encodebytes(b'foo:bar').decode('ascii')
         environ = self._makeEnviron({'HTTP_AUTHORIZATION':'Basic %s' % value})
@@ -74,7 +74,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
         self.assertEqual(creds, {'login':'foo', 'password':'bar'})
 
     def test_identify_basic_ok_utf8_values(self):
-        from repoze.who._compat import encodebytes
+        from base64 import encodebytes
         LOGIN = b'b\xc3\xa2tard'
         PASSWD = b'l\xc3\xa0 demain'
         plugin = self._makeOne('realm')
@@ -85,7 +85,7 @@ class TestBasicAuthPlugin(unittest.TestCase):
                                  'password': PASSWD.decode('utf-8')})
 
     def test_identify_basic_ok_latin1_values(self):
-        from repoze.who._compat import encodebytes
+        from base64 import encodebytes
         LOGIN = b'b\xe2tard'
         PASSWD = b'l\xe0 demain'
         plugin = self._makeOne('realm')

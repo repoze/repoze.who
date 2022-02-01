@@ -1,5 +1,7 @@
 """ Configuration parser
 """
+import configparser
+from io import StringIO
 import logging
 from pkg_resources import EntryPoint
 import sys
@@ -14,9 +16,6 @@ from repoze.who.interfaces import IMetadataProvider
 from repoze.who.interfaces import IPlugin
 from repoze.who.interfaces import IRequestClassifier
 from repoze.who.middleware import PluggableAuthenticationMiddleware
-from repoze.who._compat import StringIO
-from repoze.who._compat import ConfigParser
-from repoze.who._compat import ParsingError
 
 def _resolve(name):
     if name:
@@ -71,7 +70,7 @@ class WhoConfig:
     def parse(self, text):
         if getattr(text, 'readline', None) is None:
             text = StringIO(text)
-        cp = ConfigParser(defaults={'here': self.here})
+        cp = configparser.ConfigParser(defaults={'here': self.here})
         try:
             cp.read_file(text)
         except AttributeError: #pragma NO COVER Python < 3.0
@@ -161,7 +160,7 @@ def make_api_factory_with_config(global_conf,
         try:
             try:
                 parser.parse(opened)
-            except ParsingError:
+            except configparser.ParsingError:
                 warnings.warn('Invalid who config file: %s' % config_file,
                             stacklevel=2)
             else:

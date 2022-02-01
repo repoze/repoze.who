@@ -88,10 +88,9 @@ class TestDefaultPasswordCompare(unittest.TestCase):
         self.assertEqual(result, True)
 
     def test_shaprefix_w_unicode_cleartext(self):
-        from repoze.who._compat import u
         stored = '{SHA}' +  self._get_sha_hex_digest()
         compare = self._getFUT()
-        result = compare(u('password'), stored)
+        result = compare(u'password', stored)
         self.assertEqual(result, True)
 
     def test_shaprefix_fail(self):
