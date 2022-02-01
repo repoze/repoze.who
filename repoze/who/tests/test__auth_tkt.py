@@ -25,6 +25,42 @@ class AuthTicketTests(unittest.TestCase):
         self.assertEqual(tkt.secure, False)
         self.assertEqual(tkt.digest_algo, hashlib.md5)
 
+    def test_ctor_w_userid_w_embedded_bang(self):
+        tokens = ('a,b',)  # cannot be safely round-tripped
+
+        with self.assertRaises(ValueError) as exc:
+            self._makeOne('SEEKRIT', 'USER!ID', '1.2.3.4')
+
+        self.assertEqual(str(exc.exception), "'userid' may not contain '!'")
+
+    def test_ctor_w_token_w_embedded_bang(self):
+        tokens = ('a!b',)  # cannot be safely round-tripped
+
+        with self.assertRaises(ValueError) as exc:
+            self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=tokens)
+
+        self.assertEqual(
+            str(exc.exception), "'token' values may not contain '!'"
+        )
+
+    def test_ctor_w_token_w_embedded_comma(self):
+        tokens = ('a,b',)  # cannot be safely round-tripped
+
+        with self.assertRaises(ValueError) as exc:
+            self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=tokens)
+
+        self.assertEqual(
+            str(exc.exception), "'token' values may not contain ','"
+        )
+
+    def test_ctor_w_user_data_w_embedded_bang(self):
+        user_data = 'DATA!HERE' # cannot be safely round-tripped
+
+        with self.assertRaises(ValueError) as exc:
+            self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', user_data=user_data)
+
+        self.assertEqual(str(exc.exception), "'user_data' may not contain '!'")
+
     def test_ctor_explicit(self):
         import hashlib
         tkt = self._makeOne('SEEKRIT', 'USERID', '1.2.3.4', tokens=('a', 'b'),
