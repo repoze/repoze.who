@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-2.4.1 (unreleased)
+2.4.1 (2022-02-01)
 ------------------
 
 - Disallow separators in AuthTicket component values.  Closes #37.
