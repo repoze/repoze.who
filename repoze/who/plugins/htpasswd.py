@@ -4,7 +4,6 @@ from zope.interface import implementer
 
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.utils import resolveDotted
-from repoze.who._compat import izip_longest
 
 
 def _padding_for_file_lines():
@@ -86,7 +85,7 @@ PADDING = ' ' * 1000
 def _same_string(x, y):
     # Attempt at isochronous string comparison.
     mismatches = filter(None, [a != b for a, b, ignored
-                                    in izip_longest(x, y, PADDING)])
+                                    in itertools.zip_longest(x, y, PADDING)])
     if type(mismatches) != list: #pragma NO COVER Python >= 3.0
         mismatches = list(mismatches)
     return len(mismatches) == 0
@@ -99,7 +98,7 @@ def crypt_check(password, hashed):
 def sha1_check(password, hashed):
     from hashlib import sha1
     from base64 import standard_b64encode
-    from repoze.who._compat import must_encode
+    from repoze.who._helpers import must_encode
     b_password = must_encode(password)
     b_sha1_digest = sha1(b_password).digest()
     b_b64_sha1_digest = standard_b64encode(b_sha1_digest)

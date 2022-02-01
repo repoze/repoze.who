@@ -4,21 +4,17 @@ from codecs import utf_8_encode
 import hashlib
 import os
 import time
+from urllib.parse import parse_qsl
+from urllib.parse import urlencode
 from wsgiref.handlers import _monthname     # Locale-independent, RFC-2616
 from wsgiref.handlers import _weekdayname   # Locale-independent, RFC-2616
-try:
-    from urllib.parse import urlencode, parse_qsl
-except ImportError:
-    from urllib import urlencode
-    from urlparse import parse_qsl
 
 from zope.interface import implementer
 
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IAuthenticator
-from repoze.who._compat import get_cookies
+from repoze.who._helpers import get_cookies
 import repoze.who._auth_tkt as auth_tkt
-from repoze.who._compat import STRING_TYPES
 
 _UTCNOW = None  # unit tests can replace
 def _utcnow():  #pragma NO COVERAGE
@@ -220,7 +216,7 @@ class AuthTktCookiePlugin(object):
                             id(self)) #pragma NO COVERAGE
 
 def _bool(value):
-    if isinstance(value, STRING_TYPES):
+    if isinstance(value, str):
         return value.lower() in ('yes', 'true', '1')
     return value
 

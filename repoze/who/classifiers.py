@@ -1,6 +1,6 @@
-from repoze.who._compat import CONTENT_TYPE
-from repoze.who._compat import REQUEST_METHOD
-from repoze.who._compat import USER_AGENT
+from repoze.who._helpers import CONTENT_TYPE
+from repoze.who._helpers import REQUEST_METHOD
+from repoze.who._helpers import USER_AGENT
 
 from zope.interface import directlyProvides
 from repoze.who.interfaces import IRequestClassifier

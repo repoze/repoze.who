@@ -501,31 +501,12 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                          ('Set-Cookie',
                           'auth_tkt="%s"; Path=/' % new_val))
 
-    def test_remember_creds_different_long_userid(self):
-        try:
-            long
-        except NameError: #pragma NO COVER Python >= 3.0
-            return
-        plugin = self._makeOne('secret')
-        old_val = self._makeTicket(userid='userid')
-        environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
-        new_val = self._makeTicket(userid='1', userdata='userid_type=int')
-        result = plugin.remember(environ, {'repoze.who.userid':long(1),
-                                           'userdata':{}})
-        self.assertEqual(len(result), 3)
-        self.assertEqual(result[0],
-                         ('Set-Cookie',
-                          'auth_tkt="%s"; Path=/' % new_val))
-
     def test_remember_creds_different_unicode_userid(self):
         plugin = self._makeOne('secret')
         old_val = self._makeTicket(userid='userid')
         environ = self._makeEnviron({'HTTP_COOKIE':'auth_tkt=%s' % old_val})
         userid = b'\xc2\xa9'.decode('utf-8')
-        if type(b'') == type(''):
-            userdata = 'userid_type=unicode'
-        else: # pragma: no cover Py3k
-            userdata = ''
+        userdata = ''
         new_val = self._makeTicket(userid=userid.encode('utf-8'),
                                    userdata=userdata)
         result = plugin.remember(environ, {'repoze.who.userid':userid,
@@ -739,12 +720,11 @@ class TestAuthTktCookiePlugin(unittest.TestCase):
                           secret="fiddly", digest_algo='foo23')
 
     def test_remember_max_age_unicode(self):
-        from repoze.who._compat import u
         plugin = self._makeOne('secret')
         environ = {'HTTP_HOST':'example.com'}
         tkt = self._makeTicket(userid='chris', userdata='')
         result = plugin.remember(environ, {'repoze.who.userid': 'chris',
-                                           'max_age': u('500')})
+                                           'max_age': u'500'})
         name, value = result.pop(0)
         self.assertEqual('Set-Cookie', name)
         self.assertTrue(isinstance(value, str))

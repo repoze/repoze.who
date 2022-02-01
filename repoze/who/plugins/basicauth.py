@@ -1,3 +1,4 @@
+import base64
 import binascii
 
 from webob.exc import HTTPUnauthorized
@@ -5,9 +6,8 @@ from zope.interface import implementer
 
 from repoze.who.interfaces import IIdentifier
 from repoze.who.interfaces import IChallenger
-from repoze.who._compat import AUTHORIZATION
-from repoze.who._compat import decodebytes
-from repoze.who._compat import must_decode
+from repoze.who._helpers import AUTHORIZATION
+from repoze.who._helpers import must_decode
 
 @implementer(IIdentifier, IChallenger)
 class BasicAuthPlugin(object):
@@ -28,7 +28,7 @@ class BasicAuthPlugin(object):
         if authmeth.lower() == b'basic':
             try:
                 auth = auth.strip()
-                auth = decodebytes(auth)
+                auth = base64.decodebytes(auth)
             except binascii.Error: # can't decode
                 return None
             try:

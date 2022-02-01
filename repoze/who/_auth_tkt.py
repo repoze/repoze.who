@@ -37,12 +37,11 @@ makes it possible to use the same authentication process with
 non-Python code run under Apache.
 """
 import hashlib
+import http.cookies
 import time as time_mod
+import urllib.parse
 
-from repoze.who._compat import encodestring
-from repoze.who._compat import SimpleCookie
-from repoze.who._compat import url_quote
-from repoze.who._compat import url_unquote
+from repoze.who._helpers import encodestring
 
 DEFAULT_DIGEST = hashlib.md5
 
@@ -132,14 +131,14 @@ class AuthTicket(object):
 
     def cookie_value(self):
         v = '%s%08x%s!' % (self.digest(), int(self.time),
-                           url_quote(self.userid))
+                           urllib.parse.quote(self.userid))
         if self.tokens:
             v += self.tokens + '!'
         v += self.user_data
         return v
 
     def cookie(self):
-        c = SimpleCookie()
+        c = http.cookies.SimpleCookie()
         c_val = encodestring(self.cookie_value())
         c_val = c_val.strip().replace('\n', '')
         c[self.cookie_name] = c_val
@@ -182,7 +181,7 @@ def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
         userid, data = ticket[digest_hexa_size + 8:].split('!', 1)
     except ValueError:
         raise BadTicket('userid is not followed by !')
-    userid = url_unquote(userid)
+    userid = urllib.parse.unquote(userid)
     if '!' in data:
         tokens, user_data = data.split('!', 1)
     else:
