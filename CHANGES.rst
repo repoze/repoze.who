@@ -4,9 +4,9 @@ repoze.who Changelog
 3.0.0b1 (unreleased)
 --------------------
 
-- Drop support for Python 2.7, 3.4, and 3.5.
+- Add support for Python 3.9, 3.10 and 3.11.
 
-- Add support for Python 3.9 and 3.10.
+- Drop support for Python 2.7, 3.4, 3.5, and 3.6.
 
 2.4.1 (2022-02-01)
 ------------------
@@ -21,7 +21,7 @@ repoze.who Changelog
 2.4 (2020-06-03)
 ----------------
 
-- Add upport for Python 3.6, 3.7, and 3.8.
+- Add support for Python 3.6, 3.7, and 3.8.
 
 - Drop support for Python 3.3.
 
