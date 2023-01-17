@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-3.0.0b1 (unreleased)
+3.0.0b1 (2023-01-16)
 --------------------
 
 - Add support for Python 3.9, 3.10 and 3.11.
