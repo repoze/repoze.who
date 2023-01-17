@@ -8,6 +8,8 @@ repoze.who Changelog
 
 - Drop support for Python 2.7, 3.4, 3.5, and 3.6.
 
+- Add Github Actions workflow to exercise unit tests / coverage.
+
 2.4.1 (2022-02-01)
 ------------------
 
