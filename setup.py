@@ -27,7 +27,6 @@ def _read_file(filename):
 README = _read_file('README.rst')
 CHANGES = _read_file('CHANGES.rst')
 tests_require = ['WebOb', 'zope.interface']
-testing_extras = tests_require + ['nose', 'coverage']
 docs_extras = tests_require + ['Sphinx', 'repoze.sphinx.autointerface']
 
 setup(name='repoze.who',
@@ -71,7 +70,6 @@ setup(name='repoze.who',
       authenticated = repoze.who.restrict:make_authenticated_restriction
       """,
       extras_require = {
-        'testing': testing_extras,
         'docs': docs_extras,
       },
 )
