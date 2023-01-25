@@ -30,7 +30,7 @@ tests_require = ['WebOb', 'zope.interface']
 docs_extras = tests_require + ['Sphinx', 'repoze.sphinx.autointerface']
 
 setup(name='repoze.who',
-      version='3.0.0b1',
+      version='3.0.0',
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
       long_description='\n\n'.join([README, CHANGES]),
