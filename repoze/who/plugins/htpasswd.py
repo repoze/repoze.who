@@ -91,6 +91,9 @@ def _same_string(x, y):
     return len(mismatches) == 0
 
 def crypt_check(password, hashed):
+    # Note: the crypt module is deprecated since Python 3.11
+    # and will be removed in Python 3.13.
+    # win32 does not have a crypt library at all.
     from crypt import crypt
     salt = hashed[:2]
     return _same_string(hashed, crypt(password, salt))
