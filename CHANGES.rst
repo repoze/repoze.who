@@ -4,11 +4,13 @@ repoze.who Changelog
 3.0.0b2 (unreleased)
 --------------------
 
-- Skip testing the crypt module if it does not exist, like on Python 3.13.
+- Add support for Python 3.12 and 3.13.
+
+- Drop support for Python 3.7.
 
 - Require ``legacy-cgi`` on Python 3.13 or higher so ``WebOb`` works.
 
-- Add support for Python 3.12 and 3.13.
+- Skip testing the crypt module if it does not exist, like on Python 3.13.
 
 3.0.0b1 (2023-01-16)
 --------------------
