@@ -1,6 +1,15 @@
 repoze.who Changelog
 ====================
 
+3.0.0b2 (unreleased)
+--------------------
+
+- Skip testing the crypt module if it does not exist, like on Python 3.13.
+
+- Require ``legacy-cgi`` on Python 3.13 or higher so ``WebOb`` works.
+
+- Add support for Python 3.12 and 3.13.
+
 3.0.0b1 (2023-01-16)
 --------------------
 
@@ -106,7 +115,7 @@ repoze.who Changelog
 2.0b1 (2011-05-24)
 ------------------
 
-- Enabled standard use of logging module's configuration mechanism. 
+- Enabled standard use of logging module's configuration mechanism.
   See http://docs.python.org/dev/howto/logging.html#configuring-logging-for-a-library
   Thanks to jgoldsmith for the patch: http://bugs.repoze.org/issue178
 
@@ -180,7 +189,7 @@ repoze.who Changelog
 - Added ``repoze.who.config:make_api_factory_with_config``, a convenience
   method for applications which want to set up their own API Factory from
   a configuration file.
-  
+
 - Fixed example call to ``repoze.who.config:make_middleware_with_config``
   (added missing ``global_config`` argument).  See
   http://bugs.repoze.org/issue114
@@ -248,7 +257,7 @@ Backward Incompatibilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The middleware used to allow identifier plugins to "pre-authenticate"
-  an identity.  This feature is no longer supported: the ``auth_tkt`` 
+  an identity.  This feature is no longer supported: the ``auth_tkt``
   plugin, which used to use the feature, is now configured to work as
   an authenticator plugin (as well as an identifier).
 
@@ -263,7 +272,7 @@ Backward Incompatibilities
 
 - The following (non-API) functions moved from ``repoze.who.middleware`` to
   ``repoze.who.api``:
-  
+
   - ``make_registries``
   - ``match_classification``
   - ``verify``
@@ -274,7 +283,7 @@ Backward Incompatibilities
 -------------------
 
 - Issue #104:  AuthTkt plugin was passing an invalid cookie value in
-  headers from ``forget``, and was not setting the ``Max-Age`` and 
+  headers from ``forget``, and was not setting the ``Max-Age`` and
   ``Expires`` attributes of those cookies.
 
 

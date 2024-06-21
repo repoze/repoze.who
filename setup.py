@@ -26,8 +26,6 @@ def _read_file(filename):
 
 README = _read_file('README.rst')
 CHANGES = _read_file('CHANGES.rst')
-tests_require = ['WebOb', 'zope.interface']
-docs_extras = tests_require + ['Sphinx', 'repoze.sphinx.autointerface']
 
 setup(name='repoze.who',
       version='3.0.0b1',
@@ -43,6 +41,8 @@ setup(name='repoze.who',
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Internet :: WWW/HTTP",
@@ -59,8 +59,12 @@ setup(name='repoze.who',
       include_package_data=True,
       namespace_packages=['repoze', 'repoze.who', 'repoze.who.plugins'],
       zip_safe=False,
-      tests_require = tests_require,
-      install_requires=['WebOb', 'zope.interface', 'setuptools'],
+      install_requires=[
+        'WebOb',
+        'zope.interface',
+        'setuptools',
+        'legacy-cgi; python_version > "3.12"',  # WebOb uses the cgi module
+      ],
       test_suite="repoze.who",
       entry_points = """\
       [paste.filter_app_factory]
@@ -70,6 +74,6 @@ setup(name='repoze.who',
       authenticated = repoze.who.restrict:make_authenticated_restriction
       """,
       extras_require = {
-        'docs': docs_extras,
+        'docs': ['Sphinx', 'repoze.sphinx.autointerface'],
       },
 )
