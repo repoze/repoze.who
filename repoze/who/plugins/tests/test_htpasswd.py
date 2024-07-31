@@ -1,6 +1,3 @@
-import unittest
-
-
 try:
     from crypt import crypt
 except ImportError:
@@ -8,6 +5,10 @@ except ImportError:
     # and will be removed in Python 3.13.
     # win32 does not have a crypt library at all.
     crypt = None
+import unittest
+import warnings
+
+import pytest
 
 
 class TestHTPasswdPlugin(unittest.TestCase):
@@ -116,12 +117,40 @@ class TestHTPasswdPlugin(unittest.TestCase):
         self.assertTrue('could not open htpasswd' in logger.warnings[0])
 
     @unittest.skipIf(crypt is None, "crypt module not available")
-    def test_crypt_check(self):
+    def test_crypt_check_hit(self):
+        from repoze.who.plugins.htpasswd import crypt_check
         salt = '123'
         hashed = crypt('password', salt)
+
+        with warnings.catch_warnings(record=True) as logged:
+            assert crypt_check('password', hashed)
+
+        assert len(logged) == 1
+        record = logged[0]
+        assert record.category is UserWarning
+        assert "'crypt' module is deprecated" in str(record.message)
+
+    @unittest.skipIf(crypt is None, "crypt module not available")
+    def test_crypt_check_miss(self):
         from repoze.who.plugins.htpasswd import crypt_check
-        self.assertEqual(crypt_check('password', hashed), True)
-        self.assertEqual(crypt_check('notpassword', hashed), False)
+        salt = '123'
+        hashed = crypt('password', salt)
+
+        with warnings.catch_warnings(record=True) as logged:
+            assert not crypt_check('notpassword', hashed)
+
+        assert len(logged) == 1
+        record = logged[0]
+        assert record.category is UserWarning
+        assert "'crypt' module is deprecated" in str(record.message)
+
+    @unittest.skipIf(crypt is not None, "crypt module available")
+    def test_crypt_check_gone(self):
+        from repoze.who.plugins.htpasswd import CryptModuleNotImportable
+        from repoze.who.plugins.htpasswd import crypt_check
+
+        with pytest.raises(CryptModuleNotImportable):
+            crypt_check('password', 'hashed')
 
     def test_sha1_check_w_password_str(self):
         from base64 import standard_b64encode

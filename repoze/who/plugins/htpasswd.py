@@ -1,4 +1,14 @@
+try:
+    import crypt
+except ImportError:
+    # Note: the crypt module is deprecated since Python 3.11
+    # and will be removed in Python 3.13.
+    # win32 does not have a crypt library at all.
+    HAS_CRYPT = False
+else:
+    HAS_CRYPT = True
 import itertools
+import warnings
 
 from zope.interface import implementer
 
@@ -90,13 +100,27 @@ def _same_string(x, y):
         mismatches = list(mismatches)
     return len(mismatches) == 0
 
+
+if not HAS_CRYPT:
+
+    class CryptModuleNotImportable(RuntimeError):
+        def __init__(self):
+            super().__init__(
+                "'crypt' module is not importable. "
+                "Try 'bcrypt.checkpw' instead?"
+            )
+
 def crypt_check(password, hashed):
-    # Note: the crypt module is deprecated since Python 3.11
-    # and will be removed in Python 3.13.
-    # win32 does not have a crypt library at all.
-    from crypt import crypt
+
+    if not HAS_CRYPT:
+        raise CryptModuleNotImportable()
+
+    warnings.warn(
+        "'crypt' module is deprecated -- try 'bcrypt.checkpw' instead?"
+    )
     salt = hashed[:2]
-    return _same_string(hashed, crypt(password, salt))
+    return _same_string(hashed, crypt.crypt(password, salt))
+
 
 def sha1_check(password, hashed):
     from hashlib import sha1
