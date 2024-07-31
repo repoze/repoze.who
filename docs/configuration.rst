@@ -232,6 +232,9 @@ nominated to act as authenticator plugins. ::
     use = repoze.who.plugins.htpasswd:make_plugin
     filename = %(here)s/passwd
     check_fn = repoze.who.plugins.htpasswd:crypt_check
+    # The stdlib 'crypt' module is not available for Python > 3.13.  Instead,
+    # use: 'bcrypt.checkpw' function (see https://pypi.org/projects/bcrypt/).
+    # check_fn = bcrypt:checkpw
 
     [plugin:sqlusers]
     # authentication

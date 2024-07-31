@@ -133,6 +133,12 @@ authentication, identification, challenge and metadata provision.
   ``repoze.who.plugins.htpasswd:crypt_check``; it assumes the values
   in the htpasswd file are encrypted with the UNIX ``crypt`` function.
 
+.. note::
+   The ``crypt`` module is not available in the standard library for
+   Python >= 3.13.  Recommended replacement for the checker function
+   we provide here (``repoze.who.plugins.htpasswd:crypt_check``) is the
+   ``bcrypt.checkpw`` function (see https://pypi.org/projects/bcrypt/).
+
 .. module:: repoze.who.plugins.redirector
 
 .. class:: RedirectorPlugin(login_url, came_from_param, reason_param, reason_header)
