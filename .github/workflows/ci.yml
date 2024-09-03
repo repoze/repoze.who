@@ -69,7 +69,7 @@ jobs:
         python -m pip install coverage
 
     - name: Download coverage results
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: coverage-artifacts
         path: .coverage-results/
