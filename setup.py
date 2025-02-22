@@ -28,10 +28,11 @@ README = _read_file('README.rst')
 CHANGES = _read_file('CHANGES.rst')
 
 setup(name='repoze.who',
-      version='3.0.0b1',
+      version='3.1.0',
       description=('repoze.who is an identification and authentication '
                    'framework for WSGI.'),
       long_description='\n\n'.join([README, CHANGES]),
+      long_description_content_type="text/x-rst",
       classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
