@@ -6,7 +6,7 @@ repoze.who Changelog
 
 - Add support for Python 3.12 and 3.13.
 
-- Drop support for Python 3.7.
+- Drop support for Python 3.7 and 3.8.
 
 - Require ``legacy-cgi`` on Python 3.13 or higher so ``WebOb`` works.
 
