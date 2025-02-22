@@ -1,7 +1,7 @@
 repoze.who Changelog
 ====================
 
-3.0.0b2 (unreleased)
+3.1.0b1 (unreleased)
 --------------------
 
 - Add support for Python 3.12 and 3.13.
@@ -11,6 +11,13 @@ repoze.who Changelog
 - Require ``legacy-cgi`` on Python 3.13 or higher so ``WebOb`` works.
 
 - Skip testing the crypt module if it does not exist, like on Python 3.13.
+
+
+3.0.0 (2023-01-16)
+------------------
+
+- No changes from 3.0.0b1.
+
 
 3.0.0b1 (2023-01-16)
 --------------------
