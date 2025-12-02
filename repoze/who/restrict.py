@@ -1,5 +1,5 @@
 # Authorization middleware
-from pkg_resources import EntryPoint
+from importlib.metadata import EntryPoint
 
 def authenticated_predicate():
     def _predicate(environ):

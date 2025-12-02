@@ -3,7 +3,7 @@
 import configparser
 from io import StringIO
 import logging
-from pkg_resources import EntryPoint
+from importlib.metadata import EntryPoint
 import sys
 import warnings
 
