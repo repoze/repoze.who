@@ -57,7 +57,6 @@ setup(name='repoze.who',
       license="BSD-derived (http://www.repoze.org/LICENSE.txt)",
       packages=find_namespace_packages(include=['repoze*']),
       include_package_data=True,
-      namespace_packages=['repoze', 'repoze.who', 'repoze.who.plugins'],
       zip_safe=False,
       install_requires=[
         'WebOb',
