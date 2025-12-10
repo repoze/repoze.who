@@ -14,7 +14,7 @@
 
 import os
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 def _read_file(filename):
@@ -55,7 +55,7 @@ setup(name='repoze.who',
       author_email="repoze-dev@lists.repoze.org",
       url="http://www.repoze.org",
       license="BSD-derived (http://www.repoze.org/LICENSE.txt)",
-      packages=find_packages(),
+      packages=find_namespace_packages(include=['repoze*']),
       include_package_data=True,
       namespace_packages=['repoze', 'repoze.who', 'repoze.who.plugins'],
       zip_safe=False,
