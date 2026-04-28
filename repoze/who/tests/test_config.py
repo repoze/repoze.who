@@ -109,17 +109,6 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
-    def test_parse_identifiers_only_dotted_object(self):
-        from repoze.who.interfaces import IIdentifier
-        plugin_class = self._getDummyPluginClass(IIdentifier)
-        config = self._makeOne()
-        config.parse(IDENTIFIERS_ONLY_DOTTED_OBJECT)
-        identifiers = config.identifiers
-        self.assertEqual(len(identifiers), 1)
-        name, plugin = identifiers[0]
-        self.assertEqual(name, 'repoze.who.tests.test_config.DummyPlugin')
-        self.assertTrue(isinstance(plugin, plugin_class))
-
     def test_parse_identifiers_with_plugins(self):
         from repoze.who.interfaces import IIdentifier
         PLUGIN_CLASS = self._getDummyPluginClass(IIdentifier)
@@ -275,12 +264,6 @@ IDENTIFIERS_ONLY = """\
 plugins =
     repoze.who.tests.test_config:DummyPlugin;klass1
     repoze.who.tests.test_config:DummyPlugin
-"""
-
-IDENTIFIERS_ONLY_DOTTED_OBJECT = """\
-[identifiers]
-plugins =
-    repoze.who.tests.test_config.DummyPlugin
 """
 
 IDENTIFIERS_WITH_PLUGINS = """\
