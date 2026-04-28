@@ -151,6 +151,23 @@ class MakePredicateRestrictionTests(unittest.TestCase):
         self.assertEqual(filter.predicate.foo, 'Foo')
         self.assertTrue(filter.enabled)
 
+    def test_enabled_string_predicate_dot_form_w_args(self):
+        fut = self._getFUT()
+        app = DummyApp()
+
+        filter = fut(
+            app,
+            {},
+            predicate='repoze.who.tests.test_restrict.DummyPredicate',
+            enabled=True,
+            foo='Foo',
+        )
+
+        self.assertTrue(filter.app is app)
+        self.assertTrue(isinstance(filter.predicate, DummyPredicate))
+        self.assertEqual(filter.predicate.foo, 'Foo')
+        self.assertTrue(filter.enabled)
+
 
 class DummyApp(object):
     environ = None

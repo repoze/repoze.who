@@ -3,7 +3,6 @@
 import configparser
 from io import StringIO
 import logging
-from pkg_resources import EntryPoint
 import sys
 import warnings
 
@@ -16,10 +15,11 @@ from repoze.who.interfaces import IMetadataProvider
 from repoze.who.interfaces import IPlugin
 from repoze.who.interfaces import IRequestClassifier
 from repoze.who.middleware import PluggableAuthenticationMiddleware
+from repoze.who.resolver import resolve_dotted
 
 def _resolve(name):
     if name:
-        return EntryPoint.parse('x=%s' % name).resolve()
+        return resolve_dotted(name)
 
 class WhoConfig:
     def __init__(self, here):

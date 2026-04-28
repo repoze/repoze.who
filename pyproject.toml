@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "repoze.who"
+version = "3.1.0"
+description = "repoze.who is an identification and authentication framework for WSGI."
+dynamic = ["readme"]
+requires-python = ">=3.9"
+keywords = ["web", "application", "server", "wsgi", "zope"]
+license = { text = "BSD-derived (http://www.repoze.org/LICENSE.txt)" }
+authors = [
+  { name = "Agendaless Consulting", email = "repoze-dev@lists.repoze.org" },
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+  "Topic :: Internet :: WWW/HTTP :: WSGI",
+  "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+]
+dependencies = [
+  "WebOb",
+  "zope.interface",
+  "legacy-cgi; python_version > '3.12'",
+]
+
+[project.urls]
+Homepage = "http://www.repoze.org"
+
+[project.optional-dependencies]
+docs = ["Sphinx", "repoze.sphinx.autointerface"]
+
+[project.entry-points."paste.filter_app_factory"]
+test = "repoze.who.middleware:make_test_middleware"
+config = "repoze.who.config:make_middleware_with_config"
+predicate = "repoze.who.restrict:make_predicate_restriction"
+authenticated = "repoze.who.restrict:make_authenticated_restriction"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+include = ["repoze*"]
+
+[tool.setuptools.dynamic]
+readme = { file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst" }

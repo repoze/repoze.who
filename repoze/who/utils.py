@@ -1,5 +1,5 @@
 def resolveDotted(dotted_or_ep):
-    """ Resolve a dotted name or setuptools entry point to a callable.
+    """Resolve a dotted name to a callable.
     """
-    from pkg_resources import EntryPoint
-    return EntryPoint.parse('x=%s' % dotted_or_ep).resolve()
+    from repoze.who.resolver import resolve_dotted
+    return resolve_dotted(dotted_or_ep)
