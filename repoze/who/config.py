@@ -15,11 +15,7 @@ from repoze.who.interfaces import IMetadataProvider
 from repoze.who.interfaces import IPlugin
 from repoze.who.interfaces import IRequestClassifier
 from repoze.who.middleware import PluggableAuthenticationMiddleware
-from repoze.who.resolver import resolve_dotted
-
-def _resolve(name):
-    if name:
-        return resolve_dotted(name)
+from repoze.who.utils import resolveDotted
 
 class WhoConfig:
     def __init__(self, here):
@@ -36,7 +32,7 @@ class WhoConfig:
     def _makePlugin(self, name, iface, options=None):
         if options is None:
             options = {}
-        obj = _resolve(name)
+        obj = resolveDotted(name)
         if not iface.providedBy(obj):
             obj = obj(**options)
         return obj
