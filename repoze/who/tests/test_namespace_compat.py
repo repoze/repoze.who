@@ -1,4 +1,3 @@
-import importlib
 import pathlib
 import shutil
 import sys
@@ -23,8 +22,27 @@ class NamespaceCompatibilityTests(unittest.TestCase):
             ns_init, encoding="utf-8"
         )
         (plugin_pkg / "__init__.py").write_text(ns_init, encoding="utf-8")
-        (plugin_pkg / "legacy_plugin.py").write_text(
-            "class LegacyPlugin:\n    pass\n", encoding="utf-8"
+        (plugin_pkg / "sibling_identifier.py").write_text(
+            "from zope.interface import implementer\n"
+            "from repoze.who.interfaces import IIdentifier\n"
+            "\n"
+            "@implementer(IIdentifier)\n"
+            "class SiblingIdentifier:\n"
+            "    def __init__(self, marker=None):\n"
+            "        self.marker = marker\n"
+            "\n"
+            "    def identify(self, environ):\n"
+            "        return None\n"
+            "\n"
+            "    def remember(self, environ, identity):\n"
+            "        return []\n"
+            "\n"
+            "    def forget(self, environ, identity):\n"
+            "        return []\n"
+            "\n"
+            "def make_plugin(marker=None):\n"
+            "    return SiblingIdentifier(marker)\n",
+            encoding="utf-8",
         )
         return workspace, sibling_root
 
@@ -33,7 +51,7 @@ class NamespaceCompatibilityTests(unittest.TestCase):
             if module_name == "repoze" or module_name.startswith("repoze."):
                 del sys.modules[module_name]
 
-    def test_plugins_namespace_with_pkgutil_sibling_package(self):
+    def test_config_resolves_plugin_from_sibling_namespace_package(self):
         workspace, sibling_root = self._create_pkgutil_sibling()
 
         original_sys_path = list(sys.path)
@@ -44,14 +62,25 @@ class NamespaceCompatibilityTests(unittest.TestCase):
 
         try:
             sys.path.insert(0, str(sibling_root))
-            import repoze.who.plugins
+            from repoze.who.config import WhoConfig
 
-            legacy = importlib.import_module("repoze.who.plugins.legacy_plugin")
-            self.assertTrue(hasattr(legacy, "LegacyPlugin"))
-            self.assertIn(
-                str(sibling_root / "repoze" / "who" / "plugins"),
-                [str(path) for path in repoze.who.plugins.__path__],
+            config = WhoConfig("/")
+            config.parse(
+                "[plugin:sibling]\n"
+                "use = repoze.who.plugins.sibling_identifier:make_plugin\n"
+                "marker = loaded from sibling namespace\n"
+                "\n"
+                "[identifiers]\n"
+                "plugins = sibling\n"
             )
+
+            plugin = config.plugins["sibling"]
+            self.assertEqual(plugin.marker, "loaded from sibling namespace")
+            self.assertEqual(
+                plugin.__class__.__module__,
+                "repoze.who.plugins.sibling_identifier",
+            )
+            self.assertEqual(config.identifiers, [("sibling", plugin)])
         finally:
             sys.path[:] = original_sys_path
             self._clear_repoze_modules()
