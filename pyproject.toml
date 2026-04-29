@@ -49,11 +49,12 @@ predicate = "repoze.who.restrict:make_predicate_restriction"
 authenticated = "repoze.who.restrict:make_authenticated_restriction"
 
 [tool.setuptools]
-include-package-data = true
+include-package-data = false
 zip-safe = false
 
 [tool.setuptools.packages.find]
 include = ["repoze*"]
+exclude = ["repoze.who.tests*", "repoze.who.plugins.tests*"]
 
 [tool.setuptools.dynamic]
 readme = { file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst" }
