@@ -14,8 +14,7 @@ class NamespaceCompatibilityTests(unittest.TestCase):
         plugin_pkg.mkdir(parents=True)
 
         ns_init = (
-            "from pkgutil import extend_path\n"
-            "__path__ = extend_path(__path__, __name__)\n"
+            "__path__ = __import__('pkgutil').extend_path(__path__, __name__)\n"
         )
         (sibling_root / "repoze" / "__init__.py").write_text(ns_init, encoding="utf-8")
         (sibling_root / "repoze" / "who" / "__init__.py").write_text(
