@@ -3,6 +3,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from importlib.util import find_spec
 
 
 class NamespaceCompatibilityTests(unittest.TestCase):
@@ -67,6 +68,12 @@ class NamespaceCompatibilityTests(unittest.TestCase):
 
         for namespace_style in namespace_styles:
             with self.subTest(namespace_style=namespace_style):
+                if (
+                    namespace_style == "pkg_resources"
+                    and find_spec("pkg_resources") is None
+                ):
+                    self.skipTest("pkg_resources is not available")
+
                 workspace, sibling_root = self._create_sibling(namespace_style)
 
                 original_sys_path = list(sys.path)
