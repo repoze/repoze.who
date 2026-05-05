@@ -1,6 +1,13 @@
 repoze.who Changelog
 ====================
 
+3.2.0 (Unreleased)
+------------------
+
+- ci: publish to PyPI on release
+
+  Use 'pypi' environment and Trusted Publisher
+
 3.1.0 (2025-02-22)
 ------------------
 
