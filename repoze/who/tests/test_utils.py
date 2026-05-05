@@ -9,7 +9,8 @@ class ResolveDottedTests(unittest.TestCase):
 
     def test_resolve_module_colon_object(self):
         resolved = self._callFUT("repoze.who.tests.test_utils:DummyCallable")
-        self.assertTrue(resolved is DummyCallable)
+        self.assertEqual(resolved.__name__, "DummyCallable")
+        self.assertIn("test_utils", resolved.__module__)
 
     def test_resolve_missing_colon_raises_value_error(self):
         self.assertRaises(

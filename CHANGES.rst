@@ -1,6 +1,24 @@
 repoze.who Changelog
 ====================
 
+3.2.0 (unreleased)
+------------------
+
+- Add support for Python 3.14.
+
+- Drop support for Python 3.9.
+
+- Remove ``pkg_resources`` usage from runtime resolution paths.
+
+- Switch ``repoze`` / ``repoze.who`` / ``repoze.who.plugins`` to native
+  namespace packages.
+
+- Migrate packaging metadata to ``pyproject.toml``.
+
+- Require ``module:object`` plugin references in config; legacy
+  ``module.object`` syntax is no longer supported.
+
+
 3.1.0 (2025-02-22)
 ------------------
 

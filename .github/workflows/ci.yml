@@ -14,8 +14,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - python: "3.9"
-            toxenv: py39
           - python: "3.10"
             toxenv: py310
           - python: "3.11"
@@ -58,7 +56,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.9"
+        python-version: "3.10"
 
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -66,4 +64,4 @@ jobs:
         python-version: "3.14"
 
     - run: pip install tox
-    - run: tox -e py39,py314,cover
+    - run: tox -e py310,py314,cover

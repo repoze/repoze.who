@@ -3,36 +3,15 @@ import shutil
 import sys
 import tempfile
 import unittest
-from importlib.util import find_spec
 
 
 class NamespaceCompatibilityTests(unittest.TestCase):
 
-    def _create_sibling(self, namespace_style):
+    def _create_sibling(self):
         workspace = pathlib.Path(tempfile.mkdtemp())
         sibling_root = workspace / "sibling"
         plugin_pkg = sibling_root / "repoze" / "who" / "plugins"
         plugin_pkg.mkdir(parents=True)
-
-        if namespace_style == "pkg_resources":
-            ns_init = (
-                "__import__('pkg_resources').declare_namespace(__name__)\n"
-            )
-        elif namespace_style == "pkgutil":
-            ns_init = (
-                "__path__ = __import__('pkgutil').extend_path(__path__, __name__)\n"
-            )
-        else:
-            ns_init = None
-
-        if ns_init is not None:
-            (sibling_root / "repoze" / "__init__.py").write_text(
-                ns_init, encoding="utf-8"
-            )
-            (sibling_root / "repoze" / "who" / "__init__.py").write_text(
-                ns_init, encoding="utf-8"
-            )
-            (plugin_pkg / "__init__.py").write_text(ns_init, encoding="utf-8")
 
         (plugin_pkg / "sibling_identifier.py").write_text(
             "from zope.interface import implementer\n"
@@ -58,55 +37,56 @@ class NamespaceCompatibilityTests(unittest.TestCase):
         )
         return workspace, sibling_root
 
+    def _assert_native_namespace(self, module):
+        self.assertIsNone(module.__spec__.origin)
+        self.assertIsNotNone(module.__spec__.submodule_search_locations)
+
     def _clear_repoze_modules(self):
         for module_name in list(sys.modules):
             if module_name == "repoze" or module_name.startswith("repoze."):
                 del sys.modules[module_name]
 
     def test_config_resolves_plugin_from_sibling_namespace_package(self):
-        namespace_styles = ("pkg_resources", "native", "pkgutil")
+        workspace, sibling_root = self._create_sibling()
 
-        for namespace_style in namespace_styles:
-            with self.subTest(namespace_style=namespace_style):
-                if (
-                    namespace_style == "pkg_resources"
-                    and find_spec("pkg_resources") is None
-                ):
-                    self.skipTest("pkg_resources is not available")
+        original_sys_path = list(sys.path)
+        original_modules = {
+            k: v
+            for k, v in sys.modules.items()
+            if k == "repoze" or k.startswith("repoze.")
+        }
+        self._clear_repoze_modules()
 
-                workspace, sibling_root = self._create_sibling(namespace_style)
+        try:
+            sys.path.insert(0, str(sibling_root))
+            import repoze
+            import repoze.who
+            import repoze.who.plugins
+            from repoze.who.config import WhoConfig
 
-                original_sys_path = list(sys.path)
-                original_modules = {
-                    k: v
-                    for k, v in sys.modules.items()
-                    if k == "repoze" or k.startswith("repoze.")
-                }
-                self._clear_repoze_modules()
+            self._assert_native_namespace(repoze)
+            self._assert_native_namespace(repoze.who)
+            self._assert_native_namespace(repoze.who.plugins)
 
-                try:
-                    sys.path.insert(0, str(sibling_root))
-                    from repoze.who.config import WhoConfig
+            config = WhoConfig("/")
+            config.parse(
+                "[plugin:sibling]\n"
+                "use = repoze.who.plugins.sibling_identifier:make_plugin\n"
+                "marker = loaded from sibling namespace\n"
+                "\n"
+                "[identifiers]\n"
+                "plugins = sibling\n"
+            )
 
-                    config = WhoConfig("/")
-                    config.parse(
-                        "[plugin:sibling]\n"
-                        "use = repoze.who.plugins.sibling_identifier:make_plugin\n"
-                        "marker = loaded from sibling namespace\n"
-                        "\n"
-                        "[identifiers]\n"
-                        "plugins = sibling\n"
-                    )
-
-                    plugin = config.plugins["sibling"]
-                    self.assertEqual(plugin.marker, "loaded from sibling namespace")
-                    self.assertEqual(
-                        plugin.__class__.__module__,
-                        "repoze.who.plugins.sibling_identifier",
-                    )
-                    self.assertEqual(config.identifiers, [("sibling", plugin)])
-                finally:
-                    sys.path[:] = original_sys_path
-                    self._clear_repoze_modules()
-                    sys.modules.update(original_modules)
-                    shutil.rmtree(str(workspace))
+            plugin = config.plugins["sibling"]
+            self.assertEqual(plugin.marker, "loaded from sibling namespace")
+            self.assertEqual(
+                plugin.__class__.__module__,
+                "repoze.who.plugins.sibling_identifier",
+            )
+            self.assertEqual(config.identifiers, [("sibling", plugin)])
+        finally:
+            sys.path[:] = original_sys_path
+            self._clear_repoze_modules()
+            sys.modules.update(original_modules)
+            shutil.rmtree(str(workspace))
