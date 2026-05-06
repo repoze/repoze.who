@@ -57,3 +57,6 @@ exclude = ["repoze.who.tests*", "repoze.who.plugins.tests*"]
 
 [tool.setuptools.dynamic]
 readme = { file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst" }
+
+[tool.pytest.ini_options]
+consider_namespace_packages = true
