@@ -28,11 +28,7 @@ domain of the WSGI application.
 Installation
 ------------
 
-Install using setuptools, e.g. (within a virtualenv)::
-
- $ easy_install repoze.who
-
-or using pip::
+Install using pip (within a virtualenv)::
 
  $ pip install repoze.who
 
@@ -61,4 +57,3 @@ Obtaining Source Code
 Download development or tagged versions of the software by visiting:
 
   https://github.com/repoze/repoze.who
-

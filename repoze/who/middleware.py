@@ -187,7 +187,7 @@ def make_test_middleware(app, global_conf):
     """ Functionally equivalent to
 
     [plugin:redirector]
-    use = repoze.who.plugins.redirector.RedirectorPlugin
+    use = repoze.who.plugins.redirector:RedirectorPlugin
     login_url = /login.html
 
     [plugin:auth_tkt]
@@ -196,11 +196,11 @@ def make_test_middleware(app, global_conf):
     cookie_name = oatmeal
 
     [plugin:basicauth]
-    use = repoze.who.plugins.basicauth.BasicAuthPlugin
+    use = repoze.who.plugins.basicauth:BasicAuthPlugin
     realm = repoze.who
 
     [plugin:htpasswd]
-    use = repoze.who.plugins.htpasswd.HTPasswdPlugin
+    use = repoze.who.plugins.htpasswd:HTPasswdPlugin
     filename = <...>
     check_fn = repoze.who.plugins.htpasswd:crypt_check
 

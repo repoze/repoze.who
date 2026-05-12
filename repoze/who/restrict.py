@@ -1,5 +1,5 @@
 # Authorization middleware
-from pkg_resources import EntryPoint
+from repoze.who.utils import resolveDotted
 
 def authenticated_predicate():
     def _predicate(environ):
@@ -27,5 +27,5 @@ def make_authenticated_restriction(app, global_config, enabled=True):
 def make_predicate_restriction(app, global_config,
                                predicate, enabled=True, **kw):
     if isinstance(predicate, str):
-        predicate = EntryPoint.parse('x=%s' % predicate).resolve()
+        predicate = resolveDotted(predicate)
     return PredicateRestriction(app, predicate, enabled, **kw)

@@ -13,12 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        include:
+          - python: "3.10"
+            toxenv: py310
+          - python: "3.11"
+            toxenv: py311
+          - python: "3.12"
+            toxenv: py312
+          - python: "3.13"
+            toxenv: py313
+          - python: "3.14"
+            toxenv: py314
     steps:
 
     - name: Checkout
@@ -30,14 +35,14 @@ jobs:
         python-version: ${{ matrix.python }}
         allow-prereleases: true
 
-    - name: Install nox
+    - name: Install tox
       run: |
         python -m pip install --upgrade setuptools pip wheel
         python -m pip install tox
 
     - name: Run unit tests
       run: |
-        tox -e py${{ matrix.python }}
+        tox -e ${{ matrix.toxenv }}
 
   report-coverage:
     name: cover
@@ -51,12 +56,12 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.9"
+        python-version: "3.10"
 
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.13"
+        python-version: "3.14"
 
     - run: pip install tox
-    - run: tox -e py39,py313,cover
+    - run: tox -e py310,py314,cover
