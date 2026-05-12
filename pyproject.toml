@@ -1,33 +1,37 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [project]
 name = "repoze.who"
-version = "3.1.0"
-description = "repoze.who is an identification and authentication framework for WSGI."
-dynamic = ["readme"]
+version = "3.2.0dev0"
+description = "Identification and authentication framework for WSGI."
+readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.10"
 keywords = ["web", "application", "server", "wsgi", "zope"]
 license = { text = "BSD-derived (http://www.repoze.org/LICENSE.txt)" }
 authors = [
-  { name = "Agendaless Consulting", email = "repoze-dev@lists.repoze.org" },
+  { name = "Tres Seaver, Agendaless Consulting", email = "tseaver@agendaless.com" },
 ]
 classifiers = [
-  "Development Status :: 5 - Production/Stable",
-  "Intended Audience :: Developers",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
-  "Topic :: Internet :: WWW/HTTP",
-  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
-  "Topic :: Internet :: WWW/HTTP :: WSGI",
-  "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
 ]
 dependencies = [
   "WebOb",
@@ -36,10 +40,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "http://www.repoze.org"
-
-[project.optional-dependencies]
-docs = ["Sphinx", "repoze.sphinx.autointerface"]
+Repository = "https://github.com/repoze/repoze.who"
+Issues = "https://github.com/repoze/repoze.who/issues"
+Documentation = "https://repozewho.readthedocs.io/en/stable/index.html"
+Changelog = "https://github.com/repoze/repoze.who/blob/master/CHANGES.rst"
 
 [project.entry-points."paste.filter_app_factory"]
 test = "repoze.who.middleware:make_test_middleware"
@@ -47,16 +51,27 @@ config = "repoze.who.config:make_middleware_with_config"
 predicate = "repoze.who.restrict:make_predicate_restriction"
 authenticated = "repoze.who.restrict:make_authenticated_restriction"
 
+[dependency-groups]
+dev = [
+    "tox",
+    "pytest",
+    "pytest-cov",
+]
+docs = [
+    "sphinx",
+]
+
 [tool.setuptools]
-include-package-data = false
-zip-safe = false
-
-[tool.setuptools.packages.find]
-include = ["repoze*"]
-exclude = ["repoze.who.tests*", "repoze.who.plugins.tests*"]
-
-[tool.setuptools.dynamic]
-readme = { file = ["README.rst", "CHANGES.rst"], content-type = "text/x-rst" }
+include-package-data = true
 
 [tool.pytest.ini_options]
-consider_namespace_packages = true
+pythonpath = [".", "tests/unit"]
+minversion = "6.0"
+python_files = "test_*.py"
+testpaths = [ "tests" ]
+
+[tool.coverage.run]
+omit = []
+
+[tool.coverage.report]
+show_missing = true

@@ -1,17 +1,22 @@
+import io
+import logging
 import unittest
+
+from zope.interface import classImplements
+
+from repoze.who import config
+from repoze.who import interfaces
 
 
 class TestWhoConfig(unittest.TestCase):
 
     def _getTargetClass(self):
-        from repoze.who.config import WhoConfig
-        return WhoConfig
+        return config.WhoConfig
 
     def _makeOne(self, here='/', *args, **kw):
         return self._getTargetClass()(here, *args, **kw)
 
     def _getDummyPluginClass(self, iface):
-        from zope.interface import classImplements
         if not iface.implementedBy(DummyPlugin):
             classImplements(DummyPlugin, iface)
         return DummyPlugin
@@ -40,9 +45,8 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(len(config.mdproviders), 0)
 
     def test_parse_empty_file(self):
-        from io import StringIO
         config = self._makeOne()
-        config.parse(StringIO())
+        config.parse(io.StringIO())
         self.assertEqual(config.request_classifier, None)
         self.assertEqual(config.challenge_decider, None)
         self.assertEqual(config.remote_user_key, 'REMOTE_USER')
@@ -71,9 +75,7 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(len(config.plugins), 0)
 
     def test_parse_general_only(self):
-        from repoze.who.interfaces import IRequestClassifier
-        from repoze.who.interfaces import IChallengeDecider
-        class IDummy(IRequestClassifier, IChallengeDecider):
+        class IDummy(interfaces.IRequestClassifier, interfaces.IChallengeDecider):
             pass
         PLUGIN_CLASS = self._getDummyPluginClass(IDummy)
         config = self._makeOne()
@@ -84,9 +86,7 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(len(config.plugins), 0)
 
     def test_parse_general_with_plugins(self):
-        from repoze.who.interfaces import IRequestClassifier
-        from repoze.who.interfaces import IChallengeDecider
-        class IDummy(IRequestClassifier, IChallengeDecider):
+        class IDummy(interfaces.IRequestClassifier, interfaces.IChallengeDecider):
             pass
         PLUGIN_CLASS = self._getDummyPluginClass(IDummy)
         config = self._makeOne()
@@ -95,23 +95,21 @@ class TestWhoConfig(unittest.TestCase):
         self.assertTrue(isinstance(config.challenge_decider, PLUGIN_CLASS))
 
     def test_parse_identifiers_only(self):
-        from repoze.who.interfaces import IIdentifier
-        PLUGIN_CLASS = self._getDummyPluginClass(IIdentifier)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IIdentifier)
         config = self._makeOne()
         config.parse(IDENTIFIERS_ONLY)
         identifiers = config.identifiers
         self.assertEqual(len(identifiers), 2)
         first, second = identifiers
-        self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IIdentifier], 'klass1')
-        self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[1].classifications[interfaces.IIdentifier], 'klass1')
+        self.assertEqual(second[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_identifiers_with_plugins(self):
-        from repoze.who.interfaces import IIdentifier
-        PLUGIN_CLASS = self._getDummyPluginClass(IIdentifier)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IIdentifier)
         config = self._makeOne()
         config.parse(IDENTIFIERS_WITH_PLUGINS)
         identifiers = config.identifiers
@@ -120,28 +118,26 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(first[0], 'foo')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IIdentifier], 'klass1')
+        self.assertEqual(first[1].classifications[interfaces.IIdentifier], 'klass1')
         self.assertEqual(second[0], 'bar')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_authenticators_only(self):
-        from repoze.who.interfaces import IAuthenticator
-        PLUGIN_CLASS = self._getDummyPluginClass(IAuthenticator)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IAuthenticator)
         config = self._makeOne()
         config.parse(AUTHENTICATORS_ONLY)
         authenticators = config.authenticators
         self.assertEqual(len(authenticators), 2)
         first, second = authenticators
-        self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IAuthenticator], 'klass1')
-        self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[1].classifications[interfaces.IAuthenticator], 'klass1')
+        self.assertEqual(second[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_authenticators_with_plugins(self):
-        from repoze.who.interfaces import IAuthenticator
-        PLUGIN_CLASS = self._getDummyPluginClass(IAuthenticator)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IAuthenticator)
         config = self._makeOne()
         config.parse(AUTHENTICATORS_WITH_PLUGINS)
         authenticators = config.authenticators
@@ -150,28 +146,26 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(first[0], 'foo')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IAuthenticator], 'klass1')
+        self.assertEqual(first[1].classifications[interfaces.IAuthenticator], 'klass1')
         self.assertEqual(second[0], 'bar')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_challengers_only(self):
-        from repoze.who.interfaces import IChallenger
-        PLUGIN_CLASS = self._getDummyPluginClass(IChallenger)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IChallenger)
         config = self._makeOne()
         config.parse(CHALLENGERS_ONLY)
         challengers = config.challengers
         self.assertEqual(len(challengers), 2)
         first, second = challengers
-        self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IChallenger], 'klass1')
-        self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[1].classifications[interfaces.IChallenger], 'klass1')
+        self.assertEqual(second[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_challengers_with_plugins(self):
-        from repoze.who.interfaces import IChallenger
-        PLUGIN_CLASS = self._getDummyPluginClass(IChallenger)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IChallenger)
         config = self._makeOne()
         config.parse(CHALLENGERS_WITH_PLUGINS)
         challengers = config.challengers
@@ -180,28 +174,26 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(first[0], 'foo')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IChallenger], 'klass1')
+        self.assertEqual(first[1].classifications[interfaces.IChallenger], 'klass1')
         self.assertEqual(second[0], 'bar')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_mdproviders_only(self):
-        from repoze.who.interfaces import IMetadataProvider
-        PLUGIN_CLASS = self._getDummyPluginClass(IMetadataProvider)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IMetadataProvider)
         config = self._makeOne()
         config.parse(MDPROVIDERS_ONLY)
         mdproviders = config.mdproviders
         self.assertEqual(len(mdproviders), 2)
         first, second = mdproviders
-        self.assertEqual(first[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IMetadataProvider], 'klass1')
-        self.assertEqual(second[0], 'repoze.who.tests.test_config:DummyPlugin')
+        self.assertEqual(first[1].classifications[interfaces.IMetadataProvider], 'klass1')
+        self.assertEqual(second[0], 'test_config:DummyPlugin')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
     def test_parse_mdproviders_with_plugins(self):
-        from repoze.who.interfaces import IMetadataProvider
-        PLUGIN_CLASS = self._getDummyPluginClass(IMetadataProvider)
+        PLUGIN_CLASS = self._getDummyPluginClass(interfaces.IMetadataProvider)
         config = self._makeOne()
         config.parse(MDPROVIDERS_WITH_PLUGINS)
         mdproviders = config.mdproviders
@@ -210,7 +202,7 @@ class TestWhoConfig(unittest.TestCase):
         self.assertEqual(first[0], 'foo')
         self.assertTrue(isinstance(first[1], PLUGIN_CLASS))
         self.assertEqual(len(first[1].classifications), 1)
-        self.assertEqual(first[1].classifications[IMetadataProvider], 'klass1')
+        self.assertEqual(first[1].classifications[interfaces.IMetadataProvider], 'klass1')
         self.assertEqual(second[0], 'bar')
         self.assertTrue(isinstance(second[1], PLUGIN_CLASS))
 
@@ -233,17 +225,17 @@ class DummyPlugin:
 
 PLUGINS_ONLY = """\
 [plugin:foo]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 credentials = qux
 """
 
 GENERAL_ONLY = """\
 [general]
-request_classifier = repoze.who.tests.test_config:DummyPlugin
-challenge_decider = repoze.who.tests.test_config:DummyPlugin
+request_classifier = test_config:DummyPlugin
+challenge_decider = test_config:DummyPlugin
 remote_user_key = ANOTHER_REMOTE_USER
 """
 
@@ -253,17 +245,17 @@ request_classifier = classifier
 challenge_decider = decider
 
 [plugin:classifier]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 
 [plugin:decider]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 """
 
 IDENTIFIERS_ONLY = """\
 [identifiers]
 plugins =
-    repoze.who.tests.test_config:DummyPlugin;klass1
-    repoze.who.tests.test_config:DummyPlugin
+    test_config:DummyPlugin;klass1
+    test_config:DummyPlugin
 """
 
 IDENTIFIERS_WITH_PLUGINS = """\
@@ -273,17 +265,17 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 """
 
 AUTHENTICATORS_ONLY = """\
 [authenticators]
 plugins =
-    repoze.who.tests.test_config:DummyPlugin;klass1
-    repoze.who.tests.test_config:DummyPlugin
+    test_config:DummyPlugin;klass1
+    test_config:DummyPlugin
 """
 
 AUTHENTICATORS_WITH_PLUGINS = """\
@@ -293,17 +285,17 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 """
 
 CHALLENGERS_ONLY = """\
 [challengers]
 plugins =
-    repoze.who.tests.test_config:DummyPlugin;klass1
-    repoze.who.tests.test_config:DummyPlugin
+    test_config:DummyPlugin;klass1
+    test_config:DummyPlugin
 """
 
 CHALLENGERS_WITH_PLUGINS = """\
@@ -313,17 +305,17 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 """
 
 MDPROVIDERS_ONLY = """\
 [mdproviders]
 plugins =
-    repoze.who.tests.test_config:DummyPlugin;klass1
-    repoze.who.tests.test_config:DummyPlugin
+    test_config:DummyPlugin;klass1
+    test_config:DummyPlugin
 """
 
 MDPROVIDERS_WITH_PLUGINS = """\
@@ -333,15 +325,15 @@ plugins =
     bar
 
 [plugin:foo]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 
 [plugin:bar]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 """
 
 MAKE_PLUGIN_ARG_NAMES = """\
 [plugin:foo]
-use = repoze.who.tests.test_config:DummyPlugin
+use = test_config:DummyPlugin
 name = name
 iface = iface
 template = %%(template)s
@@ -360,8 +352,7 @@ class TestConfigMiddleware(unittest.TestCase):
             shutil.rmtree(self._tempdir)
 
     def _getFactory(self):
-        from repoze.who.config import make_middleware_with_config
-        return make_middleware_with_config
+        return config.make_middleware_with_config
 
     def _getTempfile(self, text):
         import os
@@ -419,8 +410,6 @@ class TestConfigMiddleware(unittest.TestCase):
         handlers[0].stream.close()
 
     def test_sample_config_wo_log_file(self):
-        import logging
-        from repoze.who.config import NullHandler
         app = DummyApp()
         factory = self._getFactory()
         path = self._getTempfile(SAMPLE_CONFIG)
@@ -429,14 +418,13 @@ class TestConfigMiddleware(unittest.TestCase):
         self.assertEqual(middleware.logger.getEffectiveLevel(), logging.INFO)
         handlers = middleware.logger.handlers
         self.assertEqual(len(handlers), 1)
-        self.assertTrue(isinstance(handlers[0], NullHandler))
+        self.assertTrue(isinstance(handlers[0], config.NullHandler))
         logging.shutdown()
 
 class NullHandlerTests(unittest.TestCase):
 
     def _getTargetClass(self):
-        from repoze.who.config import NullHandler
-        return NullHandler
+        return config.NullHandler
 
     def _makeOne(self):
         return self._getTargetClass()()
@@ -462,8 +450,7 @@ class Test_make_api_factory_with_config(unittest.TestCase):
             shutil.rmtree(self._tempdir)
 
     def _getFactory(self):
-        from repoze.who.config import make_api_factory_with_config
-        return make_api_factory_with_config
+        return config.make_api_factory_with_config
 
     def _getTempfile(self, text):
         import os

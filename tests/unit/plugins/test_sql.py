@@ -162,7 +162,7 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
     def test_connfactory_specd(self):
         f = self._getFUT()
         plugin = f('statement',
-                   'repoze.who.plugins.tests.test_sql:make_dummy_connfactory',
+                   'plugins.test_sql:make_dummy_connfactory',
                    None)
         self.assertEqual(plugin.query, 'statement')
         self.assertEqual(plugin.conn_factory, DummyConnFactory)
@@ -172,8 +172,8 @@ class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
     def test_comparefunc_specd(self):
         f = self._getFUT()
         plugin = f('statement',
-                   'repoze.who.plugins.tests.test_sql:make_dummy_connfactory',
-                   'repoze.who.plugins.tests.test_sql:make_dummy_connfactory')
+                   'plugins.test_sql:make_dummy_connfactory',
+                   'plugins.test_sql:make_dummy_connfactory')
         self.assertEqual(plugin.query, 'statement')
         self.assertEqual(plugin.conn_factory, DummyConnFactory)
         self.assertEqual(plugin.compare_fn, make_dummy_connfactory)
@@ -204,7 +204,7 @@ class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
     def test_connfactory_specd(self):
         f = self._getFUT()
         plugin = f('name', 'statement',
-                   'repoze.who.plugins.tests.test_sql:make_dummy_connfactory',
+                   'plugins.test_sql:make_dummy_connfactory',
                    None)
         self.assertEqual(plugin.name, 'name')
         self.assertEqual(plugin.query, 'statement')
@@ -214,8 +214,8 @@ class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
     def test_comparefn_specd(self):
         f = self._getFUT()
         plugin = f('name', 'statement',
-                   'repoze.who.plugins.tests.test_sql:make_dummy_connfactory',
-                   'repoze.who.plugins.tests.test_sql:make_dummy_connfactory')
+                   'plugins.test_sql:make_dummy_connfactory',
+                   'plugins.test_sql:make_dummy_connfactory')
         self.assertEqual(plugin.name, 'name')
         self.assertEqual(plugin.query, 'statement')
         self.assertEqual(plugin.conn_factory, DummyConnFactory)

@@ -1,10 +1,12 @@
 import unittest
 
+from repoze.who import restrict # authenticated_predicate
+
+
 class AuthenticatedPredicateTests(unittest.TestCase):
 
     def _getFUT(self):
-        from repoze.who.restrict import authenticated_predicate
-        return authenticated_predicate()
+        return restrict.authenticated_predicate()
 
     def test___call___no_identity_returns_False(self):
         predicate = self._getFUT()
@@ -24,8 +26,7 @@ class AuthenticatedPredicateTests(unittest.TestCase):
 class MakeAuthenticatedRestrictionTests(unittest.TestCase):
 
     def _getFUT(self):
-        from repoze.who.restrict import make_authenticated_restriction
-        return make_authenticated_restriction
+        return restrict.make_authenticated_restriction
 
     def test_enabled(self):
         fut = self._getFUT()
@@ -42,8 +43,7 @@ class MakeAuthenticatedRestrictionTests(unittest.TestCase):
 class PredicateRestrictionTests(unittest.TestCase):
 
     def _getTargetClass(self):
-        from repoze.who.restrict import PredicateRestriction
-        return PredicateRestriction
+        return restrict.PredicateRestriction
 
     def _makeOne(self, app=None, **kw):
         if app is None:
@@ -61,11 +61,11 @@ class PredicateRestrictionTests(unittest.TestCase):
             assert False  # pragma: no cover
         environ = {'testing': True}
 
-        restrict = self._makeOne(predicate=_factory, enabled=False)
-        restrict(environ, _start_response)
+        pr = self._makeOne(predicate=_factory, enabled=False)
+        pr(environ, _start_response)
 
         self.assertEqual(len(_tested), 0)
-        self.assertEqual(restrict.app.environ, environ)
+        self.assertEqual(pr.app.environ, environ)
 
     def test___call___enabled_predicate_false_returns_401(self):
         _tested = []
@@ -80,13 +80,13 @@ class PredicateRestrictionTests(unittest.TestCase):
             _started.append((status, headers))
         environ = {'testing': True}
 
-        restrict = self._makeOne(predicate=_factory)
-        restrict(environ, _start_response)
+        pr = self._makeOne(predicate=_factory)
+        pr(environ, _start_response)
 
         self.assertEqual(len(_tested), 1)
         self.assertEqual(len(_started), 1, _started)
         self.assertEqual(_started[0][0], '401 Unauthorized')
-        self.assertEqual(restrict.app.environ, None)
+        self.assertEqual(pr.app.environ, None)
 
     def test___call___enabled_predicate_true_calls_app(self):
         _tested = []
@@ -100,17 +100,16 @@ class PredicateRestrictionTests(unittest.TestCase):
             assert False  # pragma: no cover
         environ = {'testing': True, 'REMOTE_USER': 'fred'}
 
-        restrict = self._makeOne(predicate=_factory)
-        restrict(environ, _start_response)
+        pr = self._makeOne(predicate=_factory)
+        pr(environ, _start_response)
 
         self.assertEqual(len(_tested), 1)
-        self.assertEqual(restrict.app.environ, environ)
+        self.assertEqual(pr.app.environ, environ)
 
 class MakePredicateRestrictionTests(unittest.TestCase):
 
     def _getFUT(self):
-        from repoze.who.restrict import make_predicate_restriction
-        return make_predicate_restriction
+        return restrict.make_predicate_restriction
 
     def test_non_string_predicate_no_args(self):
         fut = self._getFUT()
@@ -143,7 +142,7 @@ class MakePredicateRestrictionTests(unittest.TestCase):
         app = DummyApp()
 
         filter = fut(app, {},
-                     predicate='repoze.who.tests.test_restrict:DummyPredicate',
+                     predicate='test_restrict:DummyPredicate',
                      enabled=True, foo='Foo')
 
         self.assertTrue(filter.app is app)
