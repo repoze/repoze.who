@@ -22,6 +22,8 @@ repoze.who Changelog
 - Require ``module:object`` plugin references in config; legacy
   ``module.object`` syntax is no longer supported.
 
+- Update unit tests to use 'pytest' patterns, dropping 'unittest.TextCase'
+  and related idioms.
 
 3.1.0 (2025-02-22)
 ------------------
