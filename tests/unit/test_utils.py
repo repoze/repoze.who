@@ -1,38 +1,28 @@
-import unittest
+
+import pytest
 
 from repoze.who import utils # resolveDotted
 
 
-class ResolveDottedTests(unittest.TestCase):
+def test_resolve_dotted_w_module_colon_object():
+    resolved = utils.resolveDotted("test_utils:DummyCallable")
+    assert resolved.__name__ == "DummyCallable"
+    assert "test_utils" in resolved.__module__
 
-    def _callFUT(self, dotted_or_ep):
-        return utils.resolveDotted(dotted_or_ep)
 
-    def test_resolve_module_colon_object(self):
-        resolved = self._callFUT("test_utils:DummyCallable")
-        self.assertEqual(resolved.__name__, "DummyCallable")
-        self.assertIn("test_utils", resolved.__module__)
+def test_resolve_dotted_w_missing_colon():
+    with pytest.raises(ValueError):
+        utils.resolveDotted("test_utils.DummyCallable")
 
-    def test_resolve_missing_colon_raises_value_error(self):
-        self.assertRaises(
-            ValueError,
-            self._callFUT,
-            "test_utils.DummyCallable",
-        )
 
-    def test_resolve_empty_object_raises_value_error(self):
-        self.assertRaises(
-            ValueError,
-            self._callFUT,
-            "test_utils:",
-        )
+def test_resolve_dotted_w_empty_object():
+    with pytest.raises(ValueError):
+        utils.resolveDotted("test_utils:")
 
-    def test_resolve_extras_suffix_raises_value_error(self):
-        self.assertRaises(
-            ValueError,
-            self._callFUT,
-            "test_utils:DummyCallable [extra]",
-        )
+
+def test_resolve_dotted_w_extras_suffix():
+    with pytest.raises(ValueError):
+        utils.resolveDotted("test_utils:DummyCallable [extra]")
 
 
 class DummyCallable:

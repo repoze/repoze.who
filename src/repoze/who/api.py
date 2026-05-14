@@ -270,7 +270,6 @@ class API(object):
     def logout(self, identifier_name=None):
         """ See IAPI.
         """
-        authenticated = None
         headers = []
         # Filter identifiers using 'identifier_name', if provided.
         if identifier_name is not None:

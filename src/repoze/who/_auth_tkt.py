@@ -46,14 +46,20 @@ from repoze.who._helpers import encodestring
 DEFAULT_DIGEST = hashlib.md5
 
 
+class InvalidFieldSeparator(ValueError):
+    def __init__(self, fieldname, separator):
+        self.fieldname = fieldname
+        self.separator = separator
+        super().__init__(f"{fieldname} may not contain '{separator}'")
+
+
 def _exclude_separator(separator, value, fieldname):
     if isinstance(value, bytes):
         separator = separator.encode("ascii")
 
     if separator in value:
-        raise ValueError(
-            "{} may not contain '{}'".format(fieldname, separator)
-        )
+        raise InvalidFieldSeparator(fieldname, separator)
+
 
 class AuthTicket(object):
 
@@ -157,7 +163,7 @@ class BadTicket(Exception):
     """
     def __init__(self, msg, expected=None):
         self.expected = expected
-        Exception.__init__(self, msg)
+        super().__init__(msg)
 
 
 def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
@@ -170,18 +176,23 @@ def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
     if isinstance(digest_algo, str):
         # correct specification of digest from hashlib or fail
         digest_algo = getattr(hashlib, digest_algo)
+
     digest_hexa_size = digest_algo().digest_size * 2
     ticket = ticket.strip('"')
     digest = ticket[:digest_hexa_size]
+
     try:
         timestamp = int(ticket[digest_hexa_size:digest_hexa_size + 8], 16)
     except ValueError as e:
         raise BadTicket('Timestamp is not a hex integer: %s' % e)
+
     try:
         userid, data = ticket[digest_hexa_size + 8:].split('!', 1)
     except ValueError:
         raise BadTicket('userid is not followed by !')
+
     userid = urllib.parse.unquote(userid)
+
     if '!' in data:
         tokens, user_data = data.split('!', 1)
     else:
@@ -189,47 +200,51 @@ def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
         tokens = ''
         user_data = data
 
-    expected = calculate_digest(ip, timestamp, secret,
-                                userid, tokens, user_data,
-                                digest_algo)
+    expected = calculate_digest(
+        ip, timestamp, secret, userid, tokens, user_data, digest_algo,
+    )
 
     if expected != digest:
-        raise BadTicket('Digest signature is not correct',
-                        expected=(expected, digest))
+        raise BadTicket(
+            'Digest signature is not correct',
+            expected=(expected, digest),
+        )
 
     tokens = tokens.split(',')
 
     return (timestamp, userid, tokens, user_data)
 
 
-def calculate_digest(ip, timestamp, secret, userid, tokens, user_data,
-                     digest_algo):
+def calculate_digest(
+    ip, timestamp, secret, userid, tokens, user_data, digest_algo,
+):
     secret = maybe_encode(secret)
     userid = maybe_encode(userid)
     tokens = maybe_encode(tokens)
     user_data = maybe_encode(user_data)
     digest0 = digest_algo(
-        encode_ip_timestamp(ip, timestamp) + secret + userid + b'\0'
-        + tokens + b'\0' + user_data).hexdigest()
-    digest = digest_algo(maybe_encode(digest0) + secret).hexdigest()
-    return digest
+        encode_ip_timestamp(ip, timestamp)
+        + secret
+        + userid
+        + b'\0'
+        + tokens
+        + b'\0'
+        + user_data
+    ).hexdigest()
 
+    return digest_algo(maybe_encode(digest0) + secret).hexdigest()
 
-if type(chr(1)) == type(b''): #pragma NO COVER Python < 3.0
-    def ints2bytes(ints):
-        return b''.join(map(chr, ints))
-else: #pragma NO COVER Python >= 3.0
-    def ints2bytes(ints):
-        return bytes(ints)
 
 def encode_ip_timestamp(ip, timestamp):
-    ip_chars = ints2bytes(map(int, ip.split('.')))
+    ip_chars = bytes(map(int, ip.split('.')))
     t = int(timestamp)
-    ts = ((t & 0xff000000) >> 24,
-          (t & 0xff0000) >> 16,
-          (t & 0xff00) >> 8,
-          t & 0xff)
-    ts_chars = ints2bytes(ts)
+    ts = (
+        (t & 0xff000000) >> 24,
+        (t & 0xff0000) >> 16,
+        (t & 0xff00) >> 8,
+        (t & 0xff),
+    )
+    ts_chars = bytes(ts)
     return ip_chars + ts_chars
 
 

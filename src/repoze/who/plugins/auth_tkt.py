@@ -20,7 +20,7 @@ _UTCNOW = None  # unit tests can replace
 def _utcnow():  #pragma NO COVERAGE
     if _UTCNOW is not None:
         return _UTCNOW
-    return datetime.datetime.utcnow()
+    return datetime.datetime.now(datetime.timezone.utc)
 
 @implementer(IIdentifier, IAuthenticator)
 class AuthTktCookiePlugin(object):
@@ -113,7 +113,6 @@ class AuthTktCookiePlugin(object):
             remote_addr = '0.0.0.0'
 
         cookies = get_cookies(environ)
-        old_cookie = cookies.get(self.cookie_name)
         existing = cookies.get(self.cookie_name)
         old_cookie_value = getattr(existing, 'value', None)
         max_age = identity.get('max_age', None)

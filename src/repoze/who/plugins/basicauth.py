@@ -18,13 +18,16 @@ class BasicAuthPlugin(object):
     # IIdentifier
     def identify(self, environ):
         authorization = AUTHORIZATION(environ)
-        if type(authorization) != type(b''):
-            # this header *must* be base64-encoded ASCII
+
+        # this header *must* be base64-encoded ASCII
+        if not isinstance(authorization, bytes):
             authorization = authorization.encode('ascii')
+
         try:
             authmeth, auth = authorization.split(b' ', 1)
         except ValueError: # not enough values to unpack
             return None
+
         if authmeth.lower() == b'basic':
             try:
                 auth = auth.strip()

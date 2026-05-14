@@ -1,327 +1,396 @@
-import unittest
+import io
+from urllib import parse as urllib_parse # parse_qsl
+
+import pytest
+from zope.interface import verify #verifyClass verifyObject
+
+from repoze.who import interfaces # IChallenger
+from repoze.who.plugins import redirector # RedirectorPlugin
 
 
-class TestRedirectorPlugin(unittest.TestCase):
+LOGIN_URL = 'http://example.com/login.html'
 
-    def _getTargetClass(self):
-        from repoze.who.plugins.redirector import RedirectorPlugin
-        return RedirectorPlugin
+def _makeEnviron(path_info='/', identifier=None):
+    if identifier is None:
+        credentials = {'login':'chris', 'password':'password'}
+        identifier = DummyIdentifier(credentials)
+    content_type, body = encode_multipart_formdata()
+    environ = {
+        'wsgi.version': (1,0),
+        'wsgi.input': io.StringIO(body),
+        'wsgi.url_scheme':'http',
+        'SERVER_NAME': 'www.example.com',
+        'SERVER_PORT': '80',
+        'CONTENT_TYPE': content_type,
+        'CONTENT_LENGTH': len(body),
+        'REQUEST_METHOD': 'POST',
+        'repoze.who.plugins': {'cookie': identifier},
+        'QUERY_STRING': 'default=1',
+        'PATH_INFO': path_info,
+    }
+    return environ
 
-    def _makeOne(self,
-                 login_url='http://example.com/login.html',
-                 came_from_param=None,
-                 reason_param=None,
-                 reason_header=None,
-                ):
-        return self._getTargetClass()(login_url,
-                                      came_from_param=came_from_param,
-                                      reason_param=reason_param,
-                                      reason_header=reason_header)
 
-    def _makeEnviron(self, path_info='/', identifier=None):
-        from io import StringIO
-        if identifier is None:
-            credentials = {'login':'chris', 'password':'password'}
-            identifier = DummyIdentifier(credentials)
-        content_type, body = encode_multipart_formdata()
-        environ = {'wsgi.version': (1,0),
-                   'wsgi.input': StringIO(body),
-                   'wsgi.url_scheme':'http',
-                   'SERVER_NAME': 'www.example.com',
-                   'SERVER_PORT': '80',
-                   'CONTENT_TYPE': content_type,
-                   'CONTENT_LENGTH': len(body),
-                   'REQUEST_METHOD': 'POST',
-                   'repoze.who.plugins': {'cookie':identifier},
-                   'QUERY_STRING': 'default=1',
-                   'PATH_INFO': path_info,
-                  }
-        return environ
+def test_rp_class_conforms_to_IChallenger():
+    verify.verifyClass(interfaces.IChallenger, redirector.RedirectorPlugin)
 
-    def test_class_conforms_to_IChallenger(self):
-        from zope.interface.verify import verifyClass
-        from repoze.who.interfaces import IChallenger
-        verifyClass(IChallenger, self._getTargetClass())
 
-    def test_instance_conforms_to_IChallenger(self):
-        from zope.interface.verify import verifyObject
-        from repoze.who.interfaces import IChallenger
-        verifyObject(IChallenger, self._makeOne())
+def test_rp_instance_conforms_to_IChallenger():
+    plugin = redirector.RedirectorPlugin(login_url=LOGIN_URL)
+    verify.verifyObject(interfaces.IChallenger, plugin)
 
-    def test_ctor_w_reason_param_wo_reason_header(self):
-        self.assertRaises(ValueError, self._makeOne,
-                                        reason_param='reason',
-                                        reason_header=None)
 
-    def test_ctor_wo_reason_param_w_reason_header(self):
-        self.assertRaises(ValueError, self._makeOne,
-                                        reason_param=None,
-                                        reason_header='X-Reason')
+def test_rp_ctor_w_reason_param_wo_reason_header():
+    with pytest.raises(ValueError):
+        redirector.RedirectorPlugin(
+            LOGIN_URL,
+            reason_param='reason',
+            reason_header=None,
+        )
 
-    def test_challenge(self):
-        from urllib.parse import parse_qsl
-        from urllib.parse import urlparse
-        plugin = self._makeOne(came_from_param='came_from',
-                               reason_param='reason',
-                               reason_header='X-Authorization-Failure-Reason',
-                              )
-        environ = self._makeEnviron()
-        app = plugin.challenge(environ, '401 Unauthorized', [('app', '1')],
-                               [('forget', '1')])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[0][0], 'forget')
-        self.assertEqual(sr.headers[0][1], '1')
-        self.assertEqual(sr.headers[1][0], 'Location')
-        url = sr.headers[1][1]
-        parts = urlparse(url)
-        parts_qsl = parse_qsl(parts[4])
-        self.assertEqual(len(parts_qsl), 1)
-        came_from_key, came_from_value = parts_qsl[0]
-        self.assertEqual(parts[0], 'http')
-        self.assertEqual(parts[1], 'example.com')
-        self.assertEqual(parts[2], '/login.html')
-        self.assertEqual(parts[3], '')
-        self.assertEqual(came_from_key, 'came_from')
-        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
-        headers = sr.headers
-        self.assertEqual(sr.headers[2][0], 'Content-Length')
-        self.assertEqual(sr.headers[2][1], '165')
-        self.assertEqual(sr.headers[3][0], 'Content-Type')
-        self.assertEqual(sr.headers[3][1], 'text/plain; charset=UTF-8')
-        self.assertEqual(sr.status, '302 Found')
 
-    def test_challenge_with_reason_header(self):
-        from urllib.parse import parse_qsl
-        from urllib.parse import urlparse
-        plugin = self._makeOne(came_from_param='came_from',
-                               reason_param='reason',
-                               reason_header='X-Authorization-Failure-Reason',
-                              )
-        environ = self._makeEnviron()
-        app = plugin.challenge(
-            environ, '401 Unauthorized',
-            [('X-Authorization-Failure-Reason', 'you are ugly')],
-            [('forget', '1')])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[1][0], 'Location')
-        url = sr.headers[1][1]
-        parts = urlparse(url)
-        parts_qsl = parse_qsl(parts[4])
-        self.assertEqual(len(parts_qsl), 2)
-        parts_qsl.sort()
-        came_from_key, came_from_value = parts_qsl[0]
-        reason_key, reason_value = parts_qsl[1]
-        self.assertEqual(parts[0], 'http')
-        self.assertEqual(parts[1], 'example.com')
-        self.assertEqual(parts[2], '/login.html')
-        self.assertEqual(parts[3], '')
-        self.assertEqual(came_from_key, 'came_from')
-        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
-        self.assertEqual(reason_key, 'reason')
-        self.assertEqual(reason_value, 'you are ugly')
+def test_rp_ctor_wo_reason_param_w_reason_header():
+    with pytest.raises(ValueError):
+        redirector.RedirectorPlugin(
+            LOGIN_URL,
+            reason_param=None,
+            reason_header='X-Reason',
+        )
 
-    def test_challenge_with_custom_reason_header(self):
-        from urllib.parse import parse_qsl
-        from urllib.parse import urlparse
-        plugin = self._makeOne(came_from_param='came_from',
-                               reason_param='reason',
-                               reason_header='X-Custom-Auth-Failure',
-                              )
-        environ = self._makeEnviron()
-        environ['came_from'] = 'http://example.com/came_from'
-        app = plugin.challenge(
-            environ, '401 Unauthorized',
-            [('X-Authorization-Failure-Reason', 'you are ugly')],
-            [('forget', '1')])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[1][0], 'Location')
-        url = sr.headers[1][1]
-        parts = urlparse(url)
-        parts_qsl = parse_qsl(parts[4])
-        self.assertEqual(len(parts_qsl), 1)
-        came_from_key, came_from_value = parts_qsl[0]
-        self.assertEqual(parts[0], 'http')
-        self.assertEqual(parts[1], 'example.com')
-        self.assertEqual(parts[2], '/login.html')
-        self.assertEqual(parts[3], '')
-        self.assertEqual(came_from_key, 'came_from')
-        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
 
-    def test_challenge_w_reason_no_reason_param_no_came_from_param(self):
-        from urllib.parse import parse_qsl
-        from urllib.parse import urlparse
-        plugin = self._makeOne()
-        environ = self._makeEnviron()
-        app = plugin.challenge(
-            environ, '401 Unauthorized',
-            [('X-Authorization-Failure-Reason', 'you are ugly')],
-            [('forget', '1')])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[0][0], "forget")
-        self.assertEqual(sr.headers[0][1], "1")
-        self.assertEqual(sr.headers[1][0], 'Location')
-        url = sr.headers[1][1]
-        parts = urlparse(url)
-        parts_qsl = parse_qsl(parts[4])
-        self.assertEqual(len(parts_qsl), 0)
-        self.assertEqual(parts[0], 'http')
-        self.assertEqual(parts[1], 'example.com')
-        self.assertEqual(parts[2], '/login.html')
-        self.assertEqual(parts[3], '')
+def test_rp_challenge():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param='came_from',
+        reason_param='reason',
+        reason_header='X-Authorization-Failure-Reason',
+    )
+    environ = _makeEnviron()
+    sr = DummyStartResponse()
 
-    def test_challenge_w_reason_no_reason_param_w_came_from_param(self):
-        from urllib.parse import parse_qsl
-        from urllib.parse import urlparse
-        plugin = self._makeOne(came_from_param='came_from',
-                              )
-        environ = self._makeEnviron()
-        environ['came_from'] = 'http://example.com/came_from'
-        app = plugin.challenge(
-            environ, '401 Unauthorized',
-            [('X-Authorization-Failure-Reason', 'you are ugly')],
-            [('forget', '1')])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[1][0], 'Location')
-        url = sr.headers[1][1]
-        parts = urlparse(url)
-        parts_qsl = parse_qsl(parts[4])
-        self.assertEqual(len(parts_qsl), 1)
-        came_from_key, came_from_value = parts_qsl[0]
-        self.assertEqual(parts[0], 'http')
-        self.assertEqual(parts[1], 'example.com')
-        self.assertEqual(parts[2], '/login.html')
-        self.assertEqual(parts[3], '')
-        self.assertEqual(came_from_key, 'came_from')
-        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [('app', '1')],
+        [('forget', '1')],
+    )
 
-    def test_challenge_with_reason_and_custom_reason_param(self):
-        from urllib.parse import parse_qsl
-        from urllib.parse import urlparse
-        plugin = self._makeOne(came_from_param='came_from',
-                               reason_param='auth_failure',
-                               reason_header='X-Custom-Auth-Failure',
-                              )
-        environ = self._makeEnviron()
-        app = plugin.challenge(
-            environ, '401 Unauthorized',
-            [('X-Authorization-Failure-Reason', 'wrong reason'),
-             ('X-Custom-Auth-Failure', 'you are ugly')],
-            [('forget', '1')])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[1][0], 'Location')
-        url = sr.headers[1][1]
-        parts = urlparse(url)
-        parts_qsl = parse_qsl(parts[4])
-        self.assertEqual(len(parts_qsl), 2)
-        parts_qsl.sort()
-        reason_key, reason_value = parts_qsl[0]
-        came_from_key, came_from_value = parts_qsl[1]
-        self.assertEqual(parts[0], 'http')
-        self.assertEqual(parts[1], 'example.com')
-        self.assertEqual(parts[2], '/login.html')
-        self.assertEqual(parts[3], '')
-        self.assertEqual(came_from_key, 'came_from')
-        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
-        self.assertEqual(reason_key, 'auth_failure')
-        self.assertEqual(reason_value, 'you are ugly')
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
 
-    def test_challenge_wo_reason_w_came_from_param(self):
-        from urllib.parse import parse_qsl
-        from urllib.parse import urlparse
-        plugin = self._makeOne(came_from_param='came_from')
-        environ = self._makeEnviron()
-        app = plugin.challenge(
-            environ, '401 Unauthorized',
-            [],
-            [('forget', '1')])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[1][0], 'Location')
-        url = sr.headers[1][1]
-        parts = urlparse(url)
-        parts_qsl = parse_qsl(parts[4])
-        self.assertEqual(len(parts_qsl), 1)
-        came_from_key, came_from_value = parts_qsl[0]
-        self.assertEqual(parts[0], 'http')
-        self.assertEqual(parts[1], 'example.com')
-        self.assertEqual(parts[2], '/login.html')
-        self.assertEqual(parts[3], '')
-        self.assertEqual(came_from_key, 'came_from')
-        self.assertEqual(came_from_value, 'http://www.example.com/?default=1')
+    assert sr.headers[0][0] == 'forget'
+    assert sr.headers[0][1] == '1'
+    assert sr.headers[1][0] == 'Location'
 
-    def test_challenge_with_setcookie_from_app(self):
-        plugin = self._makeOne(came_from_param='came_from',
-                               reason_param='reason',
-                               reason_header='X-Authorization-Failure-Reason',
-                              )
-        environ = self._makeEnviron()
-        app = plugin.challenge(
-            environ,
-            '401 Unauthorized',
-            [('app', '1'), ('set-cookie','a'), ('set-cookie','b')],
-            [])
-        sr = DummyStartResponse()
-        result = b''.join(app(environ, sr)).decode('ascii')
-        self.assertTrue(result.startswith('302 Found'))
-        self.assertEqual(sr.headers[0][0], 'set-cookie')
-        self.assertEqual(sr.headers[0][1], 'a')
-        self.assertEqual(sr.headers[1][0], 'set-cookie')
-        self.assertEqual(sr.headers[1][1], 'b')
+    url = sr.headers[1][1]
+    parts = urllib_parse.urlparse(url)
+    parts_qsl = urllib_parse.parse_qsl(parts[4])
+    assert len(parts_qsl) == 1
+    came_from_key, came_from_value = parts_qsl[0]
+    assert parts[0] == 'http'
+    assert parts[1] == 'example.com'
+    assert parts[2] == '/login.html'
+    assert parts[3] == ''
+    assert came_from_key == 'came_from'
+    assert came_from_value == 'http://www.example.com/?default=1'
 
-class Test_make_redirecting_plugin(unittest.TestCase):
+    assert sr.headers[2][0] == 'Content-Length'
+    assert sr.headers[2][1] == '165'
+    assert sr.headers[3][0] == 'Content-Type'
+    assert sr.headers[3][1] == 'text/plain; charset=UTF-8'
+    assert sr.status == '302 Found'
 
-    def _callFUT(self, *args, **kw):
-        from repoze.who.plugins.redirector import make_plugin
-        return make_plugin(*args, **kw)
 
-    def test_no_login_url_raises(self):
-        self.assertRaises(ValueError, self._callFUT, None)
+def test_rp_challenge_with_reason_header():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param='came_from',
+        reason_param='reason',
+        reason_header='X-Authorization-Failure-Reason',
+    )
+    environ = _makeEnviron()
+    sr = DummyStartResponse()
 
-    def test_defaults(self):
-        plugin = self._callFUT('/go_there')
-        self.assertEqual(plugin.login_url, '/go_there')
-        self.assertEqual(plugin.came_from_param, None)
-        self.assertEqual(plugin.reason_param, None)
-        self.assertEqual(plugin.reason_header, None)
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [('X-Authorization-Failure-Reason', 'you are ugly')],
+        [('forget', '1')]
+    )
 
-    def test_explicit_came_from_param(self):
-        plugin = self._callFUT('/go_there', came_from_param='whence')
-        self.assertEqual(plugin.login_url, '/go_there')
-        self.assertEqual(plugin.came_from_param, 'whence')
-        self.assertEqual(plugin.reason_param, None)
-        self.assertEqual(plugin.reason_header, None)
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
 
-    def test_explicit_reason_param(self):
-        plugin = self._callFUT('/go_there', reason_param='why')
-        self.assertEqual(plugin.login_url, '/go_there')
-        self.assertEqual(plugin.came_from_param, None)
-        self.assertEqual(plugin.reason_param, 'why')
-        self.assertEqual(plugin.reason_header, 'X-Authorization-Failure-Reason')
+    assert sr.headers[1][0] == 'Location'
+    url = sr.headers[1][1]
+    parts = urllib_parse.urlparse(url)
+    parts_qsl = urllib_parse.parse_qsl(parts[4])
+    assert len(parts_qsl) == 2
+    parts_qsl.sort()
+    came_from_key, came_from_value = parts_qsl[0]
+    reason_key, reason_value = parts_qsl[1]
+    assert parts[0] == 'http'
+    assert parts[1] == 'example.com'
+    assert parts[2] == '/login.html'
+    assert parts[3] == ''
+    assert came_from_key == 'came_from'
+    assert came_from_value == 'http://www.example.com/?default=1'
+    assert reason_key == 'reason'
+    assert reason_value == 'you are ugly'
 
-    def test_explicit_reason_header_param_no_reason_param_raises(self):
-        self.assertRaises(Exception, self._callFUT, '/go_there',
-                                                    reason_header='X-Reason')
 
-    def test_explicit_reason_header_param(self):
-        plugin = self._callFUT('/go_there', reason_param='why',
-                                            reason_header='X-Reason')
-        self.assertEqual(plugin.login_url, '/go_there')
-        self.assertEqual(plugin.came_from_param, None)
-        self.assertEqual(plugin.reason_param, 'why')
-        self.assertEqual(plugin.reason_header, 'X-Reason')
+def test_rp_challenge_with_custom_reason_header():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param='came_from',
+        reason_param='reason',
+        reason_header='X-Custom-Auth-Failure',
+    )
+    environ = _makeEnviron()
+    environ['came_from'] = 'http://example.com/came_from'
+    sr = DummyStartResponse()
+
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [('X-Authorization-Failure-Reason', 'you are ugly')],
+        [('forget', '1')])
+
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
+
+    assert sr.headers[1][0] == 'Location'
+    url = sr.headers[1][1]
+    parts = urllib_parse.urlparse(url)
+    parts_qsl = urllib_parse.parse_qsl(parts[4])
+    assert len(parts_qsl) == 1
+    came_from_key, came_from_value = parts_qsl[0]
+    assert parts[0] == 'http'
+    assert parts[1] == 'example.com'
+    assert parts[2] == '/login.html'
+    assert parts[3] == ''
+    assert came_from_key == 'came_from'
+    assert came_from_value == 'http://www.example.com/?default=1'
+
+
+def test_rp_challenge_w_reason_no_reason_param_no_came_from_param():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param=None,
+        reason_param=None,
+        reason_header=None,
+    )
+    environ = _makeEnviron()
+    sr = DummyStartResponse()
+
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [('X-Authorization-Failure-Reason', 'you are ugly')],
+        [('forget', '1')]
+    )
+
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
+
+    assert sr.headers[0][0] == "forget"
+    assert sr.headers[0][1] == "1"
+    assert sr.headers[1][0] == 'Location'
+    url = sr.headers[1][1]
+    parts = urllib_parse.urlparse(url)
+    parts_qsl = urllib_parse.parse_qsl(parts[4])
+    assert len(parts_qsl) == 0
+    assert parts[0] == 'http'
+    assert parts[1] == 'example.com'
+    assert parts[2] == '/login.html'
+    assert parts[3] == ''
+
+
+def test_rp_challenge_w_reason_no_reason_param_w_came_from_param():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param='came_from',
+        reason_param=None,
+        reason_header=None,
+    )
+    environ = _makeEnviron()
+    environ['came_from'] = 'http://example.com/came_from'
+
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [('X-Authorization-Failure-Reason', 'you are ugly')],
+        [('forget', '1')],
+    )
+
+    sr = DummyStartResponse()
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
+    assert sr.headers[1][0] == 'Location'
+    url = sr.headers[1][1]
+    parts = urllib_parse.urlparse(url)
+    parts_qsl = urllib_parse.parse_qsl(parts[4])
+    assert len(parts_qsl) == 1
+    came_from_key, came_from_value = parts_qsl[0]
+    assert parts[0] == 'http'
+    assert parts[1] == 'example.com'
+    assert parts[2] == '/login.html'
+    assert parts[3] == ''
+    assert came_from_key == 'came_from'
+    assert came_from_value == 'http://www.example.com/?default=1'
+
+
+def test_rp_challenge_with_reason_and_custom_reason_param():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param='came_from',
+        reason_param='auth_failure',
+        reason_header='X-Custom-Auth-Failure',
+    )
+    environ = _makeEnviron()
+    sr = DummyStartResponse()
+
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [
+            ('X-Authorization-Failure-Reason', 'wrong reason'),
+            ('X-Custom-Auth-Failure', 'you are ugly'),
+        ],
+        [('forget', '1')],
+    )
+
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
+
+    assert sr.headers[1][0] == 'Location'
+    url = sr.headers[1][1]
+    parts = urllib_parse.urlparse(url)
+    parts_qsl = urllib_parse.parse_qsl(parts[4])
+    assert len(parts_qsl) == 2
+    parts_qsl.sort()
+    reason_key, reason_value = parts_qsl[0]
+    came_from_key, came_from_value = parts_qsl[1]
+    assert parts[0] == 'http'
+    assert parts[1] == 'example.com'
+    assert parts[2] == '/login.html'
+    assert parts[3] == ''
+    assert came_from_key == 'came_from'
+    assert came_from_value == 'http://www.example.com/?default=1'
+    assert reason_key == 'auth_failure'
+    assert reason_value == 'you are ugly'
+
+
+def test_rp_challenge_wo_reason_w_came_from_param():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param='came_from',
+    )
+    environ = _makeEnviron()
+    sr = DummyStartResponse()
+
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [],
+        [('forget', '1')],
+    )
+
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
+
+    assert sr.headers[1][0] == 'Location'
+    url = sr.headers[1][1]
+    parts = urllib_parse.urlparse(url)
+    parts_qsl = urllib_parse.parse_qsl(parts[4])
+    assert len(parts_qsl) == 1
+    came_from_key, came_from_value = parts_qsl[0]
+    assert parts[0] == 'http'
+    assert parts[1] == 'example.com'
+    assert parts[2] == '/login.html'
+    assert parts[3] == ''
+    assert came_from_key == 'came_from'
+    assert came_from_value == 'http://www.example.com/?default=1'
+
+
+def test_rp_challenge_with_setcookie_from_app():
+    plugin = redirector.RedirectorPlugin(
+        LOGIN_URL,
+        came_from_param='came_from',
+        reason_param='reason',
+        reason_header='X-Authorization-Failure-Reason',
+    )
+    environ = _makeEnviron()
+    sr = DummyStartResponse()
+
+    app = plugin.challenge(
+        environ,
+        '401 Unauthorized',
+        [
+            ('app', '1'),
+            ('set-cookie','a'),
+            ('set-cookie','b'),
+        ],
+        [],
+    )
+
+    result = b''.join(app(environ, sr)).decode('ascii')
+    assert result.startswith('302 Found')
+
+    assert sr.headers[0][0] == 'set-cookie'
+    assert sr.headers[0][1] == 'a'
+    assert sr.headers[1][0] == 'set-cookie'
+    assert sr.headers[1][1] == 'b'
+
+
+def test_mrp_wo_login_url_raises():
+    with pytest.raises(ValueError):
+        redirector.make_plugin(None)
+
+
+def test_mrp_w_reason_header_wo_reason_param_raises():
+    with pytest.raises(Exception):
+        redirector.make_plugin('/go_there', reason_header='X-Reason')
+
+
+def test_mrp_defaults():
+    plugin = redirector.make_plugin('/go_there')
+
+    assert plugin.login_url == '/go_there'
+    assert plugin.came_from_param is None
+    assert plugin.reason_param is None
+    assert plugin.reason_header is None
+
+
+def test_mrp_w_explicit_came_from_param():
+    plugin = redirector.make_plugin('/go_there', came_from_param='whence')
+
+    assert plugin.login_url == '/go_there'
+    assert plugin.came_from_param == 'whence'
+    assert plugin.reason_param is None
+    assert plugin.reason_header is None
+
+
+def test_mrp_w_explicit_reason_param():
+    plugin = redirector.make_plugin('/go_there', reason_param='why')
+
+    assert plugin.login_url == '/go_there'
+    assert plugin.came_from_param is None
+    assert plugin.reason_param == 'why'
+    assert plugin.reason_header == 'X-Authorization-Failure-Reason'
+
+
+def test_mrp_w_explicit_reason_header_param():
+    plugin = redirector.make_plugin(
+        '/go_there',
+        reason_param='why',
+        reason_header='X-Reason',
+    )
+    assert plugin.login_url == '/go_there'
+    assert plugin.came_from_param is None
+    assert plugin.reason_param == 'why'
+    assert plugin.reason_header == 'X-Reason'
+
 
 class DummyIdentifier(object):
     forgotten = False

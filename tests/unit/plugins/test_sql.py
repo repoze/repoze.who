@@ -1,225 +1,232 @@
-import unittest
+import hashlib
+
+import pytest
+from zope.interface import verify
+
+from repoze.who import interfaces
+from repoze.who.plugins import sql
+
+def _make_wsgi_environ():
+    environ = {}
+    environ['wsgi.version'] = (1,0)
+    return environ
 
 
-class TestSQLAuthenticatorPlugin(unittest.TestCase):
+def test_sqlap_implements():
+    verify.verifyClass(
+        interfaces.IAuthenticator,
+        sql.SQLAuthenticatorPlugin,
+        tentative=True,
+    )
 
-    def _getTargetClass(self):
-        from repoze.who.plugins.sql import SQLAuthenticatorPlugin
-        return SQLAuthenticatorPlugin
 
-    def _makeOne(self, *arg, **kw):
-        plugin = self._getTargetClass()(*arg, **kw)
-        return plugin
+def test_sqlap_authenticate_noresults():
+    dummy_factory = DummyConnectionFactory([])
+    plugin = sql.SQLAuthenticatorPlugin('select foo from bar', dummy_factory,
+                            compare_succeed)
+    environ = _make_wsgi_environ()
+    identity = {'login':'foo', 'password':'bar'}
+    result = plugin.authenticate(environ, identity)
+    assert result is None
+    assert dummy_factory.query == 'select foo from bar'
+    assert dummy_factory.closed
 
-    def _makeEnviron(self):
-        environ = {}
-        environ['wsgi.version'] = (1,0)
-        return environ
 
-    def test_implements(self):
-        from zope.interface.verify import verifyClass
-        from repoze.who.interfaces import IAuthenticator
-        klass = self._getTargetClass()
-        verifyClass(IAuthenticator, klass, tentative=True)
+def test_sqlap_authenticate_comparefail():
+    dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
+    plugin = sql.SQLAuthenticatorPlugin('select foo from bar', dummy_factory,
+                            compare_fail)
+    environ = _make_wsgi_environ()
+    identity = {'login':'fred', 'password':'bar'}
+    result = plugin.authenticate(environ, identity)
+    assert result is None
+    assert dummy_factory.query == 'select foo from bar'
+    assert dummy_factory.closed
 
-    def test_authenticate_noresults(self):
-        dummy_factory = DummyConnectionFactory([])
-        plugin = self._makeOne('select foo from bar', dummy_factory,
-                               compare_succeed)
-        environ = self._makeEnviron()
-        identity = {'login':'foo', 'password':'bar'}
-        result = plugin.authenticate(environ, identity)
-        self.assertEqual(result, None)
-        self.assertEqual(dummy_factory.query, 'select foo from bar')
-        self.assertEqual(dummy_factory.closed, True)
 
-    def test_authenticate_comparefail(self):
-        dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
-        plugin = self._makeOne('select foo from bar', dummy_factory,
-                               compare_fail)
-        environ = self._makeEnviron()
-        identity = {'login':'fred', 'password':'bar'}
-        result = plugin.authenticate(environ, identity)
-        self.assertEqual(result, None)
-        self.assertEqual(dummy_factory.query, 'select foo from bar')
-        self.assertEqual(dummy_factory.closed, True)
+def test_sqlap_authenticate_comparesuccess():
+    dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
+    plugin = sql.SQLAuthenticatorPlugin('select foo from bar', dummy_factory,
+                            compare_succeed)
+    environ = _make_wsgi_environ()
+    identity = {'login':'fred', 'password':'bar'}
+    result = plugin.authenticate(environ, identity)
+    assert result == 'userid'
+    assert dummy_factory.query == 'select foo from bar'
+    assert dummy_factory.closed
 
-    def test_authenticate_comparesuccess(self):
-        dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
-        plugin = self._makeOne('select foo from bar', dummy_factory,
-                               compare_succeed)
-        environ = self._makeEnviron()
-        identity = {'login':'fred', 'password':'bar'}
-        result = plugin.authenticate(environ, identity)
-        self.assertEqual(result, 'userid')
-        self.assertEqual(dummy_factory.query, 'select foo from bar')
-        self.assertEqual(dummy_factory.closed, True)
 
-    def test_authenticate_nologin(self):
-        dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
-        plugin = self._makeOne('select foo from bar', dummy_factory,
-                               compare_succeed)
-        environ = self._makeEnviron()
-        identity = {}
-        result = plugin.authenticate(environ, identity)
-        self.assertEqual(result, None)
-        self.assertEqual(dummy_factory.query, None)
-        self.assertEqual(dummy_factory.closed, False)
+def test_sqlap_authenticate_nologin():
+    dummy_factory = DummyConnectionFactory([ ['userid', 'password'] ])
+    plugin = sql.SQLAuthenticatorPlugin('select foo from bar', dummy_factory,
+                            compare_succeed)
+    environ = _make_wsgi_environ()
+    identity = {}
+    result = plugin.authenticate(environ, identity)
+    assert result is None
+    assert dummy_factory.query is None
+    assert not dummy_factory.closed
 
-class TestDefaultPasswordCompare(unittest.TestCase):
 
-    def _getFUT(self):
-        from repoze.who.plugins.sql import default_password_compare
-        return default_password_compare
+def _get_sha_hex_digest(clear='password'):
+    if not isinstance(clear, type(b'')):  # pragma: no cover Py3k
+        clear = clear.encode('utf-8')
+    return hashlib.sha1(clear).hexdigest()
 
-    def _get_sha_hex_digest(self, clear='password'):
-        try:
-            from hashlib import sha1
-        except ImportError:  # pragma: no cover Py3k
-            from sha import new as sha1
-        if not isinstance(clear, type(b'')):  # pragma: no cover Py3k
-            clear = clear.encode('utf-8')
-        return sha1(clear).hexdigest()
 
-    def test_shaprefix_success(self):
-        stored = '{SHA}' +  self._get_sha_hex_digest()
-        compare = self._getFUT()
-        result = compare('password', stored)
-        self.assertEqual(result, True)
+def test_sqldpc_shaprefix_success():
+    stored = '{SHA}' +  _get_sha_hex_digest()
+    result = sql.default_password_compare('password', stored)
+    assert result
 
-    def test_shaprefix_w_unicode_cleartext(self):
-        stored = '{SHA}' +  self._get_sha_hex_digest()
-        compare = self._getFUT()
-        result = compare(u'password', stored)
-        self.assertEqual(result, True)
 
-    def test_shaprefix_fail(self):
-        stored = '{SHA}' + self._get_sha_hex_digest()
-        compare = self._getFUT()
-        result = compare('notpassword', stored)
-        self.assertEqual(result, False)
+def test_sqldpc_shaprefix_w_unicode_cleartext():
+    stored = '{SHA}' +  _get_sha_hex_digest()
+    result = sql.default_password_compare(u'password', stored)
+    assert result
 
-    def test_noprefix_success(self):
-        stored = 'password'
-        compare = self._getFUT()
-        result = compare('password', stored)
-        self.assertEqual(result, True)
 
-    def test_noprefix_fail(self):
-        stored = 'password'
-        compare = self._getFUT()
-        result = compare('notpassword', stored)
-        self.assertEqual(result, False)
+def test_sqldpc_shaprefix_fail():
+    stored = '{SHA}' + _get_sha_hex_digest()
+    result = sql.default_password_compare('notpassword', stored)
+    assert not result
 
-class TestSQLMetadataProviderPlugin(unittest.TestCase):
 
-    def _getTargetClass(self):
-        from repoze.who.plugins.sql import SQLMetadataProviderPlugin
-        return SQLMetadataProviderPlugin
+def test_sqldpc_noprefix_success():
+    stored = 'password'
+    result = sql.default_password_compare('password', stored)
+    assert result
 
-    def _makeOne(self, *arg, **kw):
-        klass = self._getTargetClass()
-        return klass(*arg, **kw)
 
-    def test_implements(self):
-        from zope.interface.verify import verifyClass
-        from repoze.who.interfaces import IMetadataProvider
-        klass = self._getTargetClass()
-        verifyClass(IMetadataProvider, klass, tentative=True)
+def test_sqldpc_noprefix_fail():
+    stored = 'password'
+    result = sql.default_password_compare('notpassword', stored)
+    assert not result
 
-    def test_add_metadata(self):
-        dummy_factory = DummyConnectionFactory([ [1, 2, 3] ])
-        def dummy_filter(results):
-            return results
-        plugin = self._makeOne('md', 'select foo from bar', dummy_factory,
-                               dummy_filter)
-        environ = {}
-        identity = {'repoze.who.userid':1}
-        plugin.add_metadata(environ, identity)
-        self.assertEqual(dummy_factory.closed, True)
-        self.assertEqual(identity['md'], [ [1,2,3] ])
-        self.assertEqual(dummy_factory.query, 'select foo from bar')
-        self.assertFalse('__userid' in identity)
 
-class TestMakeSQLAuthenticatorPlugin(unittest.TestCase):
+def test_sqlmdp_implements():
+    verify.verifyClass(
+        interfaces.IMetadataProvider,
+        sql.SQLMetadataProviderPlugin,
+        tentative=True,
+    )
 
-    def _getFUT(self):
-        from repoze.who.plugins.sql import make_authenticator_plugin
-        return make_authenticator_plugin
 
-    def test_noquery(self):
-        f = self._getFUT()
-        self.assertRaises(ValueError, f, None, 'conn', 'compare')
+def test_sqlmdp_add_metadata():
+    dummy_factory = DummyConnectionFactory([ [1, 2, 3] ])
 
-    def test_no_connfactory(self):
-        f = self._getFUT()
-        self.assertRaises(ValueError, f, 'statement', None, 'compare')
+    def dummy_filter(results):
+        return results
 
-    def test_bad_connfactory(self):
-        f = self._getFUT()
-        self.assertRaises(ValueError, f, 'statement', 'does.not:exist', None)
+    plugin = sql.SQLMetadataProviderPlugin(
+        'md',
+        'select foo from bar',
+        dummy_factory,
+        dummy_filter,
+    )
+    environ = {}
+    identity = {'repoze.who.userid':1}
+    plugin.add_metadata(environ, identity)
+    assert dummy_factory.closed
+    assert identity['md'] == [ [1,2,3] ]
+    assert dummy_factory.query == 'select foo from bar'
+    assert '__userid' not in identity
 
-    def test_connfactory_specd(self):
-        f = self._getFUT()
-        plugin = f('statement',
-                   'plugins.test_sql:make_dummy_connfactory',
-                   None)
-        self.assertEqual(plugin.query, 'statement')
-        self.assertEqual(plugin.conn_factory, DummyConnFactory)
-        from repoze.who.plugins.sql import default_password_compare
-        self.assertEqual(plugin.compare_fn, default_password_compare)
 
-    def test_comparefunc_specd(self):
-        f = self._getFUT()
-        plugin = f('statement',
-                   'plugins.test_sql:make_dummy_connfactory',
-                   'plugins.test_sql:make_dummy_connfactory')
-        self.assertEqual(plugin.query, 'statement')
-        self.assertEqual(plugin.conn_factory, DummyConnFactory)
-        self.assertEqual(plugin.compare_fn, make_dummy_connfactory)
+def test_map_noquery():
+    with pytest.raises(ValueError):
+        sql.make_authenticator_plugin(None, 'conn', 'compare')
 
-class TestMakeSQLMetadataProviderPlugin(unittest.TestCase):
 
-    def _getFUT(self):
-        from repoze.who.plugins.sql import make_metadata_plugin
-        return make_metadata_plugin
+def test_map_no_connfactory():
+    with pytest.raises(ValueError):
+        sql.make_authenticator_plugin('statement', None, 'compare')
 
-    def test_no_name(self):
-        f = self._getFUT()
-        self.assertRaises(ValueError, f)
 
-    def test_no_query(self):
-        f = self._getFUT()
-        self.assertRaises(ValueError, f, 'name', None, None)
+def test_map_bad_connfactory():
+    with pytest.raises(ValueError):
+        sql.make_authenticator_plugin('statement', 'does.not:exist', None)
 
-    def test_no_connfactory(self):
-        f = self._getFUT()
-        self.assertRaises(ValueError, f, 'name', 'statement', None)
 
-    def test_bad_connfactory(self):
-        f = self._getFUT()
-        self.assertRaises(ValueError, f, 'name', 'statement',
-                          'does.not:exist', None)
+def test_map_connfactory_specd():
+    plugin = sql.make_authenticator_plugin(
+        'statement',
+        'plugins.test_sql:make_dummy_connfactory',
+        None,
+    )
+    assert plugin.query == 'statement'
+    assert plugin.conn_factory is DummyConnFactory
+    assert plugin.compare_fn is sql.default_password_compare
 
-    def test_connfactory_specd(self):
-        f = self._getFUT()
-        plugin = f('name', 'statement',
-                   'plugins.test_sql:make_dummy_connfactory',
-                   None)
-        self.assertEqual(plugin.name, 'name')
-        self.assertEqual(plugin.query, 'statement')
-        self.assertEqual(plugin.conn_factory, DummyConnFactory)
-        self.assertEqual(plugin.filter, None)
 
-    def test_comparefn_specd(self):
-        f = self._getFUT()
-        plugin = f('name', 'statement',
-                   'plugins.test_sql:make_dummy_connfactory',
-                   'plugins.test_sql:make_dummy_connfactory')
-        self.assertEqual(plugin.name, 'name')
-        self.assertEqual(plugin.query, 'statement')
-        self.assertEqual(plugin.conn_factory, DummyConnFactory)
-        self.assertEqual(plugin.filter, make_dummy_connfactory)
+def test_map_comparefunc_specd():
+    plugin = sql.make_authenticator_plugin(
+        'statement',
+        'plugins.test_sql:make_dummy_connfactory',
+        'plugins.test_sql:make_dummy_connfactory',
+    )
+    assert plugin.query == 'statement'
+    assert plugin.conn_factory is DummyConnFactory
+    assert plugin.compare_fn == make_dummy_connfactory
+
+
+def test_msmdp_no_name():
+    with pytest.raises(ValueError):
+        sql.make_metadata_plugin()
+
+
+def test_msmdp_no_query():
+    with pytest.raises(ValueError):
+        sql.make_metadata_plugin(
+            'name',
+            None,
+            None,
+        )
+
+
+def test_msmdp_no_connfactory():
+    with pytest.raises(ValueError):
+        sql.make_metadata_plugin(
+            'name',
+            'statement',
+            None,
+        )
+
+
+def test_msmdp_bad_connfactory():
+    with pytest.raises(ValueError):
+        sql.make_metadata_plugin(
+            'name',
+            'statement',
+            'does.not:exist',
+            None,
+        )
+
+
+def test_msmdp_connfactory_specd():
+    plugin = sql.make_metadata_plugin(
+        'name',
+        'statement',
+        'plugins.test_sql:make_dummy_connfactory',
+        None,
+    )
+    assert plugin.name == 'name'
+    assert plugin.query == 'statement'
+    assert plugin.conn_factory is DummyConnFactory
+    assert plugin.filter is None
+
+
+def test_msmdp_comparefn_specified():
+    plugin = sql.make_metadata_plugin(
+        'name',
+        'statement',
+        'plugins.test_sql:make_dummy_connfactory',
+        'plugins.test_sql:make_dummy_connfactory'
+    )
+    assert plugin.name == 'name'
+    assert plugin.query == 'statement'
+    assert plugin.conn_factory is DummyConnFactory
+    assert plugin.filter is make_dummy_connfactory
 
 
 class DummyConnectionFactory:

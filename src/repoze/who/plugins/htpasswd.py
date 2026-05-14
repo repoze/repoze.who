@@ -1,19 +1,20 @@
-try:
-    import crypt
-except ImportError:
-    # Note: the crypt module is deprecated since Python 3.11
-    # and will be removed in Python 3.13.
-    # win32 does not have a crypt library at all.
-    HAS_CRYPT = False
-else:
-    HAS_CRYPT = True
+import base64
+import hashlib
+import importlib.util
 import itertools
 import warnings
 
 from zope.interface import implementer
 
+from repoze.who import _helpers # must_encode
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.utils import resolveDotted
+
+_spec = importlib.util.find_spec("crypt")
+HAS_CRYPT = _spec is not None
+
+if HAS_CRYPT:
+    import crypt
 
 
 def _padding_for_file_lines():
@@ -94,10 +95,15 @@ PADDING = ' ' * 1000
 
 def _same_string(x, y):
     # Attempt at isochronous string comparison.
-    mismatches = filter(None, [a != b for a, b, ignored
-                                    in itertools.zip_longest(x, y, PADDING)])
-    if type(mismatches) != list: #pragma NO COVER Python >= 3.0
-        mismatches = list(mismatches)
+    mismatches = list(
+        filter(
+            None,
+            [
+                a != b
+                for a, b, ignored in itertools.zip_longest(x, y, PADDING)
+            ]
+        )
+    )
     return len(mismatches) == 0
 
 
@@ -123,13 +129,11 @@ def crypt_check(password, hashed):
 
 
 def sha1_check(password, hashed):
-    from hashlib import sha1
-    from base64 import standard_b64encode
-    from repoze.who._helpers import must_encode
-    b_password = must_encode(password)
-    b_sha1_digest = sha1(b_password).digest()
-    b_b64_sha1_digest = standard_b64encode(b_sha1_digest)
+    b_password = _helpers.must_encode(password)
+    b_sha1_digest = hashlib.sha1(b_password).digest()
+    b_b64_sha1_digest = base64.standard_b64encode(b_sha1_digest)
     return _same_string(hashed, b"{SHA}" + b_b64_sha1_digest)
+
 
 def plain_check(password, hashed):
     return _same_string(password, hashed)
