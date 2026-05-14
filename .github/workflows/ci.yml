@@ -64,4 +64,4 @@ jobs:
         python-version: "3.14"
 
     - run: pip install tox
-    - run: tox -e py310,py314,cover
+    - run: tox -e py3.10,py3.14,cover
