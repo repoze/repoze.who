@@ -14,7 +14,7 @@ def test_auth_pred__call___no_identity_returns_False():
 
 def test_auth_pred__call___w_REMOTE_AUTH_returns_True():
     predicate = restrict.authenticated_predicate()
-    environ = {'REMOTE_USER': 'fred'}
+    environ = {"REMOTE_USER": "fred"}
 
     result = predicate(environ)
 
@@ -23,7 +23,7 @@ def test_auth_pred__call___w_REMOTE_AUTH_returns_True():
 
 def test_auth_pred__call___w_repoze_who_identity_returns_True():
     predicate = restrict.authenticated_predicate()
-    environ = {'repoze.who.identity': {'login': 'fred'}}
+    environ = {"repoze.who.identity": {"login": "fred"}}
 
     result = predicate(environ)
 
@@ -63,7 +63,7 @@ def test_make_auth_restriction_predicate_miss():
 def test_make_auth_restriction_predicate_hit_w_remote_user():
     app = DummyApp()
     global_config = {"testing": True}
-    environ = {'REMOTE_USER': 'fred'}
+    environ = {"REMOTE_USER": "fred"}
     filter = restrict.make_authenticated_restriction(
         app,
         global_config,
@@ -78,7 +78,7 @@ def test_make_auth_restriction_predicate_hit_w_remote_user():
 def test_make_auth_restriction_predicate_hit_w_repoze_who_identity():
     app = DummyApp()
     global_config = {"testing": True}
-    environ = {'repoze.who.identity': {'login': 'fred'}}
+    environ = {"repoze.who.identity": {"login": "fred"}}
     filter = restrict.make_authenticated_restriction(
         app,
         global_config,
@@ -92,14 +92,16 @@ def test_make_auth_restriction_predicate_hit_w_repoze_who_identity():
 
 def test_pred_restriction_w_disabled_predicate_false_calls_app_not_predicate():
     app = DummyApp()
-    environ = {'testing': True}
+    environ = {"testing": True}
 
     predicate = mock.Mock(spec_set=())
     factory = mock.Mock(spec_set=(), return_value=predicate)
     start_response = mock.Mock(spec_set=(), side_effect=AssertionError)
 
     pr = restrict.PredicateRestriction(
-        app=app, predicate=factory, enabled=False,
+        app=app,
+        predicate=factory,
+        enabled=False,
     )
     pr(environ, start_response)
 
@@ -111,7 +113,7 @@ def test_pred_restriction_w_disabled_predicate_false_calls_app_not_predicate():
 
 def test_pred_restriction_w_enabled_predicate_false_returns_401():
     app = DummyApp()
-    environ = {'testing': True}
+    environ = {"testing": True}
 
     predicate = mock.Mock(spec_set=(), return_value=False)
     factory = mock.Mock(spec_set=(), return_value=predicate)
@@ -127,7 +129,7 @@ def test_pred_restriction_w_enabled_predicate_false_returns_401():
 
 def test_pred_restriction_w_enabled_predicate_true_calls_app():
     app = DummyApp()
-    environ = {'testing': True, 'REMOTE_USER': 'fred'}
+    environ = {"testing": True, "REMOTE_USER": "fred"}
 
     predicate = mock.Mock(spec_set=(), return_value=True)
     factory = mock.Mock(spec_set=(), return_value=predicate)
@@ -167,12 +169,12 @@ def test_make_predicate_restriction_w_disabled_non_string_predicate_w_args():
         global_config,
         predicate=DummyPredicate,
         enabled=False,
-        foo='Foo',
+        foo="Foo",
     )
 
     assert filter.app is app
     assert isinstance(filter.predicate, DummyPredicate)
-    assert filter.predicate.foo == 'Foo'
+    assert filter.predicate.foo == "Foo"
     assert not filter.enabled
 
 
@@ -183,19 +185,20 @@ def test_make_predicate_restriction_w_enabled_string_predicate_w_args():
     filter = restrict.make_predicate_restriction(
         app,
         global_config,
-        predicate='test_restrict:DummyPredicate',
+        predicate="test_restrict:DummyPredicate",
         enabled=True,
-        foo='Foo'
+        foo="Foo",
     )
 
     assert filter.app is app
     assert isinstance(filter.predicate, DummyPredicate)
-    assert filter.predicate.foo == 'Foo'
+    assert filter.predicate.foo == "Foo"
     assert filter.enabled
 
 
 class DummyApp:
     environ = None
+
     def __call__(self, environ, start_response):
         self.environ = environ
         return []

@@ -40,7 +40,7 @@ def test_whoconfig_defaults_before_parse():
 
     assert config.request_classifier is None
     assert config.challenge_decider is None
-    assert config.remote_user_key == 'REMOTE_USER'
+    assert config.remote_user_key == "REMOTE_USER"
     assert len(config.plugins) == 0
     assert len(config.identifiers) == 0
     assert len(config.authenticators) == 0
@@ -51,11 +51,11 @@ def test_whoconfig_defaults_before_parse():
 def test_whoconfig_parse_empty_string():
     config = config_module.WhoConfig(here="/")
 
-    config.parse('')
+    config.parse("")
 
     assert config.request_classifier is None
     assert config.challenge_decider is None
-    assert config.remote_user_key == 'REMOTE_USER'
+    assert config.remote_user_key == "REMOTE_USER"
     assert len(config.plugins) == 0
     assert len(config.identifiers) == 0
     assert len(config.authenticators) == 0
@@ -70,7 +70,7 @@ def test_whoconfig_parse_empty_file():
 
     assert config.request_classifier is None
     assert config.challenge_decider is None
-    assert config.remote_user_key == 'REMOTE_USER'
+    assert config.remote_user_key == "REMOTE_USER"
     assert len(config.plugins) == 0
     assert len(config.identifiers) == 0
     assert len(config.authenticators) == 0
@@ -84,21 +84,21 @@ def test_whoconfig_parse_plugins():
     config.parse(PLUGINS_ONLY)
 
     assert len(config.plugins) == 2
-    assert isinstance(config.plugins['foo'], DummyPlugin)
+    assert isinstance(config.plugins["foo"], DummyPlugin)
 
-    bar = config.plugins['bar']
+    bar = config.plugins["bar"]
     assert isinstance(bar, DummyPlugin)
-    assert bar.credentials == 'qux'
+    assert bar.credentials == "qux"
 
 
 def test_whoconfig_parse_general_empty():
     config = config_module.WhoConfig(here="/")
 
-    config.parse('[general]')
+    config.parse("[general]")
 
     assert config.request_classifier is None
     assert config.challenge_decider is None
-    assert config.remote_user_key == 'REMOTE_USER'
+    assert config.remote_user_key == "REMOTE_USER"
     assert len(config.plugins) == 0
 
 
@@ -116,7 +116,7 @@ def test_whoconfig_parse_general_only(dummy_plugin):
 
     assert isinstance(config.request_classifier, PLUGIN_CLASS)
     assert isinstance(config.challenge_decider, PLUGIN_CLASS)
-    assert config.remote_user_key == 'ANOTHER_REMOTE_USER'
+    assert config.remote_user_key == "ANOTHER_REMOTE_USER"
     assert len(config.plugins) == 0
 
 
@@ -143,11 +143,11 @@ def test_whoconfig_parse_identifiers_only(dummy_plugin):
     assert len(identifiers) == 2
 
     first, second = identifiers
-    assert first[0] == 'test_config:DummyPlugin'
+    assert first[0] == "test_config:DummyPlugin"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IIdentifier] == 'klass1'
-    assert second[0] == 'test_config:DummyPlugin'
+    assert first[1].classifications[interfaces.IIdentifier] == "klass1"
+    assert second[0] == "test_config:DummyPlugin"
     assert isinstance(second[1], PLUGIN_CLASS)
 
 
@@ -161,11 +161,11 @@ def test_whoconfig_parse_identifiers_with_plugins(dummy_plugin):
     assert len(identifiers) == 2
 
     first, second = identifiers
-    assert first[0] == 'foo'
+    assert first[0] == "foo"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IIdentifier] == 'klass1'
-    assert second[0] == 'bar'
+    assert first[1].classifications[interfaces.IIdentifier] == "klass1"
+    assert second[0] == "bar"
     assert isinstance(second[1], PLUGIN_CLASS)
 
 
@@ -179,12 +179,13 @@ def test_whoconfig_parse_authenticators_only(dummy_plugin):
     assert len(authenticators) == 2
 
     first, second = authenticators
-    assert first[0] == 'test_config:DummyPlugin'
+    assert first[0] == "test_config:DummyPlugin"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IAuthenticator] == 'klass1'
-    assert second[0] == 'test_config:DummyPlugin'
+    assert first[1].classifications[interfaces.IAuthenticator] == "klass1"
+    assert second[0] == "test_config:DummyPlugin"
     assert isinstance(second[1], PLUGIN_CLASS)
+
 
 def test_whoconfig_parse_authenticators_with_plugins(dummy_plugin):
     PLUGIN_CLASS = _getDummyPluginClass(interfaces.IAuthenticator)
@@ -196,11 +197,11 @@ def test_whoconfig_parse_authenticators_with_plugins(dummy_plugin):
     assert len(authenticators) == 2
 
     first, second = authenticators
-    assert first[0] == 'foo'
+    assert first[0] == "foo"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IAuthenticator] == 'klass1'
-    assert second[0] == 'bar'
+    assert first[1].classifications[interfaces.IAuthenticator] == "klass1"
+    assert second[0] == "bar"
     assert isinstance(second[1], PLUGIN_CLASS)
 
 
@@ -214,11 +215,11 @@ def test_whoconfig_parse_challengers_only(dummy_plugin):
     assert len(challengers) == 2
 
     first, second = challengers
-    assert first[0] == 'test_config:DummyPlugin'
+    assert first[0] == "test_config:DummyPlugin"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IChallenger] == 'klass1'
-    assert second[0] == 'test_config:DummyPlugin'
+    assert first[1].classifications[interfaces.IChallenger] == "klass1"
+    assert second[0] == "test_config:DummyPlugin"
     assert isinstance(second[1], PLUGIN_CLASS)
 
 
@@ -232,11 +233,11 @@ def test_whoconfig_parse_challengers_with_plugins(dummy_plugin):
     assert len(challengers) == 2
 
     first, second = challengers
-    assert first[0] == 'foo'
+    assert first[0] == "foo"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IChallenger] == 'klass1'
-    assert second[0] == 'bar'
+    assert first[1].classifications[interfaces.IChallenger] == "klass1"
+    assert second[0] == "bar"
     assert isinstance(second[1], PLUGIN_CLASS)
 
 
@@ -250,11 +251,11 @@ def test_whoconfig_parse_mdproviders_only(dummy_plugin):
     assert len(mdproviders) == 2
 
     first, second = mdproviders
-    assert first[0] == 'test_config:DummyPlugin'
+    assert first[0] == "test_config:DummyPlugin"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IMetadataProvider] == 'klass1'
-    assert second[0] == 'test_config:DummyPlugin'
+    assert first[1].classifications[interfaces.IMetadataProvider] == "klass1"
+    assert second[0] == "test_config:DummyPlugin"
     assert isinstance(second[1], PLUGIN_CLASS)
 
 
@@ -268,11 +269,11 @@ def test_whoconfig_parse_mdproviders_with_plugins(dummy_plugin):
     assert len(mdproviders) == 2
 
     first, second = mdproviders
-    assert first[0] == 'foo'
+    assert first[0] == "foo"
     assert isinstance(first[1], PLUGIN_CLASS)
     assert len(first[1].classifications) == 1
-    assert first[1].classifications[interfaces.IMetadataProvider] == 'klass1'
-    assert second[0] == 'bar'
+    assert first[1].classifications[interfaces.IMetadataProvider] == "klass1"
+    assert second[0] == "bar"
     assert isinstance(second[1], PLUGIN_CLASS)
 
 
@@ -284,12 +285,12 @@ def test_whoconfig_parse_make_plugin_names(dummy_plugin):
 
     assert len(config.plugins) == 1
 
-    foo = config.plugins['foo']
+    foo = config.plugins["foo"]
     assert isinstance(foo, DummyPlugin)
-    assert foo.iface == 'iface'
-    assert foo.name == 'name'
-    assert foo.template == '%(template)s'
-    assert foo.template_with_eq == 'template_with_eq = %(template_with_eq)s'
+    assert foo.iface == "iface"
+    assert foo.name == "name"
+    assert foo.template == "%(template)s"
+    assert foo.template_with_eq == "template_with_eq = %(template_with_eq)s"
 
 
 class DummyPlugin:
@@ -417,13 +418,13 @@ template_with_eq = template_with_eq = %%(template_with_eq)s
 
 def test_config_mw_w_sample_config(sample_config):
     app = DummyApp()
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
     middleware = config_module.make_middleware_with_config(
         app,
         global_conf,
         config_file=str(sample_config),
-        log_file='STDOUT',
-        log_level='debug',
+        log_file="STDOUT",
+        log_level="debug",
     )
 
     api_factory = middleware.api_factory
@@ -439,12 +440,12 @@ def test_config_mw_w_sample_config(sample_config):
 
 def test_config_mw_w_sample_config_no_log_level(sample_config):
     app = DummyApp()
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
     middleware = config_module.make_middleware_with_config(
         app,
         global_conf,
         config_file=str(sample_config),
-        log_file='STDOUT',
+        log_file="STDOUT",
     )
 
     assert middleware.logger.getEffectiveLevel() == logging.INFO
@@ -452,15 +453,15 @@ def test_config_mw_w_sample_config_no_log_level(sample_config):
 
 def test_config_mw_w_sample_config_w_log_file(tmp_path, sample_config):
     app = DummyApp()
-    logfile = tmp_path / 'who.log'
-    global_conf = {'here': '/'}
+    logfile = tmp_path / "who.log"
+    global_conf = {"here": "/"}
 
     middleware = config_module.make_middleware_with_config(
         app,
         global_conf,
         config_file=str(sample_config),
         log_file=str(logfile),
-        log_level=logging.WARN
+        log_level=logging.WARN,
     )
 
     assert middleware.logger.getEffectiveLevel() == logging.WARN
@@ -476,7 +477,7 @@ def test_config_mw_w_sample_config_w_log_file(tmp_path, sample_config):
 
 def test_config_mw_w_sample_config_wo_log_file(sample_config):
     app = DummyApp()
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
     middleware = config_module.make_middleware_with_config(
         app,
         global_conf,
@@ -504,7 +505,7 @@ def test_nullhandler_emit_doesnt_raise_NotImplementedError():
 
 def test_bad_config_filename(tmp_path):
     bad_file = tmp_path / "nonesuch" / "who.ini"
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
 
     with warnings.catch_warnings(record=True) as warned:
         api_factory = config_module.make_api_factory_with_config(
@@ -516,15 +517,15 @@ def test_bad_config_filename(tmp_path):
     assert len(api_factory.authenticators) == 0
     assert len(api_factory.challengers) == 0
     assert len(api_factory.mdproviders) == 0
-    assert api_factory.remote_user_key == 'REMOTE_USER'
+    assert api_factory.remote_user_key == "REMOTE_USER"
     assert api_factory.logger is None
 
     assert warned
 
 
 def test_bad_config_content(config_path):
-    config_path.write_text('this is not an INI file')
-    global_conf = {'here': '/'}
+    config_path.write_text("this is not an INI file")
+    global_conf = {"here": "/"}
 
     with warnings.catch_warnings(record=True) as warned:
         api_factory = config_module.make_api_factory_with_config(
@@ -536,14 +537,14 @@ def test_bad_config_content(config_path):
     assert len(api_factory.authenticators) == 0
     assert len(api_factory.challengers) == 0
     assert len(api_factory.mdproviders) == 0
-    assert api_factory.remote_user_key == 'REMOTE_USER'
+    assert api_factory.remote_user_key == "REMOTE_USER"
     assert api_factory.logger is None
 
     assert warned
 
 
 def test_sample_config_no_logger(sample_config):
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
 
     api_factory = config_module.make_api_factory_with_config(
         global_conf,
@@ -554,26 +555,28 @@ def test_sample_config_no_logger(sample_config):
     assert len(api_factory.authenticators) == 1
     assert len(api_factory.challengers) == 2
     assert len(api_factory.mdproviders) == 0
-    assert api_factory.remote_user_key == 'REMOTE_USER'
+    assert api_factory.remote_user_key == "REMOTE_USER"
     assert api_factory.logger is None
 
+
 def test_sample_config_w_remote_user_key(sample_config):
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
 
     api_factory = config_module.make_api_factory_with_config(
         global_conf,
         config_file=str(sample_config),
-        remote_user_key = 'X-OTHER-USER',
+        remote_user_key="X-OTHER-USER",
     )
 
     assert len(api_factory.identifiers) == 2
     assert len(api_factory.authenticators) == 1
     assert len(api_factory.challengers) == 2
     assert len(api_factory.mdproviders) == 0
-    assert api_factory.remote_user_key == 'X-OTHER-USER'
+    assert api_factory.remote_user_key == "X-OTHER-USER"
+
 
 def test_sample_config_w_logger(sample_config):
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
     logger = object()
 
     api_factory = config_module.make_api_factory_with_config(
@@ -631,6 +634,7 @@ plugins =
 plugins =
 
 """
+
 
 class DummyApp:
     environ = None

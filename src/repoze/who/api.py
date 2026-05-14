@@ -4,22 +4,22 @@ from repoze.who import interfaces
 
 
 def get_api(environ):
-    return environ.get('repoze.who.api')
+    return environ.get("repoze.who.api")
 
 
 @implementer(interfaces.IAPIFactory)
 class APIFactory:
-
-    def __init__(self,
-                 identifiers=(),
-                 authenticators=(),
-                 challengers=(),
-                 mdproviders=(),
-                 request_classifier=None,
-                 challenge_decider=None,
-                 remote_user_key = 'REMOTE_USER',
-                 logger=None,
-                ):
+    def __init__(
+        self,
+        identifiers=(),
+        authenticators=(),
+        challengers=(),
+        mdproviders=(),
+        request_classifier=None,
+        challenge_decider=None,
+        remote_user_key="REMOTE_USER",
+        logger=None,
+    ):
         self.identifiers = identifiers
         self.authenticators = authenticators
         self.challengers = challengers
@@ -30,45 +30,48 @@ class APIFactory:
         self.logger = logger
 
     def __call__(self, environ):
-        """ See IAPIFactory.
-        """
-        api = environ.get('repoze.who.api')
+        """See IAPIFactory."""
+        api = environ.get("repoze.who.api")
         if api is None:
-            api = environ['repoze.who.api'] = API(environ, 
-                                                  self.identifiers,
-                                                  self.authenticators,
-                                                  self.challengers,
-                                                  self.mdproviders,
-                                                  self.request_classifier,
-                                                  self.challenge_decider,
-                                                  self.remote_user_key,
-                                                  self.logger,
-                                                 )
+            api = environ["repoze.who.api"] = API(
+                environ,
+                self.identifiers,
+                self.authenticators,
+                self.challengers,
+                self.mdproviders,
+                self.request_classifier,
+                self.challenge_decider,
+                self.remote_user_key,
+                self.logger,
+            )
         return api
 
 
 def verify(plugin, iface):
     from zope.interface.verify import verifyObject
+
     verifyObject(iface, plugin, tentative=True)
 
- 
+
 def make_registries(identifiers, authenticators, challengers, mdproviders):
     from zope.interface.exceptions import Invalid
     from zope.interface.verify import BrokenImplementation  # BBB, z.i < 5.0.x
+
     interface_registry = {}
     name_registry = {}
 
-    for supplied, iface in [ (identifiers, interfaces.IIdentifier),
-                             (authenticators, interfaces.IAuthenticator),
-                             (challengers, interfaces.IChallenger),
-                             (mdproviders, interfaces.IMetadataProvider)]:
-
+    for supplied, iface in [
+        (identifiers, interfaces.IIdentifier),
+        (authenticators, interfaces.IAuthenticator),
+        (challengers, interfaces.IChallenger),
+        (mdproviders, interfaces.IMetadataProvider),
+    ]:
         for name, value in supplied:
             try:
                 verify(value, iface)
             except (Invalid, BrokenImplementation) as why:
                 why_str = str(why)
-                raise ValueError(str(name) + ': ' + why_str) from why
+                raise ValueError(str(name) + ": " + why_str) from why
             L = interface_registry.setdefault(iface, [])
             L.append(value)
             name_registry[name] = value
@@ -79,10 +82,9 @@ def make_registries(identifiers, authenticators, challengers, mdproviders):
 def match_classification(iface, plugins, classification):
     result = []
     for plugin in plugins:
-        
-        plugin_classifications = getattr(plugin, 'classifications', {})
+        plugin_classifications = getattr(plugin, "classifications", {})
         iface_classifications = plugin_classifications.get(iface)
-        if not iface_classifications: # good for any
+        if not iface_classifications:  # good for any
             result.append(plugin)
             continue
         if classification in iface_classifications:
@@ -93,22 +95,22 @@ def match_classification(iface, plugins, classification):
 
 @implementer(interfaces.IAPI)
 class API:
-
-    def __init__(self,
-                 environ,
-                 identifiers,
-                 authenticators,
-                 challengers,
-                 mdproviders,
-                 request_classifier,
-                 challenge_decider,
-                 remote_user_key,
-                 logger,
-                ):
+    def __init__(
+        self,
+        environ,
+        identifiers,
+        authenticators,
+        challengers,
+        mdproviders,
+        request_classifier,
+        challenge_decider,
+        remote_user_key,
+        logger,
+    ):
         self.environ = environ
-        (self.interface_registry,
-         self.name_registry) = make_registries(identifiers, authenticators,
-                                               challengers, mdproviders)
+        (self.interface_registry, self.name_registry) = make_registries(
+            identifiers, authenticators, challengers, mdproviders
+        )
         self.identifiers = identifiers
         self.authenticators = authenticators
         self.challengers = challengers
@@ -119,12 +121,12 @@ class API:
         classification = self.classification = (
             request_classifier and request_classifier(environ)
         )
-        logger and logger.info(f'request classification: {classification}')
-        
+        logger and logger.info(f"request classification: {classification}")
+
     def authenticate(self):
 
         ids = self._identify()
-            
+
         # ids will be list of tuples: [ (IIdentifier, identity) ]
         if ids:
             auth_ids = self._authenticate(ids)
@@ -140,9 +142,9 @@ class API:
                 auth_ids.sort()
                 best = auth_ids[0]
                 rank, authenticator, identifier, identity, userid = best
-                identity = Identity(identity) # dont show contents at print
-                identity['authenticator'] = authenticator
-                identity['identifier'] = identifier
+                identity = Identity(identity)  # dont show contents at print
+                identity["authenticator"] = authenticator
+                identity["identifier"] = identifier
 
                 # allow IMetadataProvider plugins to scribble on the identity
                 self._add_metadata(identity)
@@ -151,19 +153,19 @@ class API:
                 # application can mutate it to do an 'identity reset'
                 # as necessary, e.g. identity['login'] = 'foo',
                 # identity['password'] = 'bar'
-                self.environ['repoze.who.identity'] = identity
+                self.environ["repoze.who.identity"] = identity
                 # set the REMOTE_USER
                 self.environ[self.remote_user_key] = userid
                 return identity
 
         self.logger and self.logger.info(
-                        'no identities found, not authenticating')
+            "no identities found, not authenticating"
+        )
 
-    def challenge(self, status='403 Forbidden', app_headers=()):
-        """ See IAPI.
-        """
-        identity = self.environ.get('repoze.who.identity', {})
-        identifier = identity.get('identifier')
+    def challenge(self, status="403 Forbidden", app_headers=()):
+        """See IAPI."""
+        identity = self.environ.get("repoze.who.identity", {})
+        identifier = identity.get("identifier")
 
         logger = self.logger
 
@@ -174,13 +176,13 @@ class API:
             if id_forget_headers is not None:
                 forget_headers.extend(id_forget_headers)
                 logger and logger.info(
-                    'forgetting via headers from '
-                    f'{identifier}: '
-                    f'{forget_headers}'
+                    "forgetting via headers from "
+                    f"{identifier}: "
+                    f"{forget_headers}"
                 )
 
         candidates = self.interface_registry.get(interfaces.IChallenger, ())
-        logger and logger.debug(f'challengers registered: {candidates}')
+        logger and logger.debug(f"challengers registered: {candidates}")
 
         plugins = match_classification(
             interfaces.IChallenger,
@@ -188,70 +190,68 @@ class API:
             self.classification,
         )
         logger and logger.debug(
-            'challengers matched for classification '
+            "challengers matched for classification "
             f'"{self.classification}": {plugins}'
         )
         for plugin in plugins:
-            app = plugin.challenge(self.environ, status, app_headers,
-                                   forget_headers)
+            app = plugin.challenge(
+                self.environ, status, app_headers, forget_headers
+            )
             if app is not None:
                 # new WSGI application
                 logger and logger.info(
-                    f'challenger plugin {plugin} '
-                    '"challenge" returned an app'
+                    f'challenger plugin {plugin} "challenge" returned an app'
                 )
                 return app
 
         # signifies no challenge
-        logger and logger.info('no challenge app returned')
+        logger and logger.info("no challenge app returned")
         return None
 
     def remember(self, identity=None):
-        """ See IAPI.
-        """
+        """See IAPI."""
         headers = ()
         if identity is None:
-            identity = self.environ.get('repoze.who.identity', {})
-        identifier = identity.get('identifier')
+            identity = self.environ.get("repoze.who.identity", {})
+        identifier = identity.get("identifier")
         if identifier:
             got_headers = identifier.remember(self.environ, identity)
             if got_headers:
                 headers = got_headers
                 logger = self.logger
                 logger and logger.info(
-                    f'remembering via headers from {identifier}: '
-                    f'{headers}'
+                    f"remembering via headers from {identifier}: {headers}"
                 )
         return headers
 
     def forget(self, identity=None):
-        """ See IAPI.
-        """
+        """See IAPI."""
         headers = ()
         if identity is None:
-            identity = self.environ.get('repoze.who.identity', {})
-        identifier = identity.get('identifier')
+            identity = self.environ.get("repoze.who.identity", {})
+        identifier = identity.get("identifier")
         if identifier:
             got_headers = identifier.forget(self.environ, identity)
             if got_headers:
                 headers = got_headers
                 logger = self.logger
                 logger and logger.info(
-                    f'forgetting via headers from {identifier}: '
-                    f'{headers}'
+                    f"forgetting via headers from {identifier}: {headers}"
                 )
         return headers
 
     def login(self, credentials, identifier_name=None):
-        """ See IAPI.
-        """
+        """See IAPI."""
         authenticated = identity = plugin = None
         headers = []
 
         # Filter identifiers using 'identifier_name', if provided.
         if identifier_name is not None:
-            identifiers = [(name, plugin) for name, plugin in self.identifiers
-                                           if name == identifier_name]
+            identifiers = [
+                (name, plugin)
+                for name, plugin in self.identifiers
+                if name == identifier_name
+            ]
         else:
             identifiers = self.identifiers
 
@@ -260,7 +260,7 @@ class API:
         for _name, identifier in identifiers:
             authenticated = self._authenticate([(identifier, credentials)])
 
-            if authenticated: # and therefore can remember it
+            if authenticated:  # and therefore can remember it
                 rank, plugin, identifier, identity, userid = authenticated[0]
                 break
 
@@ -277,13 +277,15 @@ class API:
         return identity, headers
 
     def logout(self, identifier_name=None):
-        """ See IAPI.
-        """
+        """See IAPI."""
         headers = []
         # Filter identifiers using 'identifier_name', if provided.
         if identifier_name is not None:
-            identifiers = [(name, plugin) for name, plugin in self.identifiers
-                                           if name == identifier_name]
+            identifiers = [
+                (name, plugin)
+                for name, plugin in self.identifiers
+                if name == identifier_name
+            ]
         else:
             identifiers = self.identifiers
 
@@ -294,25 +296,25 @@ class API:
         # work correctly: middleware calls ``remember`` unconditionally "on
         # the way out", and if an identity is found, competing login headers
         # will be set.
-        if 'repoze.who.identity' in self.environ:
-            del self.environ['repoze.who.identity']
+        if "repoze.who.identity" in self.environ:
+            del self.environ["repoze.who.identity"]
 
         return headers
 
     def _identify(self):
-        """ See IAPI.
-        """
+        """See IAPI."""
         logger = self.logger
         candidates = self.interface_registry.get(interfaces.IIdentifier, ())
         logger and self.logger.debug(
-            f'identifier plugins registered: {candidates}'
+            f"identifier plugins registered: {candidates}"
         )
-        plugins = match_classification(interfaces.IIdentifier, candidates,
-                                       self.classification)
+        plugins = match_classification(
+            interfaces.IIdentifier, candidates, self.classification
+        )
         logger and self.logger.debug(
-            'identifier plugins matched for '
+            "identifier plugins matched for "
             f'classification "{self.classification}": '
-            f'{plugins}'
+            f"{plugins}"
         )
 
         results = []
@@ -320,31 +322,31 @@ class API:
             identity = plugin.identify(self.environ)
             if identity is not None:
                 logger and logger.debug(
-                    f'identity returned from {plugin}: {identity}'
+                    f"identity returned from {plugin}: {identity}"
                 )
                 results.append((plugin, identity))
             else:
                 logger and logger.debug(
-                    f'no identity returned from {plugin} ({identity})'
+                    f"no identity returned from {plugin} ({identity})"
                 )
 
-        logger and logger.debug(f'identities found: {results}')
+        logger and logger.debug(f"identities found: {results}")
         return results
 
     def _authenticate(self, identities):
-        """ See IAPI.
-        """
+        """See IAPI."""
         logger = self.logger
         candidates = self.interface_registry.get(interfaces.IAuthenticator, [])
         logger and self.logger.debug(
-            f'authenticator plugins registered: {candidates}'
+            f"authenticator plugins registered: {candidates}"
         )
-        plugins = match_classification(interfaces.IAuthenticator, candidates,
-                                       self.classification)
+        plugins = match_classification(
+            interfaces.IAuthenticator, candidates, self.classification
+        )
         logger and self.logger.debug(
-            'authenticator plugins matched for '
+            "authenticator plugins matched for "
             f'classification "{self.classification}": '
-            f'{plugins}'
+            f"{plugins}"
         )
 
         auth_rank = 0
@@ -360,24 +362,23 @@ class API:
                     )
 
                     # stamp the identity with the userid
-                    identity['repoze.who.userid'] = userid
+                    identity["repoze.who.userid"] = userid
                     rank = (auth_rank, identifier_rank)
                     results.append(
                         (rank, plugin, identifier, identity, userid)
-                        )
+                    )
                 else:
                     logger and logger.debug(
-                        f'no userid returned from {plugin}: ({userid})'
+                        f"no userid returned from {plugin}: ({userid})"
                     )
                 identifier_rank += 1
             auth_rank += 1
 
-        logger and logger.debug(f'identities authenticated: {results}')
+        logger and logger.debug(f"identities authenticated: {results}")
         return results
 
     def _add_metadata(self, identity):
-        """ See IAPI.
-        """
+        """See IAPI."""
         candidates = self.interface_registry.get(
             interfaces.IMetadataProvider,
             (),
@@ -386,16 +387,15 @@ class API:
             interfaces.IMetadataProvider,
             candidates,
             self.classification,
-        )        
+        )
         for plugin in plugins:
             plugin.add_metadata(self.environ, identity)
 
+
 class Identity(dict):
-    """ dict subclass: prevent members from being rendered during print
-    """
+    """dict subclass: prevent members from being rendered during print"""
+
     def __repr__(self):
-        return (
-            f'<repoze.who identity (hidden, dict-like) at {id(self)}">'
-        )
+        return f'<repoze.who identity (hidden, dict-like) at {id(self)}">'
 
     __str__ = __repr__

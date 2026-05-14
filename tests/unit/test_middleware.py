@@ -19,7 +19,7 @@ def _make_pam(
     challenge_decider=None,
     log_stream=None,
     log_level=None,
-    remote_user_key='REMOTE_USER',
+    remote_user_key="REMOTE_USER",
 ):
     if app is None:
         app = DummyApp()
@@ -59,7 +59,7 @@ def _make_wsgi_environ():
 
 
 def _check_result_prefix(result, exp_prefix):
-    to_string = b''.join(result).decode('ascii')
+    to_string = b"".join(result).decode("ascii")
     assert to_string.startswith(exp_prefix)
 
 
@@ -92,6 +92,7 @@ def test_pam_ctor_positional_args():
     assert af.request_classifier is request_classifier
     assert af.challenge_decider is challenge_decider
 
+
 def test_pam_ctor_wo_request_classifier_or_classifier_raises():
     # BBB for old argument name
     app = DummyApp()
@@ -100,17 +101,16 @@ def test_pam_ctor_wo_request_classifier_or_classifier_raises():
     challengers = []
     mdproviders = []
     challenge_decider = DummyChallengeDecider()
-    with pytest.raises(
-        middleware.ExactlyOneOfRequestClassifierAndClassifier
-    ):
+    with pytest.raises(middleware.ExactlyOneOfRequestClassifierAndClassifier):
         middleware.PluggableAuthenticationMiddleware(
             app,
             identifiers,
             authenticators,
             challengers,
             mdproviders,
-            challenge_decider = challenge_decider,
+            challenge_decider=challenge_decider,
         )
+
 
 def test_pam_ctor_w_request_classifier_and_classifier_raises():
     # BBB for old argument name
@@ -121,9 +121,7 @@ def test_pam_ctor_w_request_classifier_and_classifier_raises():
     request_classifier = DummyRequestClassifier()
     mdproviders = []
     challenge_decider = DummyChallengeDecider()
-    with pytest.raises(
-        middleware.ExactlyOneOfRequestClassifierAndClassifier
-    ):
+    with pytest.raises(middleware.ExactlyOneOfRequestClassifierAndClassifier):
         middleware.PluggableAuthenticationMiddleware(
             app,
             identifiers,
@@ -132,8 +130,9 @@ def test_pam_ctor_w_request_classifier_and_classifier_raises():
             mdproviders,
             request_classifier,
             challenge_decider,
-            classifier = object()
+            classifier=object(),
         )
+
 
 def test_pam_ctor_wo_challenge_decider_raises():
     # BBB for old argument name
@@ -150,8 +149,9 @@ def test_pam_ctor_wo_challenge_decider_raises():
             authenticators,
             challengers,
             mdproviders,
-            classifier = request_classifier,
+            classifier=request_classifier,
         )
+
 
 def test_pam_ctor_w_classifier():
     # BBB for old argument name
@@ -169,8 +169,8 @@ def test_pam_ctor_w_classifier():
         authenticators,
         challengers,
         mdproviders,
-        classifier = request_classifier,
-        challenge_decider = challenge_decider,
+        classifier=request_classifier,
+        challenge_decider=challenge_decider,
     )
 
     assert mw.app is app
@@ -183,19 +183,21 @@ def test_pam_ctor_w_classifier():
     assert af.request_classifier is request_classifier
     assert af.challenge_decider is challenge_decider
 
+
 def test_pam_ctor_accepts_logger():
     restore = logging.raiseExceptions
     logging.raiseExceptions = 0
     try:
-        logger = logging.Logger('something')
+        logger = logging.Logger("something")
         logger.setLevel(logging.INFO)
         mw = _make_pam(log_stream=logger)
         assert logger is mw.logger
     finally:
         logging.raiseExceptions = restore
 
+
 def test_pam_call_remoteuser_already_set():
-    environ = _make_wsgi_environ() | {'REMOTE_USER':'admin'}
+    environ = _make_wsgi_environ() | {"REMOTE_USER": "admin"}
     mw = _make_pam()
 
     result = mw(environ, None)
@@ -204,330 +206,373 @@ def test_pam_call_remoteuser_already_set():
 
     assert mw.app.environ == environ
 
+
 def test_pam_call_200_no_plugins():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('200 OK', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("200 OK", headers)
     mw = _make_pam(app=app)
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    assert result == ['body']
+    assert result == ["body"]
 
     assert mw.app.environ == environ
-    assert start_response.status == '200 OK'
+    assert start_response.status == "200 OK"
     assert start_response.headers == headers
+
 
 def test_pam_call_401_no_challengers():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('401 Unauthorized', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("401 Unauthorized", headers)
     mw = _make_pam(app=app)
     start_response = DummyStartResponse()
 
     with pytest.raises(RuntimeError):
         mw(environ, start_response)
 
+
 def test_pam_call_200_no_challengers():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('200 OK', headers)
-    credentials = {'login':'chris', 'password':'password'}
+    headers = [("a", "1")]
+    app = DummyWorkingApp("200 OK", headers)
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     mw = _make_pam(app=app, identifiers=identifiers)
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    assert result == ['body']
+    assert result == ["body"]
 
     assert mw.app.environ == environ
-    assert start_response.status == '200 OK'
+    assert start_response.status == "200 OK"
     assert start_response.headers == headers
+
 
 def test_pam_call_200_no_challengers_app_calls_forget():
     # See https://github.com/repoze/repoze.who/issues/21
     environ = _make_wsgi_environ()
-    remember_headers = [('remember', '1')]
-    forget_headers = [('forget', '1')]
-    app = DummyLogoutApp('200 OK')
-    credentials = {'login':'chris', 'password':'password'}
+    remember_headers = [("remember", "1")]
+    forget_headers = [("forget", "1")]
+    app = DummyLogoutApp("200 OK")
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(
         credentials,
         remember_headers=remember_headers,
-        forget_headers=forget_headers)
-    identifiers = [ ('identifier', identifier) ]
+        forget_headers=forget_headers,
+    )
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
+    authenticators = [("authenticator", authenticator)]
     mw = _make_pam(
-        app=app, identifiers=identifiers, authenticators=authenticators)
+        app=app, identifiers=identifiers, authenticators=authenticators
+    )
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    assert result == ['body']
+    assert result == ["body"]
 
     assert mw.app.environ == environ
-    assert start_response.status == '200 OK'
+    assert start_response.status == "200 OK"
     assert start_response.headers == forget_headers
+
 
 def test_pam_call_401_no_identifiers():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('401 Unauthorized', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("401 Unauthorized", headers)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
+    challengers = [("challenge", challenge)]
     mw = _make_pam(app=app, challengers=challengers)
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    _check_result_prefix(result, '401 Unauthorized')
+    _check_result_prefix(result, "401 Unauthorized")
 
-    assert environ['challenged'] == challenge_app
+    assert environ["challenged"] == challenge_app
+
 
 def test_pam_call_401_challenger_and_identifier_no_authenticator():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('401 Unauthorized', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("401 Unauthorized", headers)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
-    credentials = {'login':'a', 'password':'b'}
+    challengers = [("challenge", challenge)]
+    credentials = {"login": "a", "password": "b"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers)
+    identifiers = [("identifier", identifier)]
+    mw = _make_pam(app=app, challengers=challengers, identifiers=identifiers)
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    _check_result_prefix(result, '401 Unauthorized')
+    _check_result_prefix(result, "401 Unauthorized")
 
-    assert environ['challenged'] == challenge_app
+    assert environ["challenged"] == challenge_app
     assert not identifier.forgotten
-    assert environ.get('REMOTE_USER') is None
+    assert environ.get("REMOTE_USER") is None
+
 
 def test_pam_call_401_challenger_and_identifier_and_authenticator():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('401 Unauthorized', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("401 Unauthorized", headers)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
-    credentials = {'login':'chris', 'password':'password'}
+    challengers = [("challenge", challenge)]
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators)
+    authenticators = [("authenticator", authenticator)]
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+    )
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    _check_result_prefix(result, '401 Unauthorized')
+    _check_result_prefix(result, "401 Unauthorized")
 
-    assert environ['challenged'] is challenge_app
+    assert environ["challenged"] is challenge_app
     # @@ unfuck
-##         assert identifier.forgotten == identifier.credentials
-    assert environ['REMOTE_USER'] == 'chris'
+    ##         assert identifier.forgotten == identifier.credentials
+    assert environ["REMOTE_USER"] == "chris"
+
+
 ##         assert environ['repoze.who.identity'] == identifier.credentials
+
 
 def test_pam_call_200_challenger_and_identifier_and_authenticator():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('200 OK', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("200 OK", headers)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
-    credentials = {'login':'chris', 'password':'password'}
+    challengers = [("challenge", challenge)]
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators)
+    authenticators = [("authenticator", authenticator)]
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+    )
     start_response = DummyStartResponse()
 
     _result = mw(environ, start_response)
 
-    assert environ.get('challenged') is None
+    assert environ.get("challenged") is None
     assert not identifier.forgotten
     # @@ figure out later
-##         assert (
-##          dict(identifier.remembered)['login']
-##            == dict(identifier.credentials)['login']
-##         )
-##         assert (
-##          dict(identifier.remembered)['password']
-##            == dict(identifier.credentials)['password']
-##         )
-    assert environ['REMOTE_USER'] == 'chris'
+    ##         assert (
+    ##          dict(identifier.remembered)['login']
+    ##            == dict(identifier.credentials)['login']
+    ##         )
+    ##         assert (
+    ##          dict(identifier.remembered)['password']
+    ##            == dict(identifier.credentials)['password']
+    ##         )
+    assert environ["REMOTE_USER"] == "chris"
+
+
 ##         assert environ['repoze.who.identity'] == identifier.credentials
 
 
 def test_pam_call_200_identity_reset():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    new_identity = {'user_id':'foo', 'password':'bar'}
-    app = DummyIdentityResetApp('200 OK', headers, new_identity)
+    headers = [("a", "1")]
+    new_identity = {"user_id": "foo", "password": "bar"}
+    app = DummyIdentityResetApp("200 OK", headers, new_identity)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
-    credentials = {'login':'chris', 'password':'password'}
+    challengers = [("challenge", challenge)]
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators)
+    authenticators = [("authenticator", authenticator)]
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+    )
     start_response = DummyStartResponse()
 
     _result = mw(environ, start_response)
 
-    assert environ.get('challenged') is None
+    assert environ.get("challenged") is None
     assert not identifier.forgotten
     new_credentials = identifier.credentials.copy()
-    new_credentials['login'] = 'fred'
-    new_credentials['password'] = 'schooled'
+    new_credentials["login"] = "fred"
+    new_credentials["password"] = "schooled"
     # @@ unfuck
-##         assert identifier.remembered == new_credentials
-    assert environ['REMOTE_USER'] == 'chris'
+    ##         assert identifier.remembered == new_credentials
+    assert environ["REMOTE_USER"] == "chris"
+
+
 ##         assert environ['repoze.who.identity'] == new_credentials
+
 
 def test_pam_call_200_with_metadata():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('200 OK', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("200 OK", headers)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
-    credentials = {'login':'chris', 'password':'password'}
+    challengers = [("challenge", challenge)]
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
-    mdprovider = DummyMDProvider({'foo':'bar'})
-    mdproviders = [ ('mdprovider', mdprovider) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators,
-                        mdproviders=mdproviders)
+    authenticators = [("authenticator", authenticator)]
+    mdprovider = DummyMDProvider({"foo": "bar"})
+    mdproviders = [("mdprovider", mdprovider)]
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+        mdproviders=mdproviders,
+    )
     start_response = DummyStartResponse()
 
     _result = mw(environ, start_response)
 
     # metadata
-    assert environ['repoze.who.identity']['foo'] == 'bar'
+    assert environ["repoze.who.identity"]["foo"] == "bar"
+
 
 def test_pam_call_ingress_plugin_replaces_application():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyWorkingApp('200 OK', headers)
+    headers = [("a", "1")]
+    app = DummyWorkingApp("200 OK", headers)
     challengers = []
-    credentials = {'login':'chris', 'password':'password'}
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(
         credentials,
-        remember_headers=[('a', '1')],
-        replace_app = webob_exc.HTTPFound('http://example.com/redirect')
-        )
-    identifiers = [ ('identifier', identifier) ]
+        remember_headers=[("a", "1")],
+        replace_app=webob_exc.HTTPFound("http://example.com/redirect"),
+    )
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
+    authenticators = [("authenticator", authenticator)]
     mdproviders = []
-    mw = _make_pam(app=app,
-                        challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators,
-                        mdproviders=mdproviders)
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+        mdproviders=mdproviders,
+    )
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    _check_result_prefix(result, '302 Found')
+    _check_result_prefix(result, "302 Found")
 
-    assert start_response.status == '302 Found'
+    assert start_response.status == "302 Found"
     headers = start_response.headers
-    #assert len(headers) == 3, headers
-    #assert headers[0] = ('Location', 'http://example.com/redirect'))
-    assert headers[2] == ('Content-Type', 'text/plain; charset=UTF-8')
-    assert headers[3] == ('a', '1')
+    # assert len(headers) == 3, headers
+    # assert headers[0] = ('Location', 'http://example.com/redirect'))
+    assert headers[2] == ("Content-Type", "text/plain; charset=UTF-8")
+    assert headers[3] == ("a", "1")
     assert start_response.exc_info is None
-    assert 'repoze.who.application' not in environ
+    assert "repoze.who.application" not in environ
+
 
 def test_pam_call_app_doesnt_call_start_response():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyGeneratorApp('200 OK', headers)
+    headers = [("a", "1")]
+    app = DummyGeneratorApp("200 OK", headers)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
-    credentials = {'login':'chris', 'password':'password'}
+    challengers = [("challenge", challenge)]
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
-    mdprovider = DummyMDProvider({'foo':'bar'})
-    mdproviders = [ ('mdprovider', mdprovider) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators,
-                        mdproviders=mdproviders)
+    authenticators = [("authenticator", authenticator)]
+    mdprovider = DummyMDProvider({"foo": "bar"})
+    mdproviders = [("mdprovider", mdprovider)]
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+        mdproviders=mdproviders,
+    )
     start_response = DummyStartResponse()
 
     _result = mw(environ, start_response)
     # metadata
-    assert environ['repoze.who.identity']['foo'] == 'bar'
+    assert environ["repoze.who.identity"]["foo"] == "bar"
+
 
 def test_pam_call_w_challenge_closes_iterable():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyIterableWithCloseApp('401 Unauthorized', headers)
+    headers = [("a", "1")]
+    app = DummyIterableWithCloseApp("401 Unauthorized", headers)
     challenge_app = webob_exc.HTTPUnauthorized()
     challenge = DummyChallenger(challenge_app)
-    challengers = [ ('challenge', challenge) ]
-    credentials = {'login':'chris', 'password':'password'}
+    challengers = [("challenge", challenge)]
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
-    mdprovider = DummyMDProvider({'foo':'bar'})
-    mdproviders = [ ('mdprovider', mdprovider) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators,
-                        mdproviders=mdproviders)
+    authenticators = [("authenticator", authenticator)]
+    mdprovider = DummyMDProvider({"foo": "bar"})
+    mdproviders = [("mdprovider", mdprovider)]
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+        mdproviders=mdproviders,
+    )
     start_response = DummyStartResponse()
 
     result = mw(environ, start_response)
 
-    _check_result_prefix(result, '401 Unauthorized')
+    _check_result_prefix(result, "401 Unauthorized")
 
     assert app._iterable._closed
 
+
 def test_pam_call_w_challenge_wo_challenger_still_closes_iterable():
     environ = _make_wsgi_environ()
-    headers = [('a', '1')]
-    app = DummyIterableWithCloseApp('401 Unauthorized', headers)
+    headers = [("a", "1")]
+    app = DummyIterableWithCloseApp("401 Unauthorized", headers)
     challengers = []
-    credentials = {'login':'chris', 'password':'password'}
+    credentials = {"login": "chris", "password": "password"}
     identifier = DummyIdentifier(credentials)
-    identifiers = [ ('identifier', identifier) ]
+    identifiers = [("identifier", identifier)]
     authenticator = DummyAuthenticator()
-    authenticators = [ ('authenticator', authenticator) ]
-    mdprovider = DummyMDProvider({'foo':'bar'})
-    mdproviders = [ ('mdprovider', mdprovider) ]
-    mw = _make_pam(app=app, challengers=challengers,
-                        identifiers=identifiers,
-                        authenticators=authenticators,
-                        mdproviders=mdproviders)
+    authenticators = [("authenticator", authenticator)]
+    mdprovider = DummyMDProvider({"foo": "bar"})
+    mdproviders = [("mdprovider", mdprovider)]
+    mw = _make_pam(
+        app=app,
+        challengers=challengers,
+        identifiers=identifiers,
+        authenticators=authenticators,
+        mdproviders=mdproviders,
+    )
     start_response = DummyStartResponse()
 
     with pytest.raises(RuntimeError):
@@ -535,8 +580,10 @@ def test_pam_call_w_challenge_wo_challenger_still_closes_iterable():
 
     assert app._iterable._closed
 
+
 # XXX need more call tests:
 #  - auth_id sorting
+
 
 def test_srw_ctor():
     wrapper = middleware.StartResponseWrapper(None)
@@ -544,15 +591,19 @@ def test_srw_ctor():
     assert wrapper.headers == []
     assert wrapper.buffer
 
+
 def test_srw_finish_response():
     statuses = []
     headerses = []
     datases = []
     closededs = []
+
     def write(data):
         datases.append(data)
+
     def close():
         closededs.append(True)
+
     write.close = close
 
     def start_response(status, headers, exc_info=None):
@@ -561,49 +612,57 @@ def test_srw_finish_response():
         return write
 
     wrapper = middleware.StartResponseWrapper(start_response)
-    wrapper.status = '401 Unauthorized'
-    wrapper.headers = [('a', '1')]
-    wrapper.buffer = io.StringIO('written')
-    extra_headers = [('b', '2')]
+    wrapper.status = "401 Unauthorized"
+    wrapper.headers = [("a", "1")]
+    wrapper.buffer = io.StringIO("written")
+    extra_headers = [("b", "2")]
 
     result = wrapper.finish_response(extra_headers)
 
     assert result is None
     assert headerses[0] == wrapper.headers + extra_headers
     assert statuses[0] == wrapper.status
-    assert datases[0] == 'written'
+    assert datases[0] == "written"
     assert closededs[0]
+
 
 def test_wg_w_generator():
     L = []
+
     def gen(L=L):
-        L.append('yo!')
-        yield 'a'
-        yield 'b'
+        L.append("yo!")
+        yield "a"
+        yield "b"
+
     newgen = middleware.wrap_generator(gen())
-    assert L == ['yo!']
-    assert list(newgen) == ['a', 'b']
+    assert L == ["yo!"]
+    assert list(newgen) == ["a", "b"]
+
 
 def test_wg_w_empty_generator():
     def gen():
         if False:
-            yield 'a'  # pragma: no cover
+            yield "a"  # pragma: no cover
+
     newgen = middleware.wrap_generator(gen())
     assert list(newgen) == []
 
+
 def test_wg_w_iterator_having_close():
     def gen():
-        yield 'a'
-        yield 'b'
+        yield "a"
+        yield "b"
+
     iterable = DummyIterableWithClose(gen())
     newgen = middleware.wrap_generator(iterable)
     assert not iterable._closed
-    assert list(newgen) == ['a', 'b']
+    assert list(newgen) == ["a", "b"]
     assert iterable._closed
+
 
 def test_mtm_no_WHO_LOG_in_environ():
     app = DummyApp()
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
 
     with mock.patch("os.environ", {}):
         mw_inst = middleware.make_test_middleware(app, global_conf)
@@ -616,12 +675,13 @@ def test_mtm_no_WHO_LOG_in_environ():
     assert len(api_factory.mdproviders) == 0
     assert mw_inst.logger is None
 
+
 def test_mtm_w_WHO_LOG_in_environ():
     app = DummyApp()
-    global_conf = {'here': '/'}
+    global_conf = {"here": "/"}
 
     with mock.patch("os.environ", {}) as patched_environ:
-        patched_environ['WHO_LOG'] = '1'
+        patched_environ["WHO_LOG"] = "1"
         mw_inst = middleware.make_test_middleware(app, global_conf)
 
     assert mw_inst.logger.getEffectiveLevel() == logging.DEBUG
@@ -629,9 +689,11 @@ def test_mtm_w_WHO_LOG_in_environ():
 
 class DummyApp:
     environ = None
+
     def __call__(self, environ, start_response):
         self.environ = environ
         return []
+
 
 class DummyWorkingApp:
     def __init__(self, status, headers):
@@ -641,7 +703,8 @@ class DummyWorkingApp:
     def __call__(self, environ, start_response):
         self.environ = environ
         start_response(self.status, self.headers)
-        return ['body']
+        return ["body"]
+
 
 class DummyLogoutApp:
     def __init__(self, status):
@@ -649,10 +712,11 @@ class DummyLogoutApp:
 
     def __call__(self, environ, start_response):
         self.environ = environ
-        api = environ['repoze.who.api']
+        api = environ["repoze.who.api"]
         headers = api.logout()
         start_response(self.status, headers)
-        return ['body']
+        return ["body"]
+
 
 class DummyGeneratorApp:
     def __init__(self, status, headers):
@@ -663,28 +727,35 @@ class DummyGeneratorApp:
         def gen(self=self, start_response=start_response):
             self.environ = environ
             start_response(self.status, self.headers)
-            yield 'body'
+            yield "body"
+
         return gen()
+
 
 class DummyIterableWithClose:
     _closed = False
+
     def __init__(self, iterable):
         self._iterable = iterable
+
     def __iter__(self):
         return iter(self._iterable)
+
     def close(self):
         self._closed = True
+
 
 class DummyIterableWithCloseApp:
     def __init__(self, status, headers):
         self.status = status
         self.headers = headers
-        self._iterable = DummyIterableWithClose(['body'])
+        self._iterable = DummyIterableWithClose(["body"])
 
     def __call__(self, environ, start_response):
         self.environ = environ
         start_response(self.status, self.headers)
         return self._iterable
+
 
 class DummyIdentityResetApp:
     def __init__(self, status, headers, new_identity):
@@ -694,25 +765,32 @@ class DummyIdentityResetApp:
 
     def __call__(self, environ, start_response):
         self.environ = environ
-        environ['repoze.who.identity']['login'] = 'fred'
-        environ['repoze.who.identity']['password'] = 'schooled'
+        environ["repoze.who.identity"]["login"] = "fred"
+        environ["repoze.who.identity"]["password"] = "schooled"
         start_response(self.status, self.headers)
-        return ['body']
+        return ["body"]
+
 
 class DummyChallenger:
     def __init__(self, app=None):
         self.app = app
 
     def challenge(self, environ, status, app_headers, forget_headers):
-        environ['challenged'] = self.app
+        environ["challenged"] = self.app
         return self.app
+
 
 class DummyIdentifier:
     forgotten = False
     remembered = False
 
-    def __init__(self, credentials=None, remember_headers=None,
-                 forget_headers=None, replace_app=None):
+    def __init__(
+        self,
+        credentials=None,
+        remember_headers=None,
+        forget_headers=None,
+        replace_app=None,
+    ):
         self.credentials = credentials
         self.remember_headers = remember_headers
         self.forget_headers = forget_headers
@@ -720,7 +798,7 @@ class DummyIdentifier:
 
     def identify(self, environ):
         if self.replace_app:
-            environ['repoze.who.application'] = self.replace_app
+            environ["repoze.who.application"] = self.replace_app
         return self.credentials
 
     def forget(self, environ, identity):
@@ -731,18 +809,22 @@ class DummyIdentifier:
         self.remembered = identity
         return self.remember_headers
 
+
 class DummyAuthenticator:
     def authenticate(self, environ, credentials):
-        return credentials['login']
+        return credentials["login"]
+
 
 class DummyRequestClassifier:
     def __call__(self, environ):
-        return 'browser'
+        return "browser"
+
 
 class DummyChallengeDecider:
     def __call__(self, environ, status, headers):
-        if status.startswith('401 '):
+        if status.startswith("401 "):
             return True
+
 
 class DummyStartResponse:
     def __call__(self, status, headers, exc_info=None):
@@ -750,6 +832,7 @@ class DummyStartResponse:
         self.headers = headers
         self.exc_info = exc_info
         return []
+
 
 class DummyMDProvider:
     def __init__(self, metadata=None):

@@ -6,24 +6,25 @@ from repoze.who import api
 from repoze.who import classifiers
 from repoze.who import interfaces
 
-_STARTED = '-- repoze.who request started (%s) --'
-_ENDED = '-- repoze.who request ended (%s) --'
+_STARTED = "-- repoze.who request started (%s) --"
+_ENDED = "-- repoze.who request ended (%s) --"
 
 
 class ChallengeDeciderRequired(ValueError):
     def __init__(self):
-        super().__init__('challenge_decider is required')
+        super().__init__("challenge_decider is required")
 
 
 class ExactlyOneOfRequestClassifierAndClassifier(ValueError):
     def __init__(self):
         super().__init__(
-            'Exactly one of request_classifier and classifier is required'
+            "Exactly one of request_classifier and classifier is required"
         )
-    
+
+
 class NoChallengersFound(RuntimeError):
     def __init__(self):
-        super().__init__('no challengers found')
+        super().__init__("no challengers found")
 
 
 class PluggableAuthenticationMiddleware:
@@ -34,12 +35,12 @@ class PluggableAuthenticationMiddleware:
         authenticators,
         challengers,
         mdproviders,
-        request_classifier = None,
-        challenge_decider = None,
-        log_stream = None,
-        log_level = logging.INFO,
-        remote_user_key = 'REMOTE_USER',
-        classifier = None
+        request_classifier=None,
+        challenge_decider=None,
+        log_stream=None,
+        log_level=logging.INFO,
+        remote_user_key="REMOTE_USER",
+        classifier=None,
     ):
         if challenge_decider is None:
             raise ChallengeDeciderRequired()
@@ -59,10 +60,10 @@ class PluggableAuthenticationMiddleware:
             logger = self.logger = log_stream
         elif log_stream:
             handler = logging.StreamHandler(log_stream)
-            fmt = '%(asctime)s %(message)s'
+            fmt = "%(asctime)s %(message)s"
             formatter = logging.Formatter(fmt)
             handler.setFormatter(formatter)
-            logger = self.logger = logging.Logger('repoze.who')
+            logger = self.logger = logging.Logger("repoze.who")
             logger.addHandler(handler)
             logger.setLevel(log_level)
 
@@ -71,14 +72,13 @@ class PluggableAuthenticationMiddleware:
         self.api_factory = api.APIFactory(
             identifiers,
             authenticators,
-            challengers, 
+            challengers,
             mdproviders,
             request_classifier,
             challenge_decider,
             remote_user_key,
-            logger
+            logger,
         )
-
 
     def __call__(self, environ, start_response):
         if self.remote_user_key in environ:
@@ -88,22 +88,22 @@ class PluggableAuthenticationMiddleware:
 
         api = self.api_factory(environ)
 
-        environ['repoze.who.plugins'] = api.name_registry # BBB?
-        environ['repoze.who.logger'] = self.logger
-        environ['repoze.who.application'] = self.app
+        environ["repoze.who.plugins"] = api.name_registry  # BBB?
+        environ["repoze.who.logger"] = self.logger
+        environ["repoze.who.application"] = self.app
 
         logger = self.logger
-        path_info = environ.get('PATH_INFO', None)
+        path_info = environ.get("PATH_INFO", None)
         logger and logger.info(_STARTED % path_info)
         api.authenticate()  # identity saved in environ
 
         # allow identifier plugins to replace the downstream
         # application (to do redirection and unauthorized themselves
         # mostly)
-        app = environ.pop('repoze.who.application')
-        if  app is not self.app:
+        app = environ.pop("repoze.who.application")
+        if app is not self.app:
             logger and logger.info(
-                'static downstream application replaced with {app}'
+                "static downstream application replaced with {app}"
             )
 
         wrapper = StartResponseWrapper(start_response)
@@ -118,33 +118,35 @@ class PluggableAuthenticationMiddleware:
             app_iter = wrap_generator(app_iter)
 
         if api.challenge_decider(environ, wrapper.status, wrapper.headers):
-            logger and logger.info('challenge required')
-            close = getattr(app_iter, 'close', _no_op)
+            logger and logger.info("challenge required")
+            close = getattr(app_iter, "close", _no_op)
 
             challenge_app = api.challenge(wrapper.status, wrapper.headers)
             if challenge_app is not None:
-                logger and logger.info('executing challenge app')
+                logger and logger.info("executing challenge app")
                 if app_iter:
-                    list(app_iter) # unwind the original app iterator
+                    list(app_iter)  # unwind the original app iterator
                 # PEP 333 requires that we call the original iterator's
                 # 'close' method, if it exists, before releasing it.
                 close()
                 # replace the downstream app with the challenge app
                 app_iter = challenge_app(environ, start_response)
             else:
-                logger and logger.info('configuration error: no challengers')
+                logger and logger.info("configuration error: no challengers")
                 close()
                 raise NoChallengersFound()
         else:
-            logger and logger.info('no challenge required')
+            logger and logger.info("no challenge required")
             remember_headers = api.remember()
             wrapper.finish_response(remember_headers)
 
         logger and logger.info(_ENDED % path_info)
         return app_iter
 
+
 def _no_op():
     pass
+
 
 def wrap_generator(result):
     """\
@@ -155,7 +157,7 @@ def wrap_generator(result):
     """
     # PEP 333 requires that we call the original iterator's
     # 'close' method, if it exists, before releasing it.
-    close = getattr(result, 'close', lambda: None)
+    close = getattr(result, "close", lambda: None)
     # Neat trick to pull the first iteration only. We need to do this outside
     # of the generator function to ensure it is called.
     first = marker = []
@@ -170,7 +172,9 @@ def wrap_generator(result):
             yield first
         yield from result
         close()
+
     return wrapper()
+
 
 class StartResponseWrapper:
     def __init__(self, start_response):
@@ -202,11 +206,12 @@ class StartResponseWrapper:
             value = self.buffer.getvalue()
             if value:
                 write(value)
-            if hasattr(write, 'close'):
+            if hasattr(write, "close"):
                 write.close()
 
+
 def make_test_middleware(app, global_conf):
-    """ Functionally equivalent to
+    """Functionally equivalent to
 
     [plugin:redirector]
     use = repoze.who.plugins.redirector:RedirectorPlugin
@@ -246,28 +251,31 @@ def make_test_middleware(app, global_conf):
     from repoze.who.plugins.redirector import RedirectorPlugin
 
     buf = io.StringIO()
-    for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
-        buf.write(f'{name}:{password}\n')
+    for name, password in [("admin", "admin"), ("chris", "chris")]:
+        buf.write(f"{name}:{password}\n")
     buf.seek(0)
+
     def cleartext_check(password, hashed):
-        return password == hashed #pragma NO COVERAGE
+        return password == hashed  # pragma NO COVERAGE
+
     htpasswd = HTPasswdPlugin(buf, cleartext_check)
-    basicauth = BasicAuthPlugin('repoze.who')
-    auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
-    redirector = RedirectorPlugin('/login.html')
+    basicauth = BasicAuthPlugin("repoze.who")
+    auth_tkt = AuthTktCookiePlugin("secret", "auth_tkt")
+    redirector = RedirectorPlugin("/login.html")
     redirector.classifications = {
-        interfaces.IChallenger: ['browser'],
-    } # only for browser
-    identifiers = [('auth_tkt', auth_tkt),
-                   ('basicauth', basicauth),
-                  ]
-    authenticators = [('htpasswd', htpasswd)]
-    challengers = [('redirector', redirector),
-                   ('basicauth', basicauth)]
+        interfaces.IChallenger: ["browser"],
+    }  # only for browser
+    identifiers = [
+        ("auth_tkt", auth_tkt),
+        ("basicauth", basicauth),
+    ]
+    authenticators = [("htpasswd", htpasswd)]
+    challengers = [("redirector", redirector), ("basicauth", basicauth)]
     mdproviders = []
     log_stream = None
     import os
-    if os.environ.get('WHO_LOG'):
+
+    if os.environ.get("WHO_LOG"):
         log_stream = sys.stdout
     middleware = PluggableAuthenticationMiddleware(
         app,
@@ -277,7 +285,7 @@ def make_test_middleware(app, global_conf):
         mdproviders,
         classifiers.default_request_classifier,
         classifiers.default_challenge_decider,
-        log_stream = log_stream,
-        log_level = logging.DEBUG
-        )
+        log_stream=log_stream,
+        log_level=logging.DEBUG,
+    )
     return middleware

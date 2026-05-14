@@ -8,8 +8,7 @@ class InvalidDottedName(ValueError):
 
 
 def resolveDotted(dotted_or_ep):
-    """Resolve a standard ``module:object`` reference to a callable.
-    """
+    """Resolve a standard ``module:object`` reference to a callable."""
     name = dotted_or_ep.strip()
 
     if ":" not in name or "[" in name or "]" in name:

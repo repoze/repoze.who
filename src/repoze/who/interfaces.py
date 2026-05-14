@@ -3,15 +3,14 @@ from zope.interface import Interface
 
 class IAPIFactory(Interface):
     def __call__(environ):
-        """ environ -> IRepozeWhoAPI
-        """
+        """environ -> IRepozeWhoAPI"""
 
 
 class IAPI(Interface):
-    """ Facade for stateful invocation of underlying plugins.
-    """
+    """Facade for stateful invocation of underlying plugins."""
+
     def authenticate():
-        """ ->  {identity}
+        """->  {identity}
 
         o Return an authenticated identity mapping, extracted from the
         request environment.
@@ -22,16 +21,16 @@ class IAPI(Interface):
         as well as any keys added by metadata plugins.
         """
 
-    def challenge(status='403 Forbidden', app_headers=()):
-        """ -> wsgi application
-        
+    def challenge(status="403 Forbidden", app_headers=()):
+        """-> wsgi application
+
         o Return a WSGI application which represents a "challenge"
-        (request for credentials) in response to the current request.  
+        (request for credentials) in response to the current request.
         """
 
     def remember(identity=None):
-        """ -> [headers]
-        
+        """-> [headers]
+
         O Return a sequence of response headers which suffice to remember
         the given identity.
 
@@ -39,8 +38,8 @@ class IAPI(Interface):
         """
 
     def forget(identity=None):
-        """ -> [headers]
-        
+        """-> [headers]
+
         O Return a sequence of response headers which suffice to destroy
         any credentials used to establish an identity.
 
@@ -48,16 +47,16 @@ class IAPI(Interface):
         """
 
     def login(credentials, identifier_name=None):
-        """ -> (identity, headers)
-        
+        """-> (identity, headers)
+
         o This is an API for browser-based application login forms.
-        
+
         o If 'identifier_name' is passed, use it to look up the identifier;
           othewise, use the first configured identifier.
 
         o Attempt to authenticate 'credentials' as though the identifier
           had extracted them.
-          
+
         o On success, 'identity' will be authenticated mapping, and 'headers'
           will be "remember" headers.
 
@@ -66,10 +65,10 @@ class IAPI(Interface):
         """
 
     def logout(identifier_name=None):
-        """ -> (headers)
-        
+        """-> (headers)
+
         o This is an API for browser-based application logout.
-        
+
         o If 'identifier_name' is passed, use it to look up the identifier;
           othewise, use the first configured identifier.
 
@@ -82,10 +81,10 @@ class IPlugin(Interface):
 
 
 class IRequestClassifier(IPlugin):
-    """ On ingress: classify a request.
-    """
+    """On ingress: classify a request."""
+
     def __call__(environ):
-        """ environ -> request classifier string
+        """environ -> request classifier string
 
         This interface is responsible for returning a string
         value representing a request classification.
@@ -95,11 +94,12 @@ class IRequestClassifier(IPlugin):
 
 
 class IChallengeDecider(IPlugin):
-    """ On egress: decide whether a challenge needs to be presented
+    """On egress: decide whether a challenge needs to be presented
     to the user.
     """
+
     def __call__(environ, status, headers):
-        """ args -> True | False
+        """args -> True | False
 
         o 'environ' is the WSGI environment.
 
@@ -115,7 +115,6 @@ class IChallengeDecider(IPlugin):
 
 
 class IIdentifier(IPlugin):
-
     """
     On ingress: Extract credentials from the WSGI environment and
     turn them into an identity.
@@ -129,7 +128,7 @@ class IIdentifier(IPlugin):
     """
 
     def identify(environ):
-        """ On ingress:
+        """On ingress:
 
         environ -> {   k1 : v1
                        ,   ...
@@ -169,7 +168,7 @@ class IIdentifier(IPlugin):
         """
 
     def remember(environ, identity):
-        """ On egress (no challenge required):
+        """On egress (no challenge required):
 
         args -> [ (header-name, header-value), ...] | None
 
@@ -181,7 +180,7 @@ class IIdentifier(IPlugin):
         """
 
     def forget(environ, identity):
-        """ On egress (challenge required):
+        """On egress (challenge required):
 
         args -> [ (header-name, header-value), ...] | None
 
@@ -194,18 +193,16 @@ class IIdentifier(IPlugin):
 
 
 class IAuthenticator(IPlugin):
-
-    """ On ingress: validate the identity and return a user id or None.
-    """
+    """On ingress: validate the identity and return a user id or None."""
 
     def authenticate(environ, identity):
-        """ identity -> 'userid' | None
+        """identity -> 'userid' | None
 
         o 'environ' is the WSGI environment.
 
         o 'identity' will be a dictionary (with arbitrary keys and
           values).
- 
+
         o The IAuthenticator should return a single user id (optimally
           a string) if the identity can be authenticated.  If the
           identify cannot be authenticated, the IAuthenticator should
@@ -230,17 +227,16 @@ class IAuthenticator(IPlugin):
 
 
 class IChallenger(IPlugin):
+    """On egress: Conditionally initiate a challenge to the user to
+    provide credentials.
 
-    """ On egress: Conditionally initiate a challenge to the user to
-        provide credentials.
-
-        Only challenge plugins which match one of the the current
-        response's classifications will be asked to perform a
-        challenge.
+    Only challenge plugins which match one of the the current
+    response's classifications will be asked to perform a
+    challenge.
     """
 
     def challenge(environ, status, app_headers, forget_headers):
-        """ args -> WSGI application or None
+        """args -> WSGI application or None
 
         o 'environ' is the WSGI environment.
 
@@ -265,10 +261,10 @@ class IChallenger(IPlugin):
 
 class IMetadataProvider(IPlugin):
     """On ingress: When an identity is authenticated, metadata
-       providers may scribble on the identity dictionary arbitrarily.
-       Return values from metadata providers are ignored.
+    providers may scribble on the identity dictionary arbitrarily.
+    Return values from metadata providers are ignored.
     """
-    
+
     def add_metadata(environ, identity):
         """
         Add metadata to the identity (which is a dictionary).  One

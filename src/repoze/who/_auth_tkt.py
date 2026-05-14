@@ -36,6 +36,7 @@ it's primary benefit is compatibility with mod_auth_tkt, which in turn
 makes it possible to use the same authentication process with
 non-Python code run under Apache.
 """
+
 import hashlib
 import http.cookies
 import time as time_mod
@@ -97,23 +98,32 @@ class AuthTicket:
     aren't saved when set on a redirect.
     """
 
-    def __init__(self, secret, userid, ip, tokens=(), user_data='',
-                 time=None, cookie_name='auth_tkt',
-                 secure=False, digest_algo=DEFAULT_DIGEST):
+    def __init__(
+        self,
+        secret,
+        userid,
+        ip,
+        tokens=(),
+        user_data="",
+        time=None,
+        cookie_name="auth_tkt",
+        secure=False,
+        digest_algo=DEFAULT_DIGEST,
+    ):
         self.secret = secret
 
-        _exclude_separator('!', userid, "'userid'")
+        _exclude_separator("!", userid, "'userid'")
         self.userid = userid
 
         self.ip = ip
 
         for token in tokens:
-            _exclude_separator(',', token, "'token' values")
-            _exclude_separator('!', token, "'token' values")
+            _exclude_separator(",", token, "'token' values")
+            _exclude_separator("!", token, "'token' values")
 
-        self.tokens = ','.join(tokens)
+        self.tokens = ",".join(tokens)
 
-        _exclude_separator('!', user_data, "'user_data'")
+        _exclude_separator("!", user_data, "'user_data'")
         self.user_data = user_data
 
         if time is None:
@@ -131,8 +141,14 @@ class AuthTicket:
 
     def digest(self):
         return calculate_digest(
-            self.ip, self.time, self.secret, self.userid, self.tokens,
-            self.user_data, self.digest_algo)
+            self.ip,
+            self.time,
+            self.secret,
+            self.userid,
+            self.tokens,
+            self.user_data,
+            self.digest_algo,
+        )
 
     def cookie_value(self):
         v = (
@@ -142,18 +158,18 @@ class AuthTicket:
         )
 
         if self.tokens:
-            v += self.tokens + '!'
+            v += self.tokens + "!"
         v += self.user_data
         return v
 
     def cookie(self):
         c = http.cookies.SimpleCookie()
         c_val = encodestring(self.cookie_value())
-        c_val = c_val.strip().replace('\n', '')
+        c_val = c_val.strip().replace("\n", "")
         c[self.cookie_name] = c_val
-        c[self.cookie_name]['path'] = '/'
+        c[self.cookie_name]["path"] = "/"
         if self.secure:
-            c[self.cookie_name]['secure'] = 'true'
+            c[self.cookie_name]["secure"] = "true"
         return c
 
 
@@ -164,6 +180,7 @@ class BadTicket(Exception):
     been, expected is set.  This should not be shown by default,
     but can be useful for debugging.
     """
+
     def __init__(self, msg, expected=None):
         self.expected = expected
         super().__init__(msg)
@@ -187,7 +204,7 @@ class InvalidDigestSignature(BadTicket):
         self.digest = digest
         self.expected = expected
         super().__init__(
-            'Digest signature is not correct',
+            "Digest signature is not correct",
             expected=(digest, expected),
         )
 
@@ -207,41 +224,53 @@ def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
     ticket = ticket.strip('"')
     digest = ticket[:digest_hexa_size]
 
-    ts_slice = ticket[digest_hexa_size:digest_hexa_size + 8]
+    ts_slice = ticket[digest_hexa_size : digest_hexa_size + 8]
     try:
         timestamp = int(ts_slice, 16)
     except ValueError as e:
         raise TimestampNotHexInteger(ts_slice, e) from None
 
-    rest = ticket[digest_hexa_size + 8:]
+    rest = ticket[digest_hexa_size + 8 :]
     try:
-        userid, data = rest.split('!', 1)
+        userid, data = rest.split("!", 1)
     except ValueError:
         raise UserIDNotFollowedByBang(rest) from None
 
     userid = urllib.parse.unquote(userid)
 
-    if '!' in data:
-        tokens, user_data = data.split('!', 1)
+    if "!" in data:
+        tokens, user_data = data.split("!", 1)
     else:
         # @@: Is this the right order?
-        tokens = ''
+        tokens = ""
         user_data = data
 
     expected = calculate_digest(
-        ip, timestamp, secret, userid, tokens, user_data, digest_algo,
+        ip,
+        timestamp,
+        secret,
+        userid,
+        tokens,
+        user_data,
+        digest_algo,
     )
 
     if expected != digest:
         raise InvalidDigestSignature(digest, expected)
 
-    tokens = tokens.split(',')
+    tokens = tokens.split(",")
 
     return (timestamp, userid, tokens, user_data)
 
 
 def calculate_digest(
-    ip, timestamp, secret, userid, tokens, user_data, digest_algo,
+    ip,
+    timestamp,
+    secret,
+    userid,
+    tokens,
+    user_data,
+    digest_algo,
 ):
     secret = maybe_encode(secret)
     userid = maybe_encode(userid)
@@ -251,9 +280,9 @@ def calculate_digest(
         encode_ip_timestamp(ip, timestamp)
         + secret
         + userid
-        + b'\0'
+        + b"\0"
         + tokens
-        + b'\0'
+        + b"\0"
         + user_data
     ).hexdigest()
 
@@ -261,19 +290,19 @@ def calculate_digest(
 
 
 def encode_ip_timestamp(ip, timestamp):
-    ip_chars = bytes(map(int, ip.split('.')))
+    ip_chars = bytes(map(int, ip.split(".")))
     t = int(timestamp)
     ts = (
-        (t & 0xff000000) >> 24,
-        (t & 0xff0000) >> 16,
-        (t & 0xff00) >> 8,
-        (t & 0xff),
+        (t & 0xFF000000) >> 24,
+        (t & 0xFF0000) >> 16,
+        (t & 0xFF00) >> 8,
+        (t & 0xFF),
     )
     ts_chars = bytes(ts)
     return ip_chars + ts_chars
 
 
-def maybe_encode(s, encoding='utf8'):
+def maybe_encode(s, encoding="utf8"):
     if not isinstance(s, bytes):
         s = s.encode(encoding)
     return s

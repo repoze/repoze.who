@@ -14,11 +14,11 @@ def test_REQUEST_METHOD_miss():
 
 
 def test_REQUEST_METHOD_hit():
-    environ = {'REQUEST_METHOD': 'FOO'}
+    environ = {"REQUEST_METHOD": "FOO"}
 
     result = _helpers.REQUEST_METHOD(environ)
 
-    assert result == 'FOO'
+    assert result == "FOO"
 
 
 def test_CONTENT_TYPE_miss():
@@ -27,15 +27,15 @@ def test_CONTENT_TYPE_miss():
 
     result = _helpers.CONTENT_TYPE(environ)
 
-    assert result == ''
+    assert result == ""
 
 
 def test_CONTENT_TYPE_hit():
-    environ = {'CONTENT_TYPE': 'text/html'}
+    environ = {"CONTENT_TYPE": "text/html"}
 
     result = _helpers.CONTENT_TYPE(environ)
 
-    assert result == 'text/html'
+    assert result == "text/html"
 
 
 def test_USER_AGENT_miss():
@@ -47,11 +47,11 @@ def test_USER_AGENT_miss():
 
 
 def test_USER_AGENT_hit():
-    environ = {'HTTP_USER_AGENT': 'FOO'}
+    environ = {"HTTP_USER_AGENT": "FOO"}
 
     result = _helpers.USER_AGENT(environ)
 
-    assert result == 'FOO'
+    assert result == "FOO"
 
 
 def test_AUTHORIZATION_miss():
@@ -59,48 +59,48 @@ def test_AUTHORIZATION_miss():
 
     result = _helpers.AUTHORIZATION(environ)
 
-    assert result == ''
+    assert result == ""
 
 
 def test_AUTHORIZATION_hit():
-    environ = {'HTTP_AUTHORIZATION': 'FOO'}
+    environ = {"HTTP_AUTHORIZATION": "FOO"}
 
     result = _helpers.AUTHORIZATION(environ)
 
-    assert result == 'FOO'
+    assert result == "FOO"
 
 
 def test_get_cookies_no_cache_ok_header_value():
-    environ = {'HTTP_COOKIE': 'qux=spam'}
+    environ = {"HTTP_COOKIE": "qux=spam"}
 
     result = _helpers.get_cookies(environ)
 
     assert isinstance(result, http_cookies.SimpleCookie)
     assert len(result) == 1
-    assert result['qux'].value == 'spam'
-    assert environ['paste.cookies'] == (result, 'qux=spam')
+    assert result["qux"].value == "spam"
+    assert environ["paste.cookies"] == (result, "qux=spam")
 
 
 def test_get_cookies_w_cache_miss():
     environ = {
-        'HTTP_COOKIE': 'qux=spam',
-        'paste.cookies': (object(), 'foo=bar'),
+        "HTTP_COOKIE": "qux=spam",
+        "paste.cookies": (object(), "foo=bar"),
     }
     result = _helpers.get_cookies(environ)
 
     assert isinstance(result, http_cookies.SimpleCookie)
 
     assert len(result) == 1
-    assert result['qux'].value == 'spam'
-    assert environ['paste.cookies'] == (result, 'qux=spam')
+    assert result["qux"].value == "spam"
+    assert environ["paste.cookies"] == (result, "qux=spam")
 
 
 def test_get_cookies_w_cache_hit():
     existing = http_cookies.SimpleCookie()
-    existing['foo'] = 'bar'
+    existing["foo"] = "bar"
     environ = {
-        'HTTP_COOKIE': 'qux=spam',
-        'paste.cookies': (existing, 'qux=spam'),
+        "HTTP_COOKIE": "qux=spam",
+        "paste.cookies": (existing, "qux=spam"),
     }
 
     result = _helpers.get_cookies(environ)
@@ -110,27 +110,30 @@ def test_get_cookies_w_cache_hit():
 
 def test_construct_url():
     environ = {
-        'wsgi.url_scheme': 'http',
-        'HTTP_HOST': 'example.com',
+        "wsgi.url_scheme": "http",
+        "HTTP_HOST": "example.com",
     }
 
     result = _helpers.construct_url(environ)
 
-    assert result == 'http://example.com/'
+    assert result == "http://example.com/"
+
 
 def test_header_value_miss():
     headers = []
 
-    result = _helpers.header_value(headers, 'nonesuch')
+    result = _helpers.header_value(headers, "nonesuch")
 
-    assert result == ''
+    assert result == ""
+
 
 def test_header_value_simple():
-    headers = [('simple', 'SIMPLE')]
+    headers = [("simple", "SIMPLE")]
 
-    result = _helpers.header_value(headers, 'simple')
+    result = _helpers.header_value(headers, "simple")
 
-    assert result == 'SIMPLE'
+    assert result == "SIMPLE"
+
 
 def test_must_decode_non_string():
     foo = object()
@@ -139,27 +142,29 @@ def test_must_decode_non_string():
 
     assert result is foo
 
+
 def test_must_decode_str():
-    foo = 'foo'
+    foo = "foo"
 
     result = _helpers.must_decode(foo)
 
     assert result is foo
 
+
 def test_must_decode_utf8():
-    foo = b'b\xc3\xa2tard'
+    foo = b"b\xc3\xa2tard"
 
     result = _helpers.must_decode(foo)
 
-    assert result == foo.decode('utf-8')
+    assert result == foo.decode("utf-8")
 
 
 def test_must_decode_latin1():
-    foo = b'b\xe2tard'
+    foo = b"b\xe2tard"
 
     result = _helpers.must_decode(foo)
 
-    assert result == foo.decode('latin1')
+    assert result == foo.decode("latin1")
 
 
 def test_must_encode_non_string():
@@ -171,15 +176,15 @@ def test_must_encode_non_string():
 
 
 def test_must_encode_str():
-    foo = 'foo'
+    foo = "foo"
 
     result = _helpers.must_encode(foo)
 
-    assert result == foo.encode('utf-8')
+    assert result == foo.encode("utf-8")
 
 
 def test_must_encode_utf8():
-    foo = b'b\xc3\xa2tard'
+    foo = b"b\xc3\xa2tard"
 
     result = _helpers.must_encode(foo)
 
@@ -187,9 +192,8 @@ def test_must_encode_utf8():
 
 
 def test_must_encode_latin1():
-    foo = b'b\xe2tard'
+    foo = b"b\xe2tard"
 
     result = _helpers.must_encode(foo)
 
     assert result is foo
-

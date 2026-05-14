@@ -1,5 +1,5 @@
-""" Configuration parser
-"""
+"""Configuration parser"""
+
 import configparser
 import logging
 import sys
@@ -22,7 +22,7 @@ class WhoConfig:
         self.authenticators = []
         self.challengers = []
         self.mdproviders = []
-        self.remote_user_key = 'REMOTE_USER'
+        self.remote_user_key = "REMOTE_USER"
 
     def _makePlugin(self, name, iface, options=None):
         if options is None:
@@ -41,9 +41,8 @@ class WhoConfig:
     def _parsePluginSequence(self, attr, proptext, iface):
         lines = proptext.split()
         for line in lines:
-
-            if ';' in line:
-                plugin_name, classifier = line.split(';')
+            if ";" in line:
+                plugin_name, classifier = line.split(";")
             else:
                 plugin_name = line
                 classifier = None
@@ -51,7 +50,7 @@ class WhoConfig:
             plugin = self._getPlugin(plugin_name, iface)
 
             if classifier is not None:
-                classifications = getattr(plugin, 'classifications', None)
+                classifications = getattr(plugin, "classifications", None)
                 if classifications is None:
                     classifications = plugin.classifications = {}
                 classifications[iface] = classifier
@@ -59,67 +58,71 @@ class WhoConfig:
             attr.append((plugin_name, plugin))
 
     def parse(self, text):
-        if getattr(text, 'readline', None) is None:
+        if getattr(text, "readline", None) is None:
             text = StringIO(text)
-        cp = configparser.ConfigParser(defaults={'here': self.here})
+        cp = configparser.ConfigParser(defaults={"here": self.here})
         try:
             cp.read_file(text)
-        except AttributeError: #pragma NO COVER Python < 3.0
+        except AttributeError:  # pragma NO COVER Python < 3.0
             cp.readfp(text)
 
-        for s_id in [x for x in cp.sections() if x.startswith('plugin:')]:
-            plugin_id = s_id[len('plugin:'):]
+        for s_id in [x for x in cp.sections() if x.startswith("plugin:")]:
+            plugin_id = s_id[len("plugin:") :]
             options = dict(cp.items(s_id))
-            if 'use' in options:
-                name = options.pop('use')
-                del options['here']
+            if "use" in options:
+                name = options.pop("use")
+                del options["here"]
                 obj = self._makePlugin(name, interfaces.IPlugin, options)
                 self.plugins[plugin_id] = obj
 
-        if 'general' in cp.sections():
-            general = dict(cp.items('general'))
+        if "general" in cp.sections():
+            general = dict(cp.items("general"))
 
-            rc = general.get('request_classifier')
+            rc = general.get("request_classifier")
             if rc is not None:
                 rc = self._getPlugin(rc, interfaces.IRequestClassifier)
             self.request_classifier = rc
 
-            cd = general.get('challenge_decider')
+            cd = general.get("challenge_decider")
             if cd is not None:
                 cd = self._getPlugin(cd, interfaces.IChallengeDecider)
             self.challenge_decider = cd
 
-            ru = general.get('remote_user_key')
+            ru = general.get("remote_user_key")
             if ru is not None:
                 self.remote_user_key = ru
 
-        if 'identifiers' in cp.sections():
-            identifiers = dict(cp.items('identifiers'))
-            self._parsePluginSequence(self.identifiers,
-                                      identifiers['plugins'],
-                                      interfaces.IIdentifier,
-                                     )
+        if "identifiers" in cp.sections():
+            identifiers = dict(cp.items("identifiers"))
+            self._parsePluginSequence(
+                self.identifiers,
+                identifiers["plugins"],
+                interfaces.IIdentifier,
+            )
 
-        if 'authenticators' in cp.sections():
-            authenticators = dict(cp.items('authenticators'))
-            self._parsePluginSequence(self.authenticators,
-                                      authenticators['plugins'],
-                                      interfaces.IAuthenticator,
-                                     )
+        if "authenticators" in cp.sections():
+            authenticators = dict(cp.items("authenticators"))
+            self._parsePluginSequence(
+                self.authenticators,
+                authenticators["plugins"],
+                interfaces.IAuthenticator,
+            )
 
-        if 'challengers' in cp.sections():
-            challengers = dict(cp.items('challengers'))
-            self._parsePluginSequence(self.challengers,
-                                      challengers['plugins'],
-                                      interfaces.IChallenger,
-                                     )
+        if "challengers" in cp.sections():
+            challengers = dict(cp.items("challengers"))
+            self._parsePluginSequence(
+                self.challengers,
+                challengers["plugins"],
+                interfaces.IChallenger,
+            )
 
-        if 'mdproviders' in cp.sections():
-            mdproviders = dict(cp.items('mdproviders'))
-            self._parsePluginSequence(self.mdproviders,
-                                      mdproviders['plugins'],
-                                      interfaces.IMetadataProvider,
-                                     )
+        if "mdproviders" in cp.sections():
+            mdproviders = dict(cp.items("mdproviders"))
+            self._parsePluginSequence(
+                self.mdproviders,
+                mdproviders["plugins"],
+                interfaces.IMetadataProvider,
+            )
 
 
 class NullHandler(logging.Handler):
@@ -127,26 +130,29 @@ class NullHandler(logging.Handler):
         pass
 
 
-_LEVELS = {'debug': logging.DEBUG,
-           'info': logging.INFO,
-           'warning': logging.WARNING,
-           'error': logging.ERROR,
-          }
+_LEVELS = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warning": logging.WARNING,
+    "error": logging.ERROR,
+}
 
-def make_api_factory_with_config(global_conf,
-                                 config_file,
-                                 remote_user_key = 'REMOTE_USER',
-                                 logger=None,
-                                ):
+
+def make_api_factory_with_config(
+    global_conf,
+    config_file,
+    remote_user_key="REMOTE_USER",
+    logger=None,
+):
     identifiers = authenticators = challengers = mdproviders = ()
     request_classifier = None
     challenge_decider = None
-    parser = WhoConfig(global_conf['here'])
+    parser = WhoConfig(global_conf["here"])
     try:
         opened = open(config_file)
     except OSError:
         warnings.warn(
-            f'Non-existent who config file: {config_file}',
+            f"Non-existent who config file: {config_file}",
             stacklevel=2,
         )
     else:
@@ -155,7 +161,7 @@ def make_api_factory_with_config(global_conf,
                 parser.parse(opened)
             except configparser.ParsingError:
                 warnings.warn(
-                    f'Invalid who config file: {config_file}',
+                    f"Invalid who config file: {config_file}",
                     stacklevel=2,
                 )
             else:
@@ -179,9 +185,11 @@ def make_api_factory_with_config(global_conf,
         logger,
     )
 
-def make_middleware_with_config(app, global_conf, config_file,
-                                log_file=None, log_level=None):
-    parser = WhoConfig(global_conf['here'])
+
+def make_middleware_with_config(
+    app, global_conf, config_file, log_file=None, log_level=None
+):
+    parser = WhoConfig(global_conf["here"])
     with open(config_file) as f:
         parser.parse(f)
     log_stream = None
@@ -192,12 +200,12 @@ def make_middleware_with_config(app, global_conf, config_file,
         log_level = _LEVELS[log_level.lower()]
 
     if log_file is not None:
-        if log_file.lower() == 'stdout':
+        if log_file.lower() == "stdout":
             log_stream = sys.stdout
         else:
-            log_stream = open(log_file, 'wb')
+            log_stream = open(log_file, "wb")
     else:
-        log_stream = logging.getLogger('repoze.who')
+        log_stream = logging.getLogger("repoze.who")
         log_stream.addHandler(NullHandler())
         log_stream.setLevel(log_level or 0)
 

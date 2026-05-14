@@ -19,26 +19,29 @@ class BothReasonHeaderAndReasonParamOrNeither(ValueError):
             "or neither one."
         )
 
+
 @implementer(interfaces.IChallenger)
 class RedirectorPlugin:
-    """ Plugin for issuing challenges as redirects to a configured URL.
+    """Plugin for issuing challenges as redirects to a configured URL.
 
     o If the ``reason_param`` option is configured, and the application has
       supplied an ``X-Authorization-Failure-Reason`` header, the plugin
       includes that reason in the query string of the redirected URL.
     """
 
-    def __init__(self,
-                 login_url,
-                 came_from_param='came_from',
-                 reason_param='reason',
-                 reason_header='X-Authorization-Failure-Reason',
-                ):
+    def __init__(
+        self,
+        login_url,
+        came_from_param="came_from",
+        reason_param="reason",
+        reason_header="X-Authorization-Failure-Reason",
+    ):
         self.login_url = login_url
         self.came_from_param = came_from_param
 
-        if ((reason_param is None and reason_header is not None) or
-            (reason_param is not None and reason_header is None)):
+        if (reason_param is None and reason_header is not None) or (
+            reason_param is not None and reason_header is None
+        ):
             raise BothReasonHeaderAndReasonParamOrNeither()
 
         self.reason_param = reason_param
@@ -56,28 +59,32 @@ class RedirectorPlugin:
                 if reason:
                     query_elements[self.reason_param] = reason
             if self.came_from_param is not None:
-                query_elements[self.came_from_param] = (
-                    _helpers.construct_url(environ)
+                query_elements[self.came_from_param] = _helpers.construct_url(
+                    environ
                 )
             url_parts[4] = urllib_parse.urlencode(query_elements, doseq=True)
             login_url = urllib_parse.urlunparse(url_parts)
         else:
             login_url = self.login_url
-        headers = [('Location', login_url)] + forget_headers
-        cookies = [(h,v) for (h,v) in app_headers if h.lower() == 'set-cookie']
+        headers = [("Location", login_url)] + forget_headers
+        cookies = [
+            (h, v) for (h, v) in app_headers if h.lower() == "set-cookie"
+        ]
         headers += cookies
         return webob_exc.HTTPFound(headers=headers)
 
-def make_plugin(login_url,
-                came_from_param=None,
-                reason_param=None,
-                reason_header=None,
-               ):
-    if login_url in ('', b'', None):
+
+def make_plugin(
+    login_url,
+    came_from_param=None,
+    reason_param=None,
+    reason_header=None,
+):
+    if login_url in ("", b"", None):
         raise LoginUrlRequired()
 
     if reason_header is None and reason_param is not None:
-        reason_header='X-Authorization-Failure-Reason'
+        reason_header = "X-Authorization-Failure-Reason"
 
     return RedirectorPlugin(
         login_url,

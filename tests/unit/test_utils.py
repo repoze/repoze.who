@@ -1,4 +1,3 @@
-
 import pytest
 
 from repoze.who import utils

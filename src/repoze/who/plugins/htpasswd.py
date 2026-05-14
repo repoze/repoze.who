@@ -19,22 +19,20 @@ if HAS_CRYPT:
 
 class FilenameRequired(ValueError):
     def __init__(self):
-        super().__init__('filename must be specified')
+        super().__init__("filename must be specified")
 
 
 class CheckFnRequired(ValueError):
     def __init__(self):
-        super().__init__('check_fn must be specified')
+        super().__init__("check_fn must be specified")
 
 
 def _padding_for_file_lines():
-    yield 'aaaaaa:bbbbbb'
+    yield "aaaaaa:bbbbbb"
 
 
 @implementer(IAuthenticator)
 class HTPasswdPlugin:
-
-
     def __init__(self, filename, check):
         self.filename = filename
         self.check = check
@@ -49,36 +47,36 @@ class HTPasswdPlugin:
         #
         # Do *not* try to optimize anything away here.
         try:
-            login = identity['login']
-            password = identity['password']
+            login = identity["login"]
+            password = identity["password"]
         except KeyError:
             return None
 
-        if hasattr(self.filename, 'seek'):
+        if hasattr(self.filename, "seek"):
             # assumed to have a readline
             self.filename.seek(0)
             f = self.filename
             must_close = False
         else:
             try:
-                f = open(self.filename, 'r')  # noqa: UP015
+                f = open(self.filename, "r")  # noqa: UP015
                 must_close = True
             except OSError:
-                environ['repoze.who.logger'].warn(
-                    f'could not open htpasswd file {self.filename}'
+                environ["repoze.who.logger"].warn(
+                    f"could not open htpasswd file {self.filename}"
                 )
                 return None
 
         result = None
         maybe_user = None
-        to_check = 'ABCDEF0123456789'
+        to_check = "ABCDEF0123456789"
 
         # Try not to reveal how many users we have.
         # XXX:  the max count here should be configurable ;(
         lines = itertools.chain(f, _padding_for_file_lines())
         for line in itertools.islice(lines, 0, 1000):
             try:
-                username, hashed = line.rstrip().split(':', 1)
+                username, hashed = line.rstrip().split(":", 1)
             except ValueError:
                 continue
             if _same_string(username, login):
@@ -99,10 +97,10 @@ class HTPasswdPlugin:
         return result
 
     def __repr__(self):  # pragma: NO COVER
-        return f'<{self.__class__.__name__} {id(self)}>'
+        return f"<{self.__class__.__name__} {id(self)}>"
 
 
-PADDING = ' ' * 1000
+PADDING = " " * 1000
 
 
 def _same_string(x, y):
@@ -110,10 +108,7 @@ def _same_string(x, y):
     mismatches = list(
         filter(
             None,
-            [
-                a != b
-                for a, b, ignored in itertools.zip_longest(x, y, PADDING)
-            ]
+            [a != b for a, b, ignored in itertools.zip_longest(x, y, PADDING)],
         )
     )
     return len(mismatches) == 0
@@ -127,6 +122,7 @@ if not HAS_CRYPT:
                 "'crypt' module is not importable. "
                 "Try 'bcrypt.checkpw' instead?"
             )
+
 
 def crypt_check(password, hashed):
 

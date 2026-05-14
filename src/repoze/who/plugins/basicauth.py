@@ -10,7 +10,6 @@ from repoze.who import interfaces
 
 @implementer(interfaces.IIdentifier, interfaces.IChallenger)
 class BasicAuthPlugin:
-
     def __init__(self, realm):
         self.realm = realm
 
@@ -20,25 +19,27 @@ class BasicAuthPlugin:
 
         # this header *must* be base64-encoded ASCII
         if not isinstance(authorization, bytes):
-            authorization = authorization.encode('ascii')
+            authorization = authorization.encode("ascii")
 
         try:
-            authmeth, auth = authorization.split(b' ', 1)
-        except ValueError: # not enough values to unpack
+            authmeth, auth = authorization.split(b" ", 1)
+        except ValueError:  # not enough values to unpack
             return None
 
-        if authmeth.lower() == b'basic':
+        if authmeth.lower() == b"basic":
             try:
                 auth = auth.strip()
                 auth = base64.decodebytes(auth)
-            except binascii.Error: # can't decode
+            except binascii.Error:  # can't decode
                 return None
             try:
-                login, password = auth.split(b':', 1)
-            except ValueError: # not enough values to unpack
+                login, password = auth.split(b":", 1)
+            except ValueError:  # not enough values to unpack
                 return None
-            auth = {'login': _helpers.must_decode(login),
-                    'password': _helpers.must_decode(password)}
+            auth = {
+                "login": _helpers.must_decode(login),
+                "password": _helpers.must_decode(password),
+            }
             return auth
 
         return None
@@ -50,7 +51,7 @@ class BasicAuthPlugin:
         pass
 
     def _get_wwwauth(self):
-        head = [('WWW-Authenticate', f'Basic realm="{self.realm}"')]
+        head = [("WWW-Authenticate", f'Basic realm="{self.realm}"')]
         return head
 
     # IIdentifier
@@ -65,10 +66,9 @@ class BasicAuthPlugin:
         return HTTPUnauthorized(headers=head)
 
     def __repr__(self):  # pragma: NO COVER
-        return f'<{self.__class__.__name__} {id(self)}>'
+        return f"<{self.__class__.__name__} {id(self)}>"
 
 
-def make_plugin(realm='basic'):
+def make_plugin(realm="basic"):
     plugin = BasicAuthPlugin(realm)
     return plugin
-
