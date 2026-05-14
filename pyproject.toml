@@ -12,7 +12,9 @@ description = "Identification and authentication framework for WSGI."
 readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.10"
 keywords = ["web", "application", "server", "wsgi", "zope"]
-license = { text = "BSD-derived (http://www.repoze.org/LICENSE.txt)" }
+license-files = [
+    "LICENSE.txt",
+]
 authors = [
   { name = "Tres Seaver, Agendaless Consulting", email = "tseaver@agendaless.com" },
 ]
