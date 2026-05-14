@@ -4,20 +4,19 @@ import binascii
 from webob.exc import HTTPUnauthorized
 from zope.interface import implementer
 
-from repoze.who.interfaces import IIdentifier
-from repoze.who.interfaces import IChallenger
-from repoze.who._helpers import AUTHORIZATION
-from repoze.who._helpers import must_decode
+from repoze.who import _helpers
+from repoze.who import interfaces
 
-@implementer(IIdentifier, IChallenger)
-class BasicAuthPlugin(object):
+
+@implementer(interfaces.IIdentifier, interfaces.IChallenger)
+class BasicAuthPlugin:
 
     def __init__(self, realm):
         self.realm = realm
 
     # IIdentifier
     def identify(self, environ):
-        authorization = AUTHORIZATION(environ)
+        authorization = _helpers.AUTHORIZATION(environ)
 
         # this header *must* be base64-encoded ASCII
         if not isinstance(authorization, bytes):
@@ -38,8 +37,8 @@ class BasicAuthPlugin(object):
                 login, password = auth.split(b':', 1)
             except ValueError: # not enough values to unpack
                 return None
-            auth = {'login': must_decode(login),
-                    'password': must_decode(password)}
+            auth = {'login': _helpers.must_decode(login),
+                    'password': _helpers.must_decode(password)}
             return auth
 
         return None
@@ -51,7 +50,7 @@ class BasicAuthPlugin(object):
         pass
 
     def _get_wwwauth(self):
-        head = [('WWW-Authenticate', 'Basic realm="%s"' % self.realm)]
+        head = [('WWW-Authenticate', f'Basic realm="{self.realm}"')]
         return head
 
     # IIdentifier
@@ -65,9 +64,9 @@ class BasicAuthPlugin(object):
             head = head + forget_headers
         return HTTPUnauthorized(headers=head)
 
-    def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__,
-                            id(self)) #pragma NO COVERAGE
+    def __repr__(self):  # pragma: NO COVER
+        return f'<{self.__class__.__name__} {id(self)}>'
+
 
 def make_plugin(realm='basic'):
     plugin = BasicAuthPlugin(realm)

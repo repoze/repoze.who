@@ -1,21 +1,16 @@
 """ Configuration parser
 """
 import configparser
-from io import StringIO
 import logging
 import sys
 import warnings
+from io import StringIO
 
-from repoze.who.api import APIFactory
-from repoze.who.interfaces import IAuthenticator
-from repoze.who.interfaces import IChallengeDecider
-from repoze.who.interfaces import IChallenger
-from repoze.who.interfaces import IIdentifier
-from repoze.who.interfaces import IMetadataProvider
-from repoze.who.interfaces import IPlugin
-from repoze.who.interfaces import IRequestClassifier
-from repoze.who.middleware import PluggableAuthenticationMiddleware
-from repoze.who.utils import resolveDotted
+from repoze.who import api
+from repoze.who import interfaces
+from repoze.who import middleware
+from repoze.who import utils
+
 
 class WhoConfig:
     def __init__(self, here):
@@ -32,7 +27,7 @@ class WhoConfig:
     def _makePlugin(self, name, iface, options=None):
         if options is None:
             options = {}
-        obj = resolveDotted(name)
+        obj = utils.resolveDotted(name)
         if not iface.providedBy(obj):
             obj = obj(**options)
         return obj
@@ -78,7 +73,7 @@ class WhoConfig:
             if 'use' in options:
                 name = options.pop('use')
                 del options['here']
-                obj = self._makePlugin(name, IPlugin, options)
+                obj = self._makePlugin(name, interfaces.IPlugin, options)
                 self.plugins[plugin_id] = obj
 
         if 'general' in cp.sections():
@@ -86,12 +81,12 @@ class WhoConfig:
 
             rc = general.get('request_classifier')
             if rc is not None:
-                rc = self._getPlugin(rc, IRequestClassifier)
+                rc = self._getPlugin(rc, interfaces.IRequestClassifier)
             self.request_classifier = rc
 
             cd = general.get('challenge_decider')
             if cd is not None:
-                cd = self._getPlugin(cd, IChallengeDecider)
+                cd = self._getPlugin(cd, interfaces.IChallengeDecider)
             self.challenge_decider = cd
 
             ru = general.get('remote_user_key')
@@ -102,28 +97,28 @@ class WhoConfig:
             identifiers = dict(cp.items('identifiers'))
             self._parsePluginSequence(self.identifiers,
                                       identifiers['plugins'],
-                                      IIdentifier,
+                                      interfaces.IIdentifier,
                                      )
 
         if 'authenticators' in cp.sections():
             authenticators = dict(cp.items('authenticators'))
             self._parsePluginSequence(self.authenticators,
                                       authenticators['plugins'],
-                                      IAuthenticator,
+                                      interfaces.IAuthenticator,
                                      )
 
         if 'challengers' in cp.sections():
             challengers = dict(cp.items('challengers'))
             self._parsePluginSequence(self.challengers,
                                       challengers['plugins'],
-                                      IChallenger,
+                                      interfaces.IChallenger,
                                      )
 
         if 'mdproviders' in cp.sections():
             mdproviders = dict(cp.items('mdproviders'))
             self._parsePluginSequence(self.mdproviders,
                                       mdproviders['plugins'],
-                                      IMetadataProvider,
+                                      interfaces.IMetadataProvider,
                                      )
 
 
@@ -149,16 +144,20 @@ def make_api_factory_with_config(global_conf,
     parser = WhoConfig(global_conf['here'])
     try:
         opened = open(config_file)
-    except IOError:
-        warnings.warn('Non-existent who config file: %s' % config_file,
-                      stacklevel=2)
+    except OSError:
+        warnings.warn(
+            f'Non-existent who config file: {config_file}',
+            stacklevel=2,
+        )
     else:
         try:
             try:
                 parser.parse(opened)
             except configparser.ParsingError:
-                warnings.warn('Invalid who config file: %s' % config_file,
-                            stacklevel=2)
+                warnings.warn(
+                    f'Invalid who config file: {config_file}',
+                    stacklevel=2,
+                )
             else:
                 identifiers = parser.identifiers
                 authenticators = parser.authenticators
@@ -169,15 +168,16 @@ def make_api_factory_with_config(global_conf,
         finally:
             opened.close()
 
-    return APIFactory(identifiers,
-                      authenticators,
-                      challengers,
-                      mdproviders,
-                      request_classifier,
-                      challenge_decider,
-                      remote_user_key,
-                      logger,
-                     )
+    return api.APIFactory(
+        identifiers,
+        authenticators,
+        challengers,
+        mdproviders,
+        request_classifier,
+        challenge_decider,
+        remote_user_key,
+        logger,
+    )
 
 def make_middleware_with_config(app, global_conf, config_file,
                                 log_file=None, log_level=None):
@@ -201,15 +201,15 @@ def make_middleware_with_config(app, global_conf, config_file,
         log_stream.addHandler(NullHandler())
         log_stream.setLevel(log_level or 0)
 
-    return PluggableAuthenticationMiddleware(
-                app,
-                parser.identifiers,
-                parser.authenticators,
-                parser.challengers,
-                parser.mdproviders,
-                parser.request_classifier,
-                parser.challenge_decider,
-                log_stream,
-                log_level,
-                parser.remote_user_key,
-           )
+    return middleware.PluggableAuthenticationMiddleware(
+        app,
+        parser.identifiers,
+        parser.authenticators,
+        parser.challengers,
+        parser.mdproviders,
+        parser.request_classifier,
+        parser.challenge_decider,
+        log_stream,
+        log_level,
+        parser.remote_user_key,
+    )

@@ -1,10 +1,8 @@
-from repoze.who._helpers import CONTENT_TYPE
-from repoze.who._helpers import REQUEST_METHOD
-from repoze.who._helpers import USER_AGENT
 
 from zope.interface import directlyProvides
-from repoze.who.interfaces import IRequestClassifier
-from repoze.who.interfaces import IChallengeDecider
+
+from repoze.who import _helpers
+from repoze.who import interfaces
 
 _DAV_METHODS = (
     'OPTIONS',
@@ -40,23 +38,23 @@ def default_request_classifier(environ):
 
     'browser':  the request comes from a normal browser (default).
     """
-    request_method = REQUEST_METHOD(environ)
+    request_method = _helpers.REQUEST_METHOD(environ)
     if request_method in _DAV_METHODS:
         return 'dav'
-    useragent = USER_AGENT(environ)
+    useragent = _helpers.USER_AGENT(environ)
     if useragent:
         for agent in _DAV_USERAGENTS:
             if useragent.find(agent) != -1:
                 return 'dav'
     if request_method == 'POST':
-        if CONTENT_TYPE(environ).lower().startswith('text/xml'):
+        if _helpers.CONTENT_TYPE(environ).lower().startswith('text/xml'):
             return 'xmlpost'
     return 'browser'
-directlyProvides(default_request_classifier, IRequestClassifier)
+directlyProvides(default_request_classifier, interfaces.IRequestClassifier)
 
 def default_challenge_decider(environ, status, headers):
     return status.startswith('401 ')
-directlyProvides(default_challenge_decider, IChallengeDecider)
+directlyProvides(default_challenge_decider, interfaces.IChallengeDecider)
 
 def passthrough_challenge_decider(environ, status, headers):
     """ Don't challenge for pre-challenged responses.
@@ -73,4 +71,4 @@ def passthrough_challenge_decider(environ, status, headers):
     if ct is not None:
         return not ct.startswith('text/html')
     return True
-directlyProvides(passthrough_challenge_decider, IChallengeDecider)
+directlyProvides(passthrough_challenge_decider, interfaces.IChallengeDecider)

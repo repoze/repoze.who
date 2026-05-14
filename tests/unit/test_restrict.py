@@ -194,13 +194,13 @@ def test_make_predicate_restriction_w_enabled_string_predicate_w_args():
     assert filter.enabled
 
 
-class DummyApp(object):
+class DummyApp:
     environ = None
     def __call__(self, environ, start_response):
         self.environ = environ
         return []
 
 
-class DummyPredicate(object):
+class DummyPredicate:
     def __init__(self, **kw):
         self.__dict__.update(kw)

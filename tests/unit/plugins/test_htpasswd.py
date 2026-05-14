@@ -2,187 +2,191 @@ import base64
 import hashlib
 import io
 import os
-import unittest
 import warnings
 
 import pytest
-from zope.interface import verify # verifyClass
+from zope.interface import verify
 
 from repoze.who import interfaces
 from repoze.who.plugins import htpasswd
 
 
-class TestHTPasswdPlugin(unittest.TestCase):
+def _makeEnviron():
+    environ = {}
+    environ['wsgi.version'] = (1,0)
+    return environ
 
-    def _getTargetClass(self):
-        return htpasswd.HTPasswdPlugin
+def test_implements():
+    verify.verifyClass(interfaces.IAuthenticator, htpasswd.HTPasswdPlugin)
 
-    def _makeOne(self, *arg, **kw):
-        plugin = self._getTargetClass()(*arg, **kw)
-        return plugin
+def test_authenticate_nocreds():
+    buf = io.StringIO()
+    plugin = htpasswd.HTPasswdPlugin(buf, None)
+    environ = _makeEnviron()
+    creds = {}
+    result = plugin.authenticate(environ, creds)
+    assert result is None
 
-    def _makeEnviron(self):
-        environ = {}
-        environ['wsgi.version'] = (1,0)
-        return environ
+def test_authenticate_nolines():
+    buf = io.StringIO()
+    def check(password, hashed):
+        return True
+    plugin = htpasswd.HTPasswdPlugin(buf, check)
+    environ = _makeEnviron()
+    creds = {'login':'chrism', 'password':'pass'}
+    result = plugin.authenticate(environ, creds)
+    assert result is None
 
-    def test_implements(self):
-        verify.verifyClass(interfaces.IAuthenticator, htpasswd.HTPasswdPlugin)
+def test_authenticate_nousermatch():
+    buf = io.StringIO('nobody:foo')
+    def check(password, hashed):
+        return True
+    plugin = htpasswd.HTPasswdPlugin(buf, check)
+    environ = _makeEnviron()
+    creds = {'login':'chrism', 'password':'pass'}
+    result = plugin.authenticate(environ, creds)
+    assert result is None
 
-    def test_authenticate_nocreds(self):
-        buf = io.StringIO()
-        plugin = self._makeOne(buf, None)
-        environ = self._makeEnviron()
-        creds = {}
-        result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, None)
+def test_authenticate_match():
+    buf = io.StringIO('chrism:pass')
+    def check(password, hashed):
+        return True
+    plugin = htpasswd.HTPasswdPlugin(buf, check)
+    environ = _makeEnviron()
+    creds = {'login':'chrism', 'password':'pass'}
+    result = plugin.authenticate(environ, creds)
+    assert result == 'chrism'
 
-    def test_authenticate_nolines(self):
-        buf = io.StringIO()
-        def check(password, hashed):
-            return True
-        plugin = self._makeOne(buf, check)
-        environ = self._makeEnviron()
-        creds = {'login':'chrism', 'password':'pass'}
-        result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, None)
+def test_authenticate_badline():
+    buf = io.StringIO('badline\nchrism:pass')
+    def check(password, hashed):
+        return True
+    plugin = htpasswd.HTPasswdPlugin(buf, check)
+    environ = _makeEnviron()
+    creds = {'login':'chrism', 'password':'pass'}
+    result = plugin.authenticate(environ, creds)
+    assert result == 'chrism'
 
-    def test_authenticate_nousermatch(self):
-        buf = io.StringIO('nobody:foo')
-        def check(password, hashed):
-            return True
-        plugin = self._makeOne(buf, check)
-        environ = self._makeEnviron()
-        creds = {'login':'chrism', 'password':'pass'}
-        result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, None)
+def test_authenticate_filename():
+    here = os.path.abspath(os.path.dirname(__file__))
+    htpasswd_file = os.path.join(here, 'fixtures', 'test.htpasswd')
+    def check(password, hashed):
+        return True
+    plugin = htpasswd.HTPasswdPlugin(htpasswd_file, check)
+    environ = _makeEnviron()
+    creds = {'login':'chrism', 'password':'pass'}
+    result = plugin.authenticate(environ, creds)
+    assert result == 'chrism'
 
-    def test_authenticate_match(self):
-        buf = io.StringIO('chrism:pass')
-        def check(password, hashed):
-            return True
-        plugin = self._makeOne(buf, check)
-        environ = self._makeEnviron()
-        creds = {'login':'chrism', 'password':'pass'}
-        result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, 'chrism')
+def test_authenticate_bad_filename_logs_to_repoze_who_logger():
+    here = os.path.abspath(os.path.dirname(__file__))
+    htpasswd_file = os.path.join(
+        here,
+        'fixtures',
+        'test.htpasswd.nonesuch',
+    )
 
-    def test_authenticate_badline(self):
-        buf = io.StringIO('badline\nchrism:pass')
-        def check(password, hashed):
-            return True
-        plugin = self._makeOne(buf, check)
-        environ = self._makeEnviron()
-        creds = {'login':'chrism', 'password':'pass'}
-        result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, 'chrism')
+    def check(password, hashed): # pragma: no cover
+        return True
 
-    def test_authenticate_filename(self):
-        here = os.path.abspath(os.path.dirname(__file__))
-        htpasswd_file = os.path.join(here, 'fixtures', 'test.htpasswd')
-        def check(password, hashed):
-            return True
-        plugin = self._makeOne(htpasswd_file, check)
-        environ = self._makeEnviron()
-        creds = {'login':'chrism', 'password':'pass'}
-        result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, 'chrism')
+    plugin = htpasswd.HTPasswdPlugin(htpasswd_file, check)
+    environ = _makeEnviron()
 
-    def test_authenticate_bad_filename_logs_to_repoze_who_logger(self):
-        here = os.path.abspath(os.path.dirname(__file__))
-        htpasswd_file = os.path.join(here, 'fixtures', 'test.htpasswd.nonesuch')
-        def check(password, hashed): # pragma: no cover
-            return True
-        plugin = self._makeOne(htpasswd_file, check)
-        environ = self._makeEnviron()
-        class DummyLogger:
-            warnings = []
-            def warn(self, msg):
-                self.warnings.append(msg)
-        logger = environ['repoze.who.logger'] = DummyLogger()
-        creds = {'login':'chrism', 'password':'pass'}
-        result = plugin.authenticate(environ, creds)
-        self.assertEqual(result, None)
-        self.assertEqual(len(logger.warnings), 1)
-        self.assertTrue('could not open htpasswd' in logger.warnings[0])
+    logger = environ['repoze.who.logger'] = DummyLogger()
+    creds = {'login':'chrism', 'password':'pass'}
 
-    @unittest.skipUnless(htpasswd.HAS_CRYPT, "crypt module not available")
-    def test_crypt_check_hit(self):
-        import crypt
+    result = plugin.authenticate(environ, creds)
 
-        salt = '123'
-        hashed = crypt.crypt('password', salt)
+    assert result is None
+    assert len(logger.warnings) == 1
+    assert 'could not open htpasswd' in logger.warnings[0]
 
-        with warnings.catch_warnings(record=True) as logged:
-            assert htpasswd.crypt_check('password', hashed)
+@pytest.mark.skipif(not htpasswd.HAS_CRYPT, reason="crypt not available")
+def test_crypt_check_hit():
+    import crypt
 
-        assert len(logged) == 1
-        record = logged[0]
-        assert record.category is UserWarning
-        assert "'crypt' module is deprecated" in str(record.message)
+    salt = '123'
+    hashed = crypt.crypt('password', salt)
 
-    @unittest.skipUnless(htpasswd.HAS_CRYPT, "crypt module not available")
-    def test_crypt_check_miss(self):
-        import crypt
+    with warnings.catch_warnings(record=True) as logged:
+        assert htpasswd.crypt_check('password', hashed)
 
-        salt = '123'
-        hashed = crypt.crypt('password', salt)
+    assert len(logged) == 1
+    record = logged[0]
+    assert record.category is UserWarning
+    assert "'crypt' module is deprecated" in str(record.message)
 
-        with warnings.catch_warnings(record=True) as logged:
-            assert not htpasswd.crypt_check('notpassword', hashed)
+@pytest.mark.skipif(not htpasswd.HAS_CRYPT, reason="crypt not available")
+def test_crypt_check_miss():
+    import crypt
 
-        assert len(logged) == 1
-        record = logged[0]
-        assert record.category is UserWarning
-        assert "'crypt' module is deprecated" in str(record.message)
+    salt = '123'
+    hashed = crypt.crypt('password', salt)
 
-    @unittest.skipIf(htpasswd.HAS_CRYPT, "crypt module available")
-    def test_crypt_check_gone(self):
-        from repoze.who.plugins.htpasswd import CryptModuleNotImportable
+    with warnings.catch_warnings(record=True) as logged:
+        assert not htpasswd.crypt_check('notpassword', hashed)
 
-        with pytest.raises(CryptModuleNotImportable):
-            htpasswd.crypt_check('password', 'hashed')
+    assert len(logged) == 1
+    record = logged[0]
+    assert record.category is UserWarning
+    assert "'crypt' module is deprecated" in str(record.message)
 
-    def test_sha1_check_w_password_str(self):
-        password = u'password'
-        b_password = password.encode("ascii")
-        encrypted_string = base64.standard_b64encode(
-            hashlib.sha1(
-                b_password
-            ).digest()
-        )
-        hashed = b"%s%s" % (b"{SHA}", encrypted_string)
+@pytest.mark.skipif(htpasswd.HAS_CRYPT, reason="crypt available")
+def test_crypt_check_gone():
+    from repoze.who.plugins.htpasswd import CryptModuleNotImportable
 
-        self.assertTrue(htpasswd.sha1_check(password, hashed))
-        self.assertFalse(htpasswd.sha1_check('notpassword', hashed))
+    with pytest.raises(CryptModuleNotImportable):
+        htpasswd.crypt_check('password', 'hashed')
 
-    def test_sha1_check_w_password_bytes(self):
+def test_sha1_check_w_password_str():
+    password = 'password'
+    b_password = password.encode("ascii")
+    encrypted_string = base64.standard_b64encode(
+        hashlib.sha1(
+            b_password
+        ).digest()
+    )
+    hashed = b"%s%s" % (b"{SHA}", encrypted_string)
 
-        b_password = b'password'
-        encrypted_string = base64.standard_b64encode(
-            hashlib.sha1(
-                b_password
-            ).digest()
-        )
-        hashed = b"%s%s" % (b"{SHA}", encrypted_string)
+    assert htpasswd.sha1_check(password, hashed)
+    assert not htpasswd.sha1_check('notpassword', hashed)
 
-        self.assertTrue(htpasswd.sha1_check(b_password, hashed))
-        self.assertFalse(htpasswd.sha1_check(b'notpassword', hashed))
+def test_sha1_check_w_password_bytes():
 
-    def test_plain_check(self):
-        self.assertTrue(htpasswd.plain_check('password', 'password'))
-        self.assertFalse(htpasswd.plain_check('notpassword', 'password'))
+    b_password = b'password'
+    encrypted_string = base64.standard_b64encode(
+        hashlib.sha1(
+            b_password
+        ).digest()
+    )
+    hashed = b"%s%s" % (b"{SHA}", encrypted_string)
 
-    def test_factory_no_filename_raises(self):
-        self.assertRaises(ValueError, htpasswd.make_plugin)
+    assert htpasswd.sha1_check(b_password, hashed)
+    assert not htpasswd.sha1_check(b'notpassword', hashed)
 
-    def test_factory_no_check_fn_raises(self):
-        self.assertRaises(ValueError, htpasswd.make_plugin, 'foo')
+def test_plain_check():
+    assert htpasswd.plain_check('password', 'password')
+    assert not htpasswd.plain_check('notpassword', 'password')
 
-    def test_factory(self):
-        plugin = htpasswd.make_plugin(
-            'foo',
-            'repoze.who.plugins.htpasswd:crypt_check',
-        )
-        self.assertEqual(plugin.filename, 'foo')
-        self.assertEqual(plugin.check, htpasswd.crypt_check)
+def test_factory_no_filename_raises():
+    with pytest.raises(htpasswd.FilenameRequired):
+        htpasswd.make_plugin()
+
+def test_factory_no_check_fn_raises():
+    with pytest.raises(htpasswd.CheckFnRequired):
+        htpasswd.make_plugin('foo')
+
+def test_factory():
+    plugin = htpasswd.make_plugin(
+        'foo',
+        'repoze.who.plugins.htpasswd:crypt_check',
+    )
+    assert plugin.filename == 'foo'
+    assert plugin.check is htpasswd.crypt_check
+
+
+class DummyLogger:
+    warnings = []
+
+    def warn(self, msg):
+        self.warnings.append(msg)

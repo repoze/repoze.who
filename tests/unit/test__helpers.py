@@ -1,8 +1,9 @@
-from http import cookies as http_cookies # SimpleCookie
+from http import cookies as http_cookies
 
 import pytest
 
-from repoze.who import _helpers # REQUEST_METHOD
+from repoze.who import _helpers
+
 
 def test_REQUEST_METHOD_miss():
     # PEP 3333 says REQUEST_METHOD is mandatory
@@ -138,8 +139,8 @@ def test_must_decode_non_string():
 
     assert result is foo
 
-def test_must_decode_unicode():
-    foo = u'foo'
+def test_must_decode_str():
+    foo = 'foo'
 
     result = _helpers.must_decode(foo)
 
@@ -169,8 +170,8 @@ def test_must_encode_non_string():
     assert result is foo
 
 
-def test_must_encode_unicode():
-    foo = u'foo'
+def test_must_encode_str():
+    foo = 'foo'
 
     result = _helpers.must_encode(foo)
 

@@ -7,7 +7,6 @@ import pytest
 from repoze.who import _auth_tkt
 from repoze.who import _helpers
 
-
 SECRET = 'SEEKRIT'
 IP = '1.2.3.4'
 USERID = 'USERID'
@@ -138,7 +137,7 @@ def test_authtkt_digest():
 def test_authtkt_cookie_value_wo_tokens_or_userdata():
     digest = _auth_tkt.calculate_digest(IP, _WHEN, SECRET, USERID,
                                 '', '', hashlib.md5)
-    expected = '%s%08xUSERID!' % (digest, _WHEN)
+    expected = f'{digest}{_WHEN:08x}USERID!'
     tkt = _auth_tkt.AuthTicket(SECRET, USERID, IP, time=_WHEN)
 
     result = tkt.cookie_value()
@@ -150,7 +149,7 @@ def test_authtkt_cookie_value_w_tokens_and_userdata():
     digest = _auth_tkt.calculate_digest(
         IP, _WHEN, SECRET, USERID, 'a,b', 'DATA', hashlib.md5,
     )
-    expected = '%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
+    expected = f'{digest}{_WHEN:08x}USERID!a,b!DATA'
     tkt = _auth_tkt.AuthTicket(
         SECRET,
         USERID,
@@ -259,7 +258,7 @@ def test_parse_ticket_w_wo_tokens_or_data_bad_digest():
 def test_parse_ticket_w_wo_tokens_or_data_ok_digest():
     digest = _auth_tkt.calculate_digest(IP, _WHEN, SECRET, USERID,
                                 '', '', hashlib.md5)
-    ticket = '%s%08xUSERID!' % (digest, _WHEN)
+    ticket = f'{digest}{_WHEN:08x}USERID!'
 
     timestamp, userid, tokens, user_data = _auth_tkt.parse_ticket(
         SECRET, ticket, IP, "md5",
@@ -274,7 +273,7 @@ def test_parse_ticket_w_w_tokens_and_data_ok_digest():
     digest = _auth_tkt.calculate_digest(
         IP, _WHEN, SECRET, USERID, 'a,b', 'DATA', hashlib.md5,
     )
-    ticket = '%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
+    ticket = f'{digest}{_WHEN:08x}USERID!a,b!DATA'
 
     timestamp, userid, tokens, user_data = _auth_tkt.parse_ticket(
         SECRET, ticket, IP, "md5",
@@ -289,7 +288,7 @@ def test_parse_ticket_w_w_tokens_and_data_ok_alternate_digest():
     digest = _auth_tkt.calculate_digest(
         IP, _WHEN, SECRET, USERID, 'a,b', 'DATA', hashlib.sha256,
     )
-    ticket = '%s%08xUSERID!a,b!DATA' % (digest, _WHEN)
+    ticket = f'{digest}{_WHEN:08x}USERID!a,b!DATA'
 
     timestamp, userid, tokens, user_data = _auth_tkt.parse_ticket(
         SECRET, ticket, IP, hashlib.sha256,

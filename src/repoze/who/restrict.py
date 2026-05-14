@@ -1,10 +1,13 @@
 # Authorization middleware
+
 from repoze.who.utils import resolveDotted
+
 
 def authenticated_predicate():
     def _predicate(environ):
         return 'REMOTE_USER' in environ or 'repoze.who.identity' in environ
     return _predicate
+
 
 class PredicateRestriction:
 
@@ -21,8 +24,10 @@ class PredicateRestriction:
                 return []
         return self.app(environ, start_response)
 
+
 def make_authenticated_restriction(app, global_config, enabled=True):
     return PredicateRestriction(app, authenticated_predicate, enabled)
+
 
 def make_predicate_restriction(app, global_config,
                                predicate, enabled=True, **kw):

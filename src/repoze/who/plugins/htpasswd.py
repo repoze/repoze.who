@@ -6,7 +6,7 @@ import warnings
 
 from zope.interface import implementer
 
-from repoze.who import _helpers # must_encode
+from repoze.who import _helpers
 from repoze.who.interfaces import IAuthenticator
 from repoze.who.utils import resolveDotted
 
@@ -17,12 +17,22 @@ if HAS_CRYPT:
     import crypt
 
 
+class FilenameRequired(ValueError):
+    def __init__(self):
+        super().__init__('filename must be specified')
+
+
+class CheckFnRequired(ValueError):
+    def __init__(self):
+        super().__init__('check_fn must be specified')
+
+
 def _padding_for_file_lines():
     yield 'aaaaaa:bbbbbb'
 
 
 @implementer(IAuthenticator)
-class HTPasswdPlugin(object):
+class HTPasswdPlugin:
 
 
     def __init__(self, filename, check):
@@ -51,11 +61,12 @@ class HTPasswdPlugin(object):
             must_close = False
         else:
             try:
-                f = open(self.filename, 'r')
+                f = open(self.filename, 'r')  # noqa: UP015
                 must_close = True
-            except IOError:
-                environ['repoze.who.logger'].warn('could not open htpasswd '
-                                                  'file %s' % self.filename)
+            except OSError:
+                environ['repoze.who.logger'].warn(
+                    f'could not open htpasswd file {self.filename}'
+                )
                 return None
 
         result = None
@@ -87,11 +98,12 @@ class HTPasswdPlugin(object):
 
         return result
 
-    def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__,
-                            id(self)) #pragma NO COVERAGE
+    def __repr__(self):  # pragma: NO COVER
+        return f'<{self.__class__.__name__} {id(self)}>'
+
 
 PADDING = ' ' * 1000
+
 
 def _same_string(x, y):
     # Attempt at isochronous string comparison.
@@ -122,7 +134,8 @@ def crypt_check(password, hashed):
         raise CryptModuleNotImportable()
 
     warnings.warn(
-        "'crypt' module is deprecated -- try 'bcrypt.checkpw' instead?"
+        "'crypt' module is deprecated -- try 'bcrypt.checkpw' instead?",
+        stacklevel=2,
     )
     salt = hashed[:2]
     return _same_string(hashed, crypt.crypt(password, salt))
@@ -141,8 +154,10 @@ def plain_check(password, hashed):
 
 def make_plugin(filename=None, check_fn=None):
     if filename is None:
-        raise ValueError('filename must be specified')
+        raise FilenameRequired()
+
     if check_fn is None:
-        raise ValueError('check_fn must be specified')
+        raise CheckFnRequired()
+
     check = resolveDotted(check_fn)
     return HTPasswdPlugin(filename, check)

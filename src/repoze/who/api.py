@@ -1,19 +1,14 @@
 from zope.interface import implementer
 
-from repoze.who.interfaces import IAPI
-from repoze.who.interfaces import IAPIFactory
-from repoze.who.interfaces import IIdentifier
-from repoze.who.interfaces import IAuthenticator
-from repoze.who.interfaces import IChallenger
-from repoze.who.interfaces import IMetadataProvider
+from repoze.who import interfaces
 
 
 def get_api(environ):
     return environ.get('repoze.who.api')
 
 
-@implementer(IAPIFactory)
-class APIFactory(object):
+@implementer(interfaces.IAPIFactory)
+class APIFactory:
 
     def __init__(self,
                  identifiers=(),
@@ -63,17 +58,17 @@ def make_registries(identifiers, authenticators, challengers, mdproviders):
     interface_registry = {}
     name_registry = {}
 
-    for supplied, iface in [ (identifiers, IIdentifier),
-                             (authenticators, IAuthenticator),
-                             (challengers, IChallenger),
-                             (mdproviders, IMetadataProvider)]:
+    for supplied, iface in [ (identifiers, interfaces.IIdentifier),
+                             (authenticators, interfaces.IAuthenticator),
+                             (challengers, interfaces.IChallenger),
+                             (mdproviders, interfaces.IMetadataProvider)]:
 
         for name, value in supplied:
             try:
                 verify(value, iface)
             except (Invalid, BrokenImplementation) as why:
-                why = str(why)
-                raise ValueError(str(name) + ': ' + why)
+                why_str = str(why)
+                raise ValueError(str(name) + ': ' + why_str) from why
             L = interface_registry.setdefault(iface, [])
             L.append(value)
             name_registry[name] = value
@@ -96,8 +91,8 @@ def match_classification(iface, plugins, classification):
     return result
 
 
-@implementer(IAPI)
-class API(object):
+@implementer(interfaces.IAPI)
+class API:
 
     def __init__(self,
                  environ,
@@ -121,9 +116,10 @@ class API(object):
         self.challenge_decider = challenge_decider
         self.remote_user_key = remote_user_key
         self.logger = logger
-        classification = self.classification = (request_classifier and
-                                                request_classifier(environ))
-        logger and logger.info('request classification: %s' % classification)
+        classification = self.classification = (
+            request_classifier and request_classifier(environ)
+        )
+        logger and logger.info(f'request classification: {classification}')
         
     def authenticate(self):
 
@@ -177,24 +173,33 @@ class API(object):
             id_forget_headers = identifier.forget(self.environ, identity)
             if id_forget_headers is not None:
                 forget_headers.extend(id_forget_headers)
-                logger and logger.info('forgetting via headers from %s: %s'
-                                       % (identifier, forget_headers))
+                logger and logger.info(
+                    'forgetting via headers from '
+                    f'{identifier}: '
+                    f'{forget_headers}'
+                )
 
-        candidates = self.interface_registry.get(IChallenger, ())
-        logger and logger.debug('challengers registered: %s' % repr(candidates))
-        plugins = match_classification(IChallenger, candidates,
-                                       self.classification)
-        logger and logger.debug('challengers matched for '
-                               'classification "%s": %s'
-                                    % (self.classification, plugins))
+        candidates = self.interface_registry.get(interfaces.IChallenger, ())
+        logger and logger.debug(f'challengers registered: {candidates}')
+
+        plugins = match_classification(
+            interfaces.IChallenger,
+            candidates,
+            self.classification,
+        )
+        logger and logger.debug(
+            'challengers matched for classification '
+            f'"{self.classification}": {plugins}'
+        )
         for plugin in plugins:
             app = plugin.challenge(self.environ, status, app_headers,
                                    forget_headers)
             if app is not None:
                 # new WSGI application
                 logger and logger.info(
-                    'challenger plugin %s "challenge" returned an app' % (
-                    plugin))
+                    f'challenger plugin {plugin} '
+                    '"challenge" returned an app'
+                )
                 return app
 
         # signifies no challenge
@@ -213,8 +218,10 @@ class API(object):
             if got_headers:
                 headers = got_headers
                 logger = self.logger
-                logger and logger.info('remembering via headers from %s: %s'
-                                        % (identifier, headers))
+                logger and logger.info(
+                    f'remembering via headers from {identifier}: '
+                    f'{headers}'
+                )
         return headers
 
     def forget(self, identity=None):
@@ -229,8 +236,10 @@ class API(object):
             if got_headers:
                 headers = got_headers
                 logger = self.logger
-                logger and logger.info('forgetting via headers from %s: %s'
-                                        % (identifier, headers))
+                logger and logger.info(
+                    f'forgetting via headers from {identifier}: '
+                    f'{headers}'
+                )
         return headers
 
     def login(self, credentials, identifier_name=None):
@@ -248,7 +257,7 @@ class API(object):
 
         # First pass:  for each identifier, pretend that it was the source
         # of the credentials, and try to authenticate.
-        for name, identifier in identifiers:
+        for _name, identifier in identifiers:
             authenticated = self._authenticate([(identifier, credentials)])
 
             if authenticated: # and therefore can remember it
@@ -257,7 +266,7 @@ class API(object):
 
         # Second pass to allow identifiers which passed on auth to participate
         # in remember / forget.
-        for name, identifier in identifiers:
+        for _name, identifier in identifiers:
             if identity is not None:
                 i_headers = identifier.remember(self.environ, identity)
             else:
@@ -278,7 +287,7 @@ class API(object):
         else:
             identifiers = self.identifiers
 
-        for name, identifier in identifiers:
+        for _name, identifier in identifiers:
             headers.extend(identifier.forget(self.environ, None))
 
         # we need to remove the identity for hybrid middleware/api usages to
@@ -294,41 +303,49 @@ class API(object):
         """ See IAPI.
         """
         logger = self.logger
-        candidates = self.interface_registry.get(IIdentifier, ())
-        logger and self.logger.debug('identifier plugins registered: %s' %
-                                    (candidates,))
-        plugins = match_classification(IIdentifier, candidates,
+        candidates = self.interface_registry.get(interfaces.IIdentifier, ())
+        logger and self.logger.debug(
+            f'identifier plugins registered: {candidates}'
+        )
+        plugins = match_classification(interfaces.IIdentifier, candidates,
                                        self.classification)
         logger and self.logger.debug(
             'identifier plugins matched for '
-            'classification "%s": %s' % (self.classification, plugins))
+            f'classification "{self.classification}": '
+            f'{plugins}'
+        )
 
         results = []
         for plugin in plugins:
             identity = plugin.identify(self.environ)
             if identity is not None:
                 logger and logger.debug(
-                    'identity returned from %s: %s' % (plugin, identity))
+                    f'identity returned from {plugin}: {identity}'
+                )
                 results.append((plugin, identity))
             else:
                 logger and logger.debug(
-                    'no identity returned from %s (%s)' % (plugin, identity))
+                    f'no identity returned from {plugin} ({identity})'
+                )
 
-        logger and logger.debug('identities found: %s' % (results,))
+        logger and logger.debug(f'identities found: {results}')
         return results
 
     def _authenticate(self, identities):
         """ See IAPI.
         """
         logger = self.logger
-        candidates = self.interface_registry.get(IAuthenticator, [])
-        logger and self.logger.debug('authenticator plugins registered: %s' %
-                                    candidates)
-        plugins = match_classification(IAuthenticator, candidates,
+        candidates = self.interface_registry.get(interfaces.IAuthenticator, [])
+        logger and self.logger.debug(
+            f'authenticator plugins registered: {candidates}'
+        )
+        plugins = match_classification(interfaces.IAuthenticator, candidates,
                                        self.classification)
         logger and self.logger.debug(
             'authenticator plugins matched for '
-            'classification "%s": %s' % (self.classification, plugins))
+            f'classification "{self.classification}": '
+            f'{plugins}'
+        )
 
         auth_rank = 0
         results = []
@@ -339,7 +356,8 @@ class API(object):
                 userid = plugin.authenticate(self.environ, identity)
                 if userid is not None:
                     logger and logger.debug(
-                        'userid returned from %s: "%s"' % (plugin, userid))
+                        f'userid returned from {plugin}: "{userid}"'
+                    )
 
                     # stamp the identity with the userid
                     identity['repoze.who.userid'] = userid
@@ -349,20 +367,26 @@ class API(object):
                         )
                 else:
                     logger and logger.debug(
-                        'no userid returned from %s: (%s)' % (
-                        plugin, userid))
+                        f'no userid returned from {plugin}: ({userid})'
+                    )
                 identifier_rank += 1
             auth_rank += 1
 
-        logger and logger.debug('identities authenticated: %s' % (results,))
+        logger and logger.debug(f'identities authenticated: {results}')
         return results
 
     def _add_metadata(self, identity):
         """ See IAPI.
         """
-        candidates = self.interface_registry.get(IMetadataProvider, ())
-        plugins = match_classification(IMetadataProvider, candidates,
-                                       self.classification)        
+        candidates = self.interface_registry.get(
+            interfaces.IMetadataProvider,
+            (),
+        )
+        plugins = match_classification(
+            interfaces.IMetadataProvider,
+            candidates,
+            self.classification,
+        )        
         for plugin in plugins:
             plugin.add_metadata(self.environ, identity)
 
@@ -370,5 +394,8 @@ class Identity(dict):
     """ dict subclass: prevent members from being rendered during print
     """
     def __repr__(self):
-        return '<repoze.who identity (hidden, dict-like) at %s>' % id(self)
+        return (
+            f'<repoze.who identity (hidden, dict-like) at {id(self)}">'
+        )
+
     __str__ = __repr__

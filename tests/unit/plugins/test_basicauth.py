@@ -57,7 +57,7 @@ def test_bap_identify_basic_badrepr():
     plugin = basicauth.BasicAuthPlugin('realm')
     value = base64.encodebytes(b'foo').decode('ascii')
     environ = _make_wsgi_environ() | {
-        'HTTP_AUTHORIZATION':'Basic %s' % value,
+        'HTTP_AUTHORIZATION': f'Basic {value}',
     }
     creds = plugin.identify(environ)
     assert creds is None
@@ -67,7 +67,7 @@ def test_bap_identify_basic_ok():
     plugin = basicauth.BasicAuthPlugin('realm')
     value = base64.encodebytes(b'foo:bar').decode('ascii')
     environ = _make_wsgi_environ() | {
-        'HTTP_AUTHORIZATION':'Basic %s' % value,
+        'HTTP_AUTHORIZATION': f'Basic {value}',
     }
     creds = plugin.identify(environ)
     assert creds == {'login':'foo', 'password':'bar'}
@@ -79,7 +79,7 @@ def test_bap_identify_basic_ok_utf8_values():
     plugin = basicauth.BasicAuthPlugin('realm')
     value = base64.encodebytes(b':'.join((LOGIN, PASSWD))).decode('ascii')
     environ = _make_wsgi_environ() | {
-        'HTTP_AUTHORIZATION':'Basic %s' % value,
+        'HTTP_AUTHORIZATION': f'Basic {value}',
     }
     creds = plugin.identify(environ)
     assert creds == {
@@ -94,7 +94,7 @@ def test_bap_identify_basic_ok_latin1_values():
     plugin = basicauth.BasicAuthPlugin('realm')
     value = base64.encodebytes(b':'.join((LOGIN, PASSWD))).decode('ascii')
     environ = _make_wsgi_environ() | {
-        'HTTP_AUTHORIZATION':'Basic %s' % value,
+        'HTTP_AUTHORIZATION': f'Basic {value}',
     }
     creds = plugin.identify(environ)
     assert creds == {

@@ -1,12 +1,11 @@
 import io
-from urllib import parse as urllib_parse # parse_qsl
+from urllib import parse as urllib_parse
 
 import pytest
-from zope.interface import verify #verifyClass verifyObject
+from zope.interface import verify
 
-from repoze.who import interfaces # IChallenger
-from repoze.who.plugins import redirector # RedirectorPlugin
-
+from repoze.who import interfaces
+from repoze.who.plugins import redirector
 
 LOGIN_URL = 'http://example.com/login.html'
 
@@ -41,7 +40,7 @@ def test_rp_instance_conforms_to_IChallenger():
 
 
 def test_rp_ctor_w_reason_param_wo_reason_header():
-    with pytest.raises(ValueError):
+    with pytest.raises(redirector.BothReasonHeaderAndReasonParamOrNeither):
         redirector.RedirectorPlugin(
             LOGIN_URL,
             reason_param='reason',
@@ -50,7 +49,7 @@ def test_rp_ctor_w_reason_param_wo_reason_header():
 
 
 def test_rp_ctor_wo_reason_param_w_reason_header():
-    with pytest.raises(ValueError):
+    with pytest.raises(redirector.BothReasonHeaderAndReasonParamOrNeither):
         redirector.RedirectorPlugin(
             LOGIN_URL,
             reason_param=None,
@@ -344,12 +343,12 @@ def test_rp_challenge_with_setcookie_from_app():
 
 
 def test_mrp_wo_login_url_raises():
-    with pytest.raises(ValueError):
+    with pytest.raises(redirector.LoginUrlRequired):
         redirector.make_plugin(None)
 
 
 def test_mrp_w_reason_header_wo_reason_param_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(redirector.BothReasonHeaderAndReasonParamOrNeither):
         redirector.make_plugin('/go_there', reason_header='X-Reason')
 
 
@@ -392,7 +391,7 @@ def test_mrp_w_explicit_reason_header_param():
     assert plugin.reason_header == 'X-Reason'
 
 
-class DummyIdentifier(object):
+class DummyIdentifier:
     forgotten = False
     remembered = False
 
@@ -417,5 +416,5 @@ def encode_multipart_formdata():
     L.append('--' + BOUNDARY + '--')
     L.append('')
     body = CRLF.join(L)
-    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+    content_type = f'multipart/form-data; boundary={BOUNDARY}'
     return content_type, body

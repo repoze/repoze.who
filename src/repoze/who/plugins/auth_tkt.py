@@ -1,59 +1,83 @@
+import codecs
 import datetime
-from codecs import utf_8_decode
-from codecs import utf_8_encode
 import hashlib
 import os
 import time
 from urllib.parse import parse_qsl
 from urllib.parse import urlencode
-from wsgiref.handlers import _monthname     # Locale-independent, RFC-2616
-from wsgiref.handlers import _weekdayname   # Locale-independent, RFC-2616
+from wsgiref import handlers as wsgiref_handlers
 
 from zope.interface import implementer
 
-from repoze.who.interfaces import IIdentifier
-from repoze.who.interfaces import IAuthenticator
-from repoze.who._helpers import get_cookies
-import repoze.who._auth_tkt as auth_tkt
+from repoze.who import _auth_tkt as auth_tkt
+from repoze.who import _helpers
+from repoze.who import interfaces
+from repoze.who import utils
 
 _UTCNOW = None  # unit tests can replace
 def _utcnow():  #pragma NO COVERAGE
     if _UTCNOW is not None:
         return _UTCNOW
-    return datetime.datetime.now(datetime.timezone.utc)
+    # We use 'datetime.timezone.utc' for compat w/ Python 3.10.
+    return datetime.datetime.now(datetime.timezone.utc)  # noqa: UP017
 
-@implementer(IIdentifier, IAuthenticator)
-class AuthTktCookiePlugin(object):
+class ReissueTimeMustBeLowerThanTimeout(ValueError):
+    def __init__(self, reissue_time, timeout):
+        self.reissue_time = reissue_time
+        self.timeout = timeout
+        super().__init__(
+            'When timeout is specified, reissue_time must be '
+            'set to a lower value'
+        )
+
+class ExactlyOneOfSecretOrSecretFile(ValueError):
+    def __init__(self):
+        super().__init__(
+            "Pass exactly one of 'secret' or 'secretfile'"
+        )
+
+class InvalidSecretfile(ValueError):
+    def __init__(self, secretfile):
+        self.secretfile = secretfile
+        super().__init__(f"No such 'secretfile': {secretfile}")
+
+class InvalidDigestAlgo(ValueError):
+    def __init__(self, digest_algo):
+        self.digest_algo = digest_algo
+        super().__init__(f"No such digest algorithm: {digest_algo}")
+
+@implementer(interfaces.IIdentifier, interfaces.IAuthenticator)
+class AuthTktCookiePlugin:
 
     userid_typename = 'userid_type'
-    userid_type_decoders = {'int': int,
-                            'unicode': lambda x: utf_8_decode(x)[0],
-                           }
-
-    userid_type_encoders = {int: ('int', str),
-                           }
-    try:
-        userid_type_encoders[long] = ('int', str)
-    except NameError: #pragma NO COVER Python >= 3.0
-        pass
-    try:
-        userid_type_encoders[unicode] = ('unicode',
-                                         lambda x: utf_8_encode(x)[0])
-    except NameError: #pragma NO COVER Python >= 3.0
-        pass
+    userid_type_decoders = {
+        'int': int,
+        'unicode': lambda x: codecs.utf_8_decode(x)[0],
+    }
+    userid_type_encoders = {
+        int: ('int', str),
+    }
  
-    def __init__(self, secret, cookie_name='auth_tkt',
-                 secure=False, include_ip=False,
-                 timeout=None, reissue_time=None, userid_checker=None,
-                 digest_algo=auth_tkt.DEFAULT_DIGEST,
-                 samesite=None):
+    def __init__(
+        self,
+        secret,
+        cookie_name='auth_tkt',
+        secure=False,
+        include_ip=False,
+        timeout=None,
+        reissue_time=None,
+        userid_checker=None,
+        digest_algo=auth_tkt.DEFAULT_DIGEST,
+        samesite=None,
+    ):
         self.secret = secret
         self.cookie_name = cookie_name
         self.include_ip = include_ip
         self.secure = secure
+
         if timeout and ( (not reissue_time) or (reissue_time > timeout) ):
-            raise ValueError('When timeout is specified, reissue_time must '
-                             'be set to a lower value')
+            raise ReissueTimeMustBeLowerThanTimeout(reissue_time, timeout)
+
         self.timeout = timeout
         self.reissue_time = reissue_time
         self.userid_checker = userid_checker
@@ -62,7 +86,7 @@ class AuthTktCookiePlugin(object):
 
     # IIdentifier
     def identify(self, environ):
-        cookies = get_cookies(environ)
+        cookies = _helpers.get_cookies(environ)
         cookie = cookies.get(self.cookie_name)
 
         if cookie is None or not cookie.value:
@@ -112,7 +136,7 @@ class AuthTktCookiePlugin(object):
         else:
             remote_addr = '0.0.0.0'
 
-        cookies = get_cookies(environ)
+        cookies = _helpers.get_cookies(environ)
         existing = cookies.get(self.cookie_name)
         old_cookie_value = getattr(existing, 'value', None)
         max_age = identity.get('max_age', None)
@@ -175,10 +199,12 @@ class AuthTktCookiePlugin(object):
             max_age = int(max_age)
             later = _utcnow() + datetime.timedelta(seconds=max_age)
             # Wdy, DD-Mon-YY HH:MM:SS GMT
-            expires = "%s, %02d %3s %4d %02d:%02d:%02d GMT" % (
-                _weekdayname[later.weekday()],
+            expires = "%s, %02d %3s %4d %02d:%02d:%02d GMT" % (  # noqa: UP031
+                # Locale-independent, RFC-2616
+                wsgiref_handlers._weekdayname[later.weekday()],
                 later.day,
-                _monthname[later.month],
+                # Locale-independent, RFC-2616
+                wsgiref_handlers._monthname[later.month],
                 later.year,
                 later.hour,
                 later.minute,
@@ -186,7 +212,7 @@ class AuthTktCookiePlugin(object):
             )
             # the Expires header is *required* at least for IE7 (IE7 does
             # not respect Max-Age)
-            max_age = "; Max-Age=%s; Expires=%s" % (max_age, expires)
+            max_age = f"; Max-Age={max_age}; Expires={expires}"
         else:
             max_age = ''
 
@@ -195,24 +221,32 @@ class AuthTktCookiePlugin(object):
             secure = '; secure; HttpOnly'
 
         if self.samesite:
-            secure += '; SameSite=%s' % self.samesite
+            secure += f'; SameSite={self.samesite}'
 
         cur_domain = environ.get('HTTP_HOST', environ.get('SERVER_NAME'))
         cur_domain = cur_domain.split(':')[0] # drop port
         wild_domain = '.' + cur_domain
         cookies = [
-            ('Set-Cookie', '%s="%s"; Path=/%s%s' % (
-            self.cookie_name, value, max_age, secure)),
-            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s%s' % (
-            self.cookie_name, value, cur_domain, max_age, secure)),
-            ('Set-Cookie', '%s="%s"; Path=/; Domain=%s%s%s' % (
-            self.cookie_name, value, wild_domain, max_age, secure))
-            ]
+            (
+                'Set-Cookie',
+                f'{self.cookie_name}="{value}"; '
+                f'Path=/{max_age}{secure}'
+            ),
+            (
+                'Set-Cookie',
+                f'{self.cookie_name}="{value}"; Path=/; '
+                f'Domain={cur_domain}{max_age}{secure}'
+            ),
+            (
+                'Set-Cookie',
+                f'{self.cookie_name}="{value}"; Path=/; '
+                f'Domain={wild_domain}{max_age}{secure}',
+            ),
+        ]
         return cookies
 
-    def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__,
-                            id(self)) #pragma NO COVERAGE
+    def __repr__(self):  # pragma: NO COVER
+        return f'<{self.__class__.__name__} {id(self)}>'
 
 def _bool(value):
     if isinstance(value, str):
@@ -229,28 +263,35 @@ def make_plugin(secret=None,
                 userid_checker=None,
                 digest_algo=auth_tkt.DEFAULT_DIGEST,
                ):
-    from repoze.who.utils import resolveDotted
     if (secret is None and secretfile is None):
-        raise ValueError("One of 'secret' or 'secretfile' must not be None.")
+        raise ExactlyOneOfSecretOrSecretFile()
+
     if (secret is not None and secretfile is not None):
-        raise ValueError("Specify only one of 'secret' or 'secretfile'.")
+        raise ExactlyOneOfSecretOrSecretFile()
+
     if secretfile:
         secretfile = os.path.abspath(os.path.expanduser(secretfile))
+
         if not os.path.exists(secretfile):
-            raise ValueError("No such 'secretfile': %s" % secretfile)
+            raise InvalidSecretfile(secretfile)
+
         with open(secretfile) as f:
             secret = f.read().strip()
+
     if timeout:
         timeout = int(timeout)
+
     if reissue_time:
         reissue_time = int(reissue_time)
+
     if userid_checker is not None:
-        userid_checker = resolveDotted(userid_checker)
+        userid_checker = utils.resolveDotted(userid_checker)
+
     if isinstance(digest_algo, str):
         try:
             digest_algo = getattr(hashlib, digest_algo)
         except AttributeError:
-            raise ValueError("No such 'digest_algo': %s" % digest_algo)
+            raise InvalidDigestAlgo(digest_algo) from None
 
     plugin = AuthTktCookiePlugin(secret,
                                  cookie_name,

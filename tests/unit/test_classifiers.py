@@ -1,7 +1,7 @@
 from wsgiref.util import setup_testing_defaults
 
 from repoze.who import classifiers
-from repoze.who import interfaces # 
+from repoze.who import interfaces
 
 
 def _make_wsgi_environ():
@@ -44,8 +44,8 @@ def test_drc_classify_xmlpost():
 
 
 def test_drc_classify_xmlpost_uppercase():
-    """RFC 2045, Sec. 5.1: The type, subtype, and parameter names
-        are not case sensitive"""
+    # RFC 2045, Sec. 5.1:
+    # The type, subtype, and parameter names are not case sensitive
     environ = _make_wsgi_environ() | {
         'CONTENT_TYPE':'TEXT/XML',
         'REQUEST_METHOD':'POST',
@@ -57,8 +57,9 @@ def test_drc_classify_xmlpost_uppercase():
 
 
 def test_drc_classify_rich_xmlpost():
-    """RFC 2046, sec. 4.1.2: A critical parameter that may be specified
-        in the Content-Type field for "text/plain" data is the character set.""" 
+    # RFC 2046, sec. 4.1.2:
+    # A critical parameter that may be specified in the Content-Type
+    # field for "text/plain" data is the character set.
     environ = _make_wsgi_environ() | {
         'CONTENT_TYPE':'text/xml; charset=UTF-8 (some comment)',
         'REQUEST_METHOD':'POST',

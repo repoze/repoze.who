@@ -61,8 +61,7 @@ def _exclude_separator(separator, value, fieldname):
         raise InvalidFieldSeparator(fieldname, separator)
 
 
-class AuthTicket(object):
-
+class AuthTicket:
     """
     This class represents an authentication token.  You must pass in
     the shared secret, the userid, and the IP address.  Optionally you
@@ -136,8 +135,12 @@ class AuthTicket(object):
             self.user_data, self.digest_algo)
 
     def cookie_value(self):
-        v = '%s%08x%s!' % (self.digest(), int(self.time),
-                           urllib.parse.quote(self.userid))
+        v = (
+            f"{self.digest()}"
+            f"{int(self.time):08x}"
+            f"{urllib.parse.quote(self.userid)}!"
+        )
+
         if self.tokens:
             v += self.tokens + '!'
         v += self.user_data
@@ -166,6 +169,29 @@ class BadTicket(Exception):
         super().__init__(msg)
 
 
+class TimestampNotHexInteger(BadTicket):
+    def __init__(self, timestamp, msg):
+        self.timestamp = timestamp
+        self.msg = msg
+        super().__init__(f"Timestamp is not a hex integer: {msg}")
+
+
+class UserIDNotFollowedByBang(BadTicket):
+    def __init__(self, userid):
+        self.userid = userid
+        super().__init__("userid is not followed by !")
+
+
+class InvalidDigestSignature(BadTicket):
+    def __init__(self, digest, expected):
+        self.digest = digest
+        self.expected = expected
+        super().__init__(
+            'Digest signature is not correct',
+            expected=(digest, expected),
+        )
+
+
 def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
     """
     Parse the ticket, returning (timestamp, userid, tokens, user_data).
@@ -181,15 +207,17 @@ def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
     ticket = ticket.strip('"')
     digest = ticket[:digest_hexa_size]
 
+    ts_slice = ticket[digest_hexa_size:digest_hexa_size + 8]
     try:
-        timestamp = int(ticket[digest_hexa_size:digest_hexa_size + 8], 16)
+        timestamp = int(ts_slice, 16)
     except ValueError as e:
-        raise BadTicket('Timestamp is not a hex integer: %s' % e)
+        raise TimestampNotHexInteger(ts_slice, e) from None
 
+    rest = ticket[digest_hexa_size + 8:]
     try:
-        userid, data = ticket[digest_hexa_size + 8:].split('!', 1)
+        userid, data = rest.split('!', 1)
     except ValueError:
-        raise BadTicket('userid is not followed by !')
+        raise UserIDNotFollowedByBang(rest) from None
 
     userid = urllib.parse.unquote(userid)
 
@@ -205,10 +233,7 @@ def parse_ticket(secret, ticket, ip, digest_algo=DEFAULT_DIGEST):
     )
 
     if expected != digest:
-        raise BadTicket(
-            'Digest signature is not correct',
-            expected=(expected, digest),
-        )
+        raise InvalidDigestSignature(digest, expected)
 
     tokens = tokens.split(',')
 
@@ -249,7 +274,7 @@ def encode_ip_timestamp(ip, timestamp):
 
 
 def maybe_encode(s, encoding='utf8'):
-    if not isinstance(s, type(b'')):
+    if not isinstance(s, bytes):
         s = s.encode(encoding)
     return s
 

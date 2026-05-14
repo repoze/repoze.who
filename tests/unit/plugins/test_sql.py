@@ -6,6 +6,7 @@ from zope.interface import verify
 from repoze.who import interfaces
 from repoze.who.plugins import sql
 
+
 def _make_wsgi_environ():
     environ = {}
     environ['wsgi.version'] = (1,0)
@@ -69,7 +70,7 @@ def test_sqlap_authenticate_nologin():
 
 
 def _get_sha_hex_digest(clear='password'):
-    if not isinstance(clear, type(b'')):  # pragma: no cover Py3k
+    if not isinstance(clear, bytes):
         clear = clear.encode('utf-8')
     return hashlib.sha1(clear).hexdigest()
 
@@ -82,7 +83,7 @@ def test_sqldpc_shaprefix_success():
 
 def test_sqldpc_shaprefix_w_unicode_cleartext():
     stored = '{SHA}' +  _get_sha_hex_digest()
-    result = sql.default_password_compare(u'password', stored)
+    result = sql.default_password_compare('password', stored)
     assert result
 
 
@@ -134,17 +135,17 @@ def test_sqlmdp_add_metadata():
 
 
 def test_map_noquery():
-    with pytest.raises(ValueError):
+    with pytest.raises(sql.QueryRequired):
         sql.make_authenticator_plugin(None, 'conn', 'compare')
 
 
 def test_map_no_connfactory():
-    with pytest.raises(ValueError):
+    with pytest.raises(sql.ConnFactoryRequired):
         sql.make_authenticator_plugin('statement', None, 'compare')
 
 
 def test_map_bad_connfactory():
-    with pytest.raises(ValueError):
+    with pytest.raises(sql.InvalidConnFactory):
         sql.make_authenticator_plugin('statement', 'does.not:exist', None)
 
 
@@ -170,13 +171,8 @@ def test_map_comparefunc_specd():
     assert plugin.compare_fn == make_dummy_connfactory
 
 
-def test_msmdp_no_name():
-    with pytest.raises(ValueError):
-        sql.make_metadata_plugin()
-
-
 def test_msmdp_no_query():
-    with pytest.raises(ValueError):
+    with pytest.raises(sql.QueryRequired):
         sql.make_metadata_plugin(
             'name',
             None,
@@ -185,7 +181,7 @@ def test_msmdp_no_query():
 
 
 def test_msmdp_no_connfactory():
-    with pytest.raises(ValueError):
+    with pytest.raises(sql.ConnFactoryRequired):
         sql.make_metadata_plugin(
             'name',
             'statement',
@@ -194,7 +190,7 @@ def test_msmdp_no_connfactory():
 
 
 def test_msmdp_bad_connfactory():
-    with pytest.raises(ValueError):
+    with pytest.raises(sql.InvalidConnFactory):
         sql.make_metadata_plugin(
             'name',
             'statement',

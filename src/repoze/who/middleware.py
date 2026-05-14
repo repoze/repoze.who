@@ -1,39 +1,60 @@
-from io import StringIO
+import io
 import logging
 import sys
 
-from repoze.who.api import APIFactory
-from repoze.who.interfaces import IChallenger
+from repoze.who import api
+from repoze.who import classifiers
+from repoze.who import interfaces
 
 _STARTED = '-- repoze.who request started (%s) --'
 _ENDED = '-- repoze.who request ended (%s) --'
 
-class PluggableAuthenticationMiddleware(object):
-    def __init__(self,
-                 app,
-                 identifiers,
-                 authenticators,
-                 challengers,
-                 mdproviders,
-                 request_classifier = None,
-                 challenge_decider = None,
-                 log_stream = None,
-                 log_level = logging.INFO,
-                 remote_user_key = 'REMOTE_USER',
-                 classifier = None
-                 ):
+
+class ChallengeDeciderRequired(ValueError):
+    def __init__(self):
+        super().__init__('challenge_decider is required')
+
+
+class ExactlyOneOfRequestClassifierAndClassifier(ValueError):
+    def __init__(self):
+        super().__init__(
+            'Exactly one of request_classifier and classifier is required'
+        )
+    
+class NoChallengersFound(RuntimeError):
+    def __init__(self):
+        super().__init__('no challengers found')
+
+
+class PluggableAuthenticationMiddleware:
+    def __init__(
+        self,
+        app,
+        identifiers,
+        authenticators,
+        challengers,
+        mdproviders,
+        request_classifier = None,
+        challenge_decider = None,
+        log_stream = None,
+        log_level = logging.INFO,
+        remote_user_key = 'REMOTE_USER',
+        classifier = None
+    ):
         if challenge_decider is None:
-            raise ValueError('challenge_decider is required')
+            raise ChallengeDeciderRequired()
+
         if request_classifier is not None and classifier is not None:
-            raise ValueError(
-                    'Only one of request_classifier and classifier is allowed')
+            raise ExactlyOneOfRequestClassifierAndClassifier()
+
         if request_classifier is None:
             if classifier is None:
-                raise ValueError(
-                        'Either request_classifier or classifier is required')
+                raise ExactlyOneOfRequestClassifierAndClassifier()
             request_classifier = classifier
+
         self.app = app
         logger = self.logger = None
+
         if isinstance(log_stream, logging.Logger):
             logger = self.logger = log_stream
         elif log_stream:
@@ -44,17 +65,19 @@ class PluggableAuthenticationMiddleware(object):
             logger = self.logger = logging.Logger('repoze.who')
             logger.addHandler(handler)
             logger.setLevel(log_level)
+
         self.remote_user_key = remote_user_key
 
-        self.api_factory = APIFactory(identifiers,
-                                      authenticators,
-                                      challengers, 
-                                      mdproviders,
-                                      request_classifier,
-                                      challenge_decider,
-                                      remote_user_key,
-                                      logger
-                                     )
+        self.api_factory = api.APIFactory(
+            identifiers,
+            authenticators,
+            challengers, 
+            mdproviders,
+            request_classifier,
+            challenge_decider,
+            remote_user_key,
+            logger
+        )
 
 
     def __call__(self, environ, start_response):
@@ -80,7 +103,8 @@ class PluggableAuthenticationMiddleware(object):
         app = environ.pop('repoze.who.application')
         if  app is not self.app:
             logger and logger.info(
-                'static downstream application replaced with %s' % app)
+                'static downstream application replaced with {app}'
+            )
 
         wrapper = StartResponseWrapper(start_response)
         app_iter = app(environ, wrapper.wrap_start_response)
@@ -110,7 +134,7 @@ class PluggableAuthenticationMiddleware(object):
             else:
                 logger and logger.info('configuration error: no challengers')
                 close()
-                raise RuntimeError('no challengers found')
+                raise NoChallengersFound()
         else:
             logger and logger.info('no challenge required')
             remember_headers = api.remember()
@@ -144,19 +168,17 @@ def wrap_generator(result):
     def wrapper():
         if first is not marker:
             yield first
-        for iter in result:
-            # We'll let result's StopIteration bubble up directly.
-            yield iter
+        yield from result
         close()
     return wrapper()
 
-class StartResponseWrapper(object):
+class StartResponseWrapper:
     def __init__(self, start_response):
         self.start_response = start_response
         self.status = None
         self.headers = []
         self.exc_info = None
-        self.buffer = StringIO()
+        self.buffer = io.StringIO()
         # A WSGI app may delay calling start_response until the first iteration
         # of its generator.  We track this so we know whether or not we need to
         # trigger an iteration before examining the response.
@@ -218,21 +240,24 @@ def make_test_middleware(app, global_conf):
     plugins = redirector:browser basicauth
     """
     # be able to test without a config file
-    from repoze.who.plugins.basicauth import BasicAuthPlugin
     from repoze.who.plugins.auth_tkt import AuthTktCookiePlugin
-    from repoze.who.plugins.redirector import RedirectorPlugin
+    from repoze.who.plugins.basicauth import BasicAuthPlugin
     from repoze.who.plugins.htpasswd import HTPasswdPlugin
-    io = StringIO()
+    from repoze.who.plugins.redirector import RedirectorPlugin
+
+    buf = io.StringIO()
     for name, password in [ ('admin', 'admin'), ('chris', 'chris') ]:
-        io.write('%s:%s\n' % (name, password))
-    io.seek(0)
+        buf.write(f'{name}:{password}\n')
+    buf.seek(0)
     def cleartext_check(password, hashed):
         return password == hashed #pragma NO COVERAGE
-    htpasswd = HTPasswdPlugin(io, cleartext_check)
+    htpasswd = HTPasswdPlugin(buf, cleartext_check)
     basicauth = BasicAuthPlugin('repoze.who')
     auth_tkt = AuthTktCookiePlugin('secret', 'auth_tkt')
     redirector = RedirectorPlugin('/login.html')
-    redirector.classifications = {IChallenger: ['browser']} # only for browser
+    redirector.classifications = {
+        interfaces.IChallenger: ['browser'],
+    } # only for browser
     identifiers = [('auth_tkt', auth_tkt),
                    ('basicauth', basicauth),
                   ]
@@ -240,8 +265,6 @@ def make_test_middleware(app, global_conf):
     challengers = [('redirector', redirector),
                    ('basicauth', basicauth)]
     mdproviders = []
-    from repoze.who.classifiers import default_request_classifier
-    from repoze.who.classifiers import default_challenge_decider
     log_stream = None
     import os
     if os.environ.get('WHO_LOG'):
@@ -252,8 +275,8 @@ def make_test_middleware(app, global_conf):
         authenticators,
         challengers,
         mdproviders,
-        default_request_classifier,
-        default_challenge_decider,
+        classifiers.default_request_classifier,
+        classifiers.default_challenge_decider,
         log_stream = log_stream,
         log_level = logging.DEBUG
         )

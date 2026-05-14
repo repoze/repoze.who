@@ -1,7 +1,7 @@
 import base64
 import http.cookies
-import wsgiref.util
 import wsgiref.headers
+import wsgiref.util
 
 
 def encodestring(value):
@@ -33,7 +33,8 @@ def get_cookies(environ):
     cookies = http.cookies.SimpleCookie()
     try:
         cookies.load(header)
-    except http.cookies.CookieError: #pragma NO COVER (can't see how to provoke this)
+    except http.cookies.CookieError: # pragma NO COVER
+        # (can't see how to provoke this)
         pass
     environ['paste.cookies'] = (cookies, header)
     return cookies
