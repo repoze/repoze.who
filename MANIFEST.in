@@ -1,0 +1,13 @@
+include *.rst
+include *.txt
+include tox.ini
+prune docs/_build
+recursive-include docs *.css
+recursive-include docs *.gif
+recursive-include docs *.ini
+recursive-include docs *.png
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include docs Makefile
+recursive-include tests *.htpasswd
+recursive-include tests *.py
