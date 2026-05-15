@@ -7,7 +7,7 @@ where = ["src"]
 
 [project]
 name = "repoze.who"
-version = "3.2.0dev0"
+version = "3.2.0rc1"
 description = "Identification and authentication framework for WSGI."
 readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = ">=3.10"

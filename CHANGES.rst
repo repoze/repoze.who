@@ -1,8 +1,8 @@
 repoze.who Changelog
 ====================
 
-3.2.0 (Unreleased)
-------------------
+3.2.0rc1 (2026-05-14)
+---------------------
 
 - ci: publish to PyPI on release
 
@@ -12,12 +12,17 @@ repoze.who Changelog
 
 - Drop support for Python 3.9.
 
+- Add linting checks for coding anti-patterns, formatting, and build-time
+  errrors.
+
 - Remove ``pkg_resources`` usage from runtime resolution paths.
 
 - Switch ``repoze`` / ``repoze.who`` / ``repoze.who.plugins`` to native
   namespace packages.
 
 - Migrate packaging metadata to ``pyproject.toml``.
+
+- Adopt ``src/`` + ``tests/unit`` layout.
 
 - Require ``module:object`` plugin references in config; legacy
   ``module.object`` syntax is no longer supported.
